@@ -1,0 +1,17 @@
+
+dataSources:
+
+  - name: openmrs_neno
+    serverName: localhost
+    port: 3306
+    databaseName: openmrs_neno
+    user: root
+    password: root
+
+  - name: openmrs_rwink
+    serverName: localhost
+    port: 3306
+    databaseName: openmrs_rwink
+    user: root
+    password: root
+
