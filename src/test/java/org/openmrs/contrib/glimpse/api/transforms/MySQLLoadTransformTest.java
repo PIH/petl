@@ -16,18 +16,17 @@ import java.util.Map;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
-public class MySQLLoadTransformsTest implements Serializable {
+public class MySQLLoadTransformTest implements Serializable {
 
     @Autowired
-    private MySQLLoadTransforms mySQLLoadTransforms;
+    private MySQLLoadTransform mySQLLoadTransforms;
 
     @Test
     public void test()  {
 
         Pipeline pipeline = TestPipeline.create();
 
-        PCollection output = pipeline.apply(mySQLLoadTransforms.getTransform());
-
+        PCollection output = pipeline.apply(mySQLLoadTransforms.getTransform("sql/extract-patients.sql"));
 
         PAssert.that(output)
                 .satisfies(new SerializableFunction<Iterable<Map<String, Object>>, Void>() {
@@ -35,11 +34,12 @@ public class MySQLLoadTransformsTest implements Serializable {
                     public Void apply(Iterable<Map<String, Object>> input) {
                         for (Map<String, Object> element : input) {
                             // TODO actually do a test here?
-                            System.out.println(element.get("patient_id"));
-                            System.out.println(element.get("birthdate"));
+                            for (Map.Entry<String, Object> entry : element.entrySet()) {
+                                System.out.println(entry.getKey() + ": " + entry.getValue().toString());
+                            }
+
                         }
                         return null;
-
                     }
                 });
 
