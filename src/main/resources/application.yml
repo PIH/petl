@@ -1,17 +1,13 @@
 
-dataSources:
+datasource:
 
-  - name: openmrs_neno
-    serverName: localhost
-    port: 3306
-    databaseName: openmrs_neno
+  openmrs:
+    url: jdbc:mysql://localhost:3306/openmrs_neno?autoReconnect=true&sessionVariables=storage_engine=InnoDB&useUnicode=true&characterEncoding=UTF-8
     user: root
     password: root
 
-  - name: openmrs_rwink
-    serverName: localhost
-    port: 3306
-    databaseName: openmrs_rwink
+  analysis:
+    url: jdbc:mysql://localhost:3306/reporting_test?autoReconnect=true&sessionVariables=storage_engine=InnoDB&useUnicode=true&characterEncoding=UTF-8
     user: root
     password: root
 

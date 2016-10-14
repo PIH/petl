@@ -1,6 +1,5 @@
 package org.openmrs.contrib.glimpse.api.transforms;
 
-import com.mysql.jdbc.jdbc2.optional.MysqlDataSource;
 import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.coders.MapCoder;
 import org.apache.beam.sdk.coders.StringUtf8Coder;
@@ -10,8 +9,11 @@ import org.apache.beam.sdk.options.PipelineOptionsFactory;
 import org.apache.beam.sdk.transforms.PTransform;
 import org.apache.beam.sdk.values.PBegin;
 import org.apache.beam.sdk.values.PCollection;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
+import javax.sql.DataSource;
 import java.io.Serializable;
 import java.sql.Date;
 import java.sql.PreparedStatement;
@@ -33,6 +35,12 @@ import java.util.Map;
 @Component
 public class LoadPatientsFromOpenMRS implements Serializable {
 
+    @Autowired @Qualifier("openmrsDataSource")
+    DataSource openmrsDataSource;
+
+    @Autowired @Qualifier("analysisDataSource")
+    DataSource analysisDataSource;
+
     /**
      * Beam operates on a series of transforms in a pipeline.  To execute transforms sequentially, the output collection of one transform
      * must match the input collection of the next transform.
@@ -43,14 +51,7 @@ public class LoadPatientsFromOpenMRS implements Serializable {
      * I am not 100% sure yet how we could support returning values of differing datatypes as the values in the Map, given the available Coders.  TODO
      */
     public PTransform<PBegin, PCollection<Map<String, String>>> getReadTransform() {
-        MysqlDataSource dataSource = new MysqlDataSource();
-        dataSource.setServerName("localhost");
-        dataSource.setPort(3306);
-        dataSource.setDatabaseName("openmrs_neno");
-        dataSource.setUser("root");
-        dataSource.setPassword("root");
-
-        JdbcIO.DataSourceConfiguration config = JdbcIO.DataSourceConfiguration.create(dataSource);
+        JdbcIO.DataSourceConfiguration config = JdbcIO.DataSourceConfiguration.create(openmrsDataSource);
 
         String query = "select p.patient_id, n.uuid as uuid, n.gender, n.birthdate from patient p, person n where p.patient_id = n.person_id and p.voided = 0 and n.voided = 0";
         PTransform<PBegin, PCollection<Map<String, String>>> transform = JdbcIO.<Map<String, String>>read().withDataSourceConfiguration(config).withQuery(query).withRowMapper(new JdbcIO.RowMapper<Map<String, String>>() {
@@ -73,13 +74,7 @@ public class LoadPatientsFromOpenMRS implements Serializable {
      * It executes a prepared statement for each of these collection elements, and uses the Map as the data values in the sql substitution
      */
     public PTransform getWriteTransform() {
-        MysqlDataSource dataSource = new MysqlDataSource();
-        dataSource.setServerName("localhost");
-        dataSource.setPort(3306);
-        dataSource.setDatabaseName("reporting_test");
-        dataSource.setUser("root");
-        dataSource.setPassword("root");
-        JdbcIO.DataSourceConfiguration config = JdbcIO.DataSourceConfiguration.create(dataSource);
+        JdbcIO.DataSourceConfiguration config = JdbcIO.DataSourceConfiguration.create(analysisDataSource);
 
         String writeStatement = "INSERT INTO patient (uuid, birthdate, gender) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE birthdate=?, gender=?";
 

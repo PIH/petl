@@ -1,5 +1,6 @@
 package org.openmrs.contrib.glimpse;
 
+import com.mysql.jdbc.jdbc2.optional.MysqlDataSource;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -15,11 +16,18 @@ public class GlimpseApplicationTests {
     GlimpseApplication app;
 
     @Test
-    public void contextLoads() {
-
-        System.out.println(app.getDataSources());
-        Assert.assertEquals(2, app.getDataSources().size());
-
+    public void contextLoads() throws Exception {
+        Assert.assertNotNull(app);
+        {
+            MysqlDataSource omrsDb = app.openmrsDataSource();
+            Assert.assertTrue(omrsDb.getURL() != null && omrsDb.getUrl().contains("localhost:3306"));
+            Assert.assertEquals("root", omrsDb.getUser());
+        }
+        {
+            MysqlDataSource analysisDb = app.analysisDataSource();
+            Assert.assertTrue(analysisDb.getURL() != null && analysisDb.getUrl().contains("localhost:3306"));
+            Assert.assertEquals("root", analysisDb.getUser());
+        }
     }
 
 }
