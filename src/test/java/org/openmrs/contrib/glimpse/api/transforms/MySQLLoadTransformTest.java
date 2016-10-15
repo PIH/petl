@@ -35,7 +35,7 @@ public class MySQLLoadTransformTest implements Serializable {
                         for (Map<String, Object> element : input) {
                             // TODO actually do a test here?
                             for (Map.Entry<String, Object> entry : element.entrySet()) {
-                                System.out.println(entry.getKey() + ": " + entry.getValue().toString());
+                                System.out.println(entry.getKey() + ": " + entry.getValue());
                             }
 
                         }

@@ -2,6 +2,7 @@ package org.openmrs.contrib.glimpse.api.transforms;
 
 import org.apache.beam.sdk.coders.AvroCoder;
 import org.apache.beam.sdk.coders.MapCoder;
+import org.apache.beam.sdk.coders.NullableCoder;
 import org.apache.beam.sdk.coders.StringUtf8Coder;
 import org.apache.beam.sdk.io.jdbc.JdbcIO;
 import org.apache.beam.sdk.transforms.PTransform;
@@ -40,11 +41,11 @@ public class MySQLLoadTransform implements Serializable {
                 Integer columnCount = metaData.getColumnCount();
                 Map<String, Object> row = new LinkedHashMap<>();
                 for (int i = 1; i <= columnCount; i++) {
-                    row.put(metaData.getColumnName(i), resultSet.getObject(i) != null ? resultSet.getObject(i) : "");
+                    row.put(metaData.getColumnName(i), resultSet.getObject(i));
                 }
                 return row;
             }
-        }).withCoder(MapCoder.of(StringUtf8Coder.of(), AvroCoder.of(Object.class)));
+        }).withCoder(MapCoder.of(StringUtf8Coder.of(), NullableCoder.of(AvroCoder.of(Object.class))));
 
         return transform;
     }
