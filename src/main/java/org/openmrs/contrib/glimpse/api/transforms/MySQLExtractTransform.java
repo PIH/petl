@@ -50,4 +50,9 @@ public class MySQLExtractTransform implements Serializable {
         return transform;
     }
 
+
+    // for overriding datasource in testing
+    public void setOpenmrsDataSource(DataSource openmrsDataSource) {
+        this.openmrsDataSource = openmrsDataSource;
+    }
 }
