@@ -23,7 +23,6 @@ import java.util.Map;
 @Component
 public class MySQLExtractTransform implements Serializable {
 
-
     @Autowired
     @Qualifier("openmrsDataSource")
     DataSource openmrsDataSource;
