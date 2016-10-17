@@ -21,7 +21,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 @Component
-public class MySQLLoadTransform implements Serializable {
+public class MySQLExtractTransform implements Serializable {
 
 
     @Autowired
@@ -45,7 +45,7 @@ public class MySQLLoadTransform implements Serializable {
                 }
                 return row;
             }
-        }).withCoder(MapCoder.of(StringUtf8Coder.of(), NullableCoder.of(AvroCoder.of(Object.class))));
+        }).withCoder(MapCoder.of(StringUtf8Coder.of(), NullableCoder.of(AvroCoder.of(Object.class))));  // TODO does this avrocoder actually do what we need it to do?
 
         return transform;
     }

@@ -16,17 +16,17 @@ import java.util.Map;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
-public class MySQLLoadTransformTest implements Serializable {
+public class MySQLExtractTransformTest implements Serializable {
 
     @Autowired
-    private MySQLLoadTransform mySQLLoadTransforms;
+    private MySQLExtractTransform mySQLExtractTransforms;
 
     @Test
     public void test()  {
 
         Pipeline pipeline = TestPipeline.create();
 
-        PCollection output = pipeline.apply(mySQLLoadTransforms.getTransform("sql/extract-patients.sql"));
+        PCollection output = pipeline.apply(mySQLExtractTransforms.getTransform("sql/extract-patients.sql"));
 
         PAssert.that(output)
                 .satisfies(new SerializableFunction<Iterable<Map<String, Object>>, Void>() {
