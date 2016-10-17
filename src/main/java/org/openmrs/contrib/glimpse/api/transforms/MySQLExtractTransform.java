@@ -29,11 +29,12 @@ public class MySQLExtractTransform implements Serializable {
     DataSource openmrsDataSource;
 
     public PTransform<PBegin, PCollection<Map<String, Object>>> getTransform(String sqlfile) {
+
         JdbcIO.DataSourceConfiguration config = JdbcIO.DataSourceConfiguration.create(openmrsDataSource);
 
-            String query = GlimpseUtils.readFile(sqlfile);
+        String query = GlimpseUtils.readFile(sqlfile);
 
-            PTransform<PBegin, PCollection<Map<String, Object>>> transform = JdbcIO.<Map<String, Object>>read().withDataSourceConfiguration(config).withQuery(query).withRowMapper(new JdbcIO.RowMapper<Map<String, Object>>() {
+        PTransform<PBegin, PCollection<Map<String, Object>>> transform = JdbcIO.<Map<String, Object>>read().withDataSourceConfiguration(config).withQuery(query).withRowMapper(new JdbcIO.RowMapper<Map<String, Object>>() {
 
             @Override
             public Map<String, Object> mapRow(ResultSet resultSet) throws Exception {
