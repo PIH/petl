@@ -1,8 +1,7 @@
 /*
   Extracts basic attributes of a patient that are directly accessible from the patient and person tables
  */
-select      p.patient_id,
-            n.uuid as patient_uuid,
+select      n.uuid as uuid,
             n.gender,
             n.birthdate,
             n.birthdate_estimated,
