@@ -12,3 +12,5 @@ select      p.patient_id,
             n.cause_of_death
 from        patient p
 inner join  person n on p.patient_id = n.person_id
+where       p.voided = 0
+and         n.voided = 0
