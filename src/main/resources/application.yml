@@ -1,13 +1,21 @@
 
-datasource:
+targetEnvironment:
+  databaseConnection:
+    connectionName: "Warehouse"
+    hostname: "localhost"
+    port: 3308
+    databaseName: "pentaho_neno"
+    username: "root"
+    password: "root"
 
-  openmrs:
-    url: jdbc:mysql://localhost:3306/openmrs_neno?autoReconnect=true&sessionVariables=storage_engine=InnoDB&useUnicode=true&characterEncoding=UTF-8
-    user: root
-    password: root
-
-  analysis:
-    url: jdbc:mysql://localhost:3306/reporting_test?autoReconnect=true&sessionVariables=storage_engine=InnoDB&useUnicode=true&characterEncoding=UTF-8
-    user: root
-    password: root
-
+sourceEnvironments:
+  - name: "Neno"
+    country: "malawi"
+    databaseConnection:
+        connectionName: "OpenMRS"
+        hostname: "localhost"
+        port: 3308
+        databaseName: "openmrs"
+        username: "root"
+        password: "root"
+    keyPrefix: "100"

@@ -1,6 +1,7 @@
 package org.openmrs.contrib.glimpse;
 
 import com.mysql.jdbc.jdbc2.optional.MysqlDataSource;
+import org.openmrs.contrib.glimpse.api.config.Config;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -28,19 +29,16 @@ import java.sql.SQLException;
 @Configuration
 public class GlimpseApplication {
 
+    @ConfigurationProperties
+    @Bean
+    Config getConfig() {
+        return new Config();
+    }
+
+    /**
+     * Run the application
+     */
 	public static void main(String[] args) {
 		SpringApplication.run(GlimpseApplication.class, args);
 	}
-
-    @ConfigurationProperties(prefix = "datasource.openmrs")
-    @Bean
-    MysqlDataSource openmrsDataSource() throws SQLException {
-        return new MysqlDataSource();  // TODO: Add ability to specify a different database type
-    }
-
-    @ConfigurationProperties(prefix = "datasource.analysis")
-    @Bean
-    MysqlDataSource analysisDataSource() throws SQLException {
-        return new MysqlDataSource();  // TODO: Add ability to specify a different database type
-    }
 }

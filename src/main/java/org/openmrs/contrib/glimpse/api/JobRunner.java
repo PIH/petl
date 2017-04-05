@@ -22,17 +22,20 @@
 
 package org.openmrs.contrib.glimpse.api;
 
+import org.pentaho.di.core.Const;
 import org.pentaho.di.core.KettleEnvironment;
 import org.pentaho.di.core.Result;
-import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.logging.KettleLogStore;
 import org.pentaho.di.core.logging.LogLevel;
 import org.pentaho.di.core.logging.LoggingBuffer;
 import org.pentaho.di.job.Job;
 import org.pentaho.di.job.JobMeta;
 
+import java.io.File;
+import java.io.FileWriter;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 
 /**
  * This class is responsible for running a Pentaho Job
@@ -55,10 +58,28 @@ public class JobRunner {
     /**
      * Runs this job
      */
-    public void runJob() throws KettleException {
+    public void runJob() throws Exception {
+
+        System.out.println("***************************************************************************************");
+        System.out.println("Initializing the Kettle environment");
+        System.out.println("***************************************************************************************\n");
 
         // Initialize the Kettle environment
         KettleEnvironment.init();
+
+        // TODO: This isn't a great approach, but it fits with our current kettle setup with Spoon, so working with that for step 1
+
+        System.out.println("Configuring kettle.properties");
+        Properties kettleProperties = new Properties();
+        kettleProperties.put("PIH_PENTAHO_HOME", "/home/mseaton/code/pih-pentaho");
+        kettleProperties.store(new FileWriter(new File(Const.getKettleDirectory(), "kettle.properties")), null);
+
+        System.out.println("Configuring pih-kettle.properties");
+        Properties pihKettleProperties = new Properties();
+        for (Map.Entry<String, String> e : parameters.entrySet()) {
+            pihKettleProperties.put(e.getKey(), e.getValue());
+        }
+        pihKettleProperties.store(new FileWriter(new File(Const.getKettleDirectory(), "pih-kettle.properties")), null);
 
         System.out.println("***************************************************************************************");
         System.out.println("Running job: " + filename);
@@ -85,6 +106,7 @@ public class JobRunner {
         System.out.println( "Starting job" );
 
         // Start the job thread, which will execute asynchronously, and wait until it is finished
+
         job.start();
         job.waitUntilFinished();
 
