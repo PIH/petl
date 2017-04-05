@@ -1,15 +1,23 @@
 package org.openmrs.contrib.glimpse;
 
-import com.mysql.jdbc.jdbc2.optional.MysqlDataSource;
+import org.apache.commons.lang.time.StopWatch;
+import org.openmrs.contrib.glimpse.api.JobRunner;
 import org.openmrs.contrib.glimpse.api.config.Config;
+import org.openmrs.contrib.glimpse.api.config.DatabaseConnection;
+import org.openmrs.contrib.glimpse.api.config.SourceEnvironment;
+import org.openmrs.contrib.glimpse.api.config.TargetEnvironment;
+import org.pentaho.di.core.logging.LogLevel;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * This mainly just serves to demonstrate that we can start up and run our Spring Boot application.
@@ -39,6 +47,57 @@ public class GlimpseApplication {
      * Run the application
      */
 	public static void main(String[] args) {
-		SpringApplication.run(GlimpseApplication.class, args);
+        ApplicationContext context = SpringApplication.run(GlimpseApplication.class, args);
+
+        // Normally for a web application, we would run above, and that's it
+        // For now, we want this application to start up, run a job, and then exit
+        // We determine what job to run, and what LogLevel to use from the arguments passed in
+        // Arg1:  The absolute path of the kjb file to run
+        // Arg2:  Optional: The LogLevel to use [NOTHING, ERROR, MINIMAL, BASIC, DETAILED, DEBUG, ROWLEVEL] (default is BASIC)
+
+        try {
+            String jobPath = args[0];
+            LogLevel logLevel = args.length > 1 ? LogLevel.valueOf(args[1]) : LogLevel.BASIC;
+
+            GlimpseApplication app = context.getBean(GlimpseApplication.class);
+            TargetEnvironment targetEnvironment = app.getConfig().getTargetEnvironment();
+            DatabaseConnection targetDb = targetEnvironment.getDatabaseConnection();
+            List<SourceEnvironment> sources = app.getConfig().getSourceEnvironments();
+
+            for (SourceEnvironment source : sources) {
+                DatabaseConnection sourceDb = source.getDatabaseConnection();
+                Map<String, String> parameters = new HashMap<>();
+                parameters.put("pih.country", source.getCountry());
+                parameters.put("openmrs.db.host", sourceDb.getHostname());
+                parameters.put("openmrs.db.port", sourceDb.getPort().toString());
+                parameters.put("openmrs.db.name", sourceDb.getDatabaseName());
+                parameters.put("openmrs.db.user", sourceDb.getUsername());
+                parameters.put("openmrs.db.password", sourceDb.getPassword());
+                parameters.put("warehouse.db.host", targetDb.getHostname());
+                parameters.put("warehouse.db.port", targetDb.getPort().toString());
+                parameters.put("warehouse.db.name", targetDb.getDatabaseName());
+                parameters.put("warehouse.db.user", targetDb.getUsername());
+                parameters.put("warehouse.db.password", targetDb.getPassword());
+                parameters.put("warehouse.db.key_prefix", source.getKeyPrefix());
+
+                StopWatch stopWatch = new StopWatch();
+                stopWatch.start();
+                System.out.println("Loading " + source.getName() + " into " + targetEnvironment.getDatabaseConnection().getDatabaseName());
+
+                JobRunner jr = new JobRunner(jobPath);
+                jr.setParameters(parameters);
+                jr.setLogLevel(logLevel);
+                jr.runJob();
+
+                stopWatch.stop();
+                System.out.println("Job executed in:  " + stopWatch.toString());
+            }
+        }
+        catch (Exception e) {
+            throw new RuntimeException("Unable to execute job", e);
+        }
+        finally {
+            SpringApplication.exit(context);
+        }
 	}
 }

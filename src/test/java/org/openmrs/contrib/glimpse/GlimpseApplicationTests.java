@@ -59,34 +59,8 @@ public class GlimpseApplicationTests {
     }
 
     @Test
-    @Ignore
     public void jobRunnerRunsJobs() throws Exception {
-
-        TargetEnvironment targetEnvironment = app.getConfig().getTargetEnvironment();
-        DatabaseConnection targetDb = targetEnvironment.getDatabaseConnection();
-        List<SourceEnvironment> sources = app.getConfig().getSourceEnvironments();
-
-        for (SourceEnvironment source : sources) {
-            DatabaseConnection sourceDb = source.getDatabaseConnection();
-            Map<String, String> parameters = new HashMap<>();
-            parameters.put("pih.country", source.getCountry());
-            parameters.put("openmrs.db.host", sourceDb.getHostname());
-            parameters.put("openmrs.db.port", sourceDb.getPort().toString());
-            parameters.put("openmrs.db.name", sourceDb.getDatabaseName());
-            parameters.put("openmrs.db.user", sourceDb.getUsername());
-            parameters.put("openmrs.db.password", sourceDb.getPassword());
-            parameters.put("warehouse.db.host", targetDb.getHostname());
-            parameters.put("warehouse.db.port", targetDb.getPort().toString());
-            parameters.put("warehouse.db.name", targetDb.getDatabaseName());
-            parameters.put("warehouse.db.user", targetDb.getUsername());
-            parameters.put("warehouse.db.password", targetDb.getPassword());
-            parameters.put("warehouse.db.key_prefix", source.getKeyPrefix());
-
-            JobRunner jr = new JobRunner("/home/mseaton/code/pih-pentaho/malawi/jobs/refresh-warehouse.kjb");
-            jr.setParameters(parameters);
-            jr.setLogLevel(LogLevel.BASIC);
-            jr.runJob();
-        }
+        GlimpseApplication.main(new String[] {"/home/mseaton/code/pih-pentaho/malawi/jobs/refresh-warehouse.kjb", "BASIC"});
     }
 
 }
