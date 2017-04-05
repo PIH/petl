@@ -70,26 +70,38 @@
 		</dependency>
 
         <!--
-            Apache Beam.  In order to support this, currently, you need to clone from master in the apache beam repository
-            and do a local maven install, as the 0.3.0-incubating-SNAPSHOT libraries are not available otherwise
-            We need this version specificaly, as this is where the JDBC IO transforms have been added.
-            git clone https://git-wip-us.apache.org/repos/asf/incubator-beam.git
+            Pentaho Kettle
         -->
 
         <dependency>
-            <groupId>org.apache.beam</groupId>
-            <artifactId>beam-sdks-java-core</artifactId>
-            <version>0.3.0-incubating-SNAPSHOT</version>
+            <groupId>pentaho-kettle</groupId>
+            <artifactId>kettle-core</artifactId>
+            <version>7.1-SNAPSHOT</version>
+            <exclusions>
+                <exclusion>
+                    <artifactId>xercesImpl</artifactId>
+                    <groupId>xerces</groupId>
+                </exclusion>
+            </exclusions>
+            <scope>compile</scope>
         </dependency>
         <dependency>
-            <groupId>org.apache.beam</groupId>
-            <artifactId>beam-runners-direct-java</artifactId>
-            <version>0.3.0-incubating-SNAPSHOT</version>
+            <groupId>pentaho-kettle</groupId>
+            <artifactId>kettle-engine</artifactId>
+            <version>7.1-SNAPSHOT</version>
+            <scope>compile</scope>
         </dependency>
         <dependency>
-            <groupId>org.apache.beam</groupId>
-            <artifactId>beam-sdks-java-io-jdbc</artifactId>
-            <version>0.3.0-incubating-SNAPSHOT</version>
+            <groupId>rhino</groupId>
+            <artifactId>js</artifactId>
+            <version>1.7R3</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>javax.mail</groupId>
+            <artifactId>mail</artifactId>
+            <version>1.4.7</version>
+            <scope>compile</scope>
         </dependency>
 
 		<!-- test dependencies -->
@@ -130,5 +142,35 @@
 		</plugins>
 	</build>
 
+    <repositories>
+        <repository>
+            <id>pentaho.resolve.repo</id>
+            <name>Pentaho Omni</name>
+            <url>http://nexus.pentaho.org/content/groups/omni</url>
+            <releases>
+                <enabled>true</enabled>
+                <updatePolicy>always</updatePolicy>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+                <updatePolicy>always</updatePolicy>
+            </snapshots>
+        </repository>
+    </repositories>
+    <pluginRepositories>
+        <pluginRepository>
+            <id>plugins</id>
+            <name>Maven Central</name>
+            <url>http://nexus.pentaho.org/content/groups/omni</url>
+            <releases>
+                <enabled>true</enabled>
+                <updatePolicy>daily</updatePolicy>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+                <updatePolicy>always</updatePolicy>
+            </snapshots>
+        </pluginRepository>
+    </pluginRepositories>
 
 </project>
