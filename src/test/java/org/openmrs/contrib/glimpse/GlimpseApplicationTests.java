@@ -1,6 +1,7 @@
 package org.openmrs.contrib.glimpse;
 
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.openmrs.contrib.glimpse.api.JobRunner;
@@ -58,6 +59,7 @@ public class GlimpseApplicationTests {
     }
 
     @Test
+    @Ignore
     public void jobRunnerRunsJobs() throws Exception {
 
         TargetEnvironment targetEnvironment = app.getConfig().getTargetEnvironment();
