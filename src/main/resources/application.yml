@@ -1,4 +1,10 @@
 
+logging:
+  file: "/home/mseaton/environments/petl/logs/petl.log"
+  level:
+    root: "WARN"
+    org.pih: "DEBUG"
+
 targetEnvironment:
   databaseConnection:
     connectionName: "Warehouse"

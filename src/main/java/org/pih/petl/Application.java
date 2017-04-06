@@ -1,12 +1,13 @@
 package org.pih.petl;
 
-import org.apache.commons.lang.time.StopWatch;
+import org.apache.commons.lang.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.pentaho.di.core.logging.LogLevel;
 import org.pih.petl.api.JobRunner;
 import org.pih.petl.api.config.Config;
-import org.pih.petl.api.config.DatabaseConnection;
 import org.pih.petl.api.config.SourceEnvironment;
 import org.pih.petl.api.config.TargetEnvironment;
-import org.pentaho.di.core.logging.LogLevel;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -15,9 +16,10 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import java.util.HashMap;
+import java.io.File;
+import java.lang.management.ManagementFactory;
+import java.lang.management.RuntimeMXBean;
 import java.util.List;
-import java.util.Map;
 
 /**
  * This mainly just serves to demonstrate that we can start up and run our Spring Boot application.
@@ -37,6 +39,10 @@ import java.util.Map;
 @Configuration
 public class Application {
 
+    private static final Log log = LogFactory.getLog(Application.class);
+
+    public static final String ENV_PETL_HOME = "PETL_HOME";
+
     @ConfigurationProperties
     @Bean
     Config getConfig() {
@@ -47,6 +53,22 @@ public class Application {
      * Run the application
      */
 	public static void main(String[] args) {
+
+        log.info("Starting up PETL");
+
+        RuntimeMXBean runtimeMxBean = ManagementFactory.getRuntimeMXBean();
+        log.info("JAVA VM: " + runtimeMxBean.getVmName());
+        log.info("JAVA VENDOR: " + runtimeMxBean.getSpecVendor());
+        log.info("JAVA VERSION: " + runtimeMxBean.getSpecVersion() + " (" + runtimeMxBean.getVmVersion() + ")");
+        log.info("JAVA_OPTS: " + runtimeMxBean.getInputArguments());
+
+	    // Initialize environment
+        File petlHomeDir = getHomeDir();
+        log.info("PETL_HOME: " + petlHomeDir);
+
+        File petlLogFile = getLogFile();
+        log.info("LOGGING TO: " + petlLogFile);
+
         ApplicationContext context = SpringApplication.run(Application.class, args);
 
         // Normally for a web application, we would run above, and that's it
@@ -60,37 +82,16 @@ public class Application {
             LogLevel logLevel = args.length > 1 ? LogLevel.valueOf(args[1]) : LogLevel.BASIC;
 
             Application app = context.getBean(Application.class);
-            TargetEnvironment targetEnvironment = app.getConfig().getTargetEnvironment();
-            DatabaseConnection targetDb = targetEnvironment.getDatabaseConnection();
+            TargetEnvironment target = app.getConfig().getTargetEnvironment();
             List<SourceEnvironment> sources = app.getConfig().getSourceEnvironments();
 
             for (SourceEnvironment source : sources) {
-                DatabaseConnection sourceDb = source.getDatabaseConnection();
-                Map<String, String> parameters = new HashMap<>();
-                parameters.put("pih.country", source.getCountry());
-                parameters.put("openmrs.db.host", sourceDb.getHostname());
-                parameters.put("openmrs.db.port", sourceDb.getPort().toString());
-                parameters.put("openmrs.db.name", sourceDb.getDatabaseName());
-                parameters.put("openmrs.db.user", sourceDb.getUsername());
-                parameters.put("openmrs.db.password", sourceDb.getPassword());
-                parameters.put("warehouse.db.host", targetDb.getHostname());
-                parameters.put("warehouse.db.port", targetDb.getPort().toString());
-                parameters.put("warehouse.db.name", targetDb.getDatabaseName());
-                parameters.put("warehouse.db.user", targetDb.getUsername());
-                parameters.put("warehouse.db.password", targetDb.getPassword());
-                parameters.put("warehouse.db.key_prefix", source.getKeyPrefix());
-
-                StopWatch stopWatch = new StopWatch();
-                stopWatch.start();
-                System.out.println("Loading " + source.getName() + " into " + targetEnvironment.getDatabaseConnection().getDatabaseName());
-
-                JobRunner jr = new JobRunner(jobPath);
-                jr.setParameters(parameters);
-                jr.setLogLevel(logLevel);
-                jr.runJob();
-
-                stopWatch.stop();
-                System.out.println("Job executed in:  " + stopWatch.toString());
+                JobRunner jobRunner = new JobRunner();
+                jobRunner.setJobFilePath(jobPath);
+                jobRunner.setLogLevel(logLevel);
+                jobRunner.setSourceEnvironment(source);
+                jobRunner.setTargetEnvironment(target);
+                jobRunner.runJob();
             }
         }
         catch (Exception e) {
@@ -100,4 +101,38 @@ public class Application {
             SpringApplication.exit(context);
         }
 	}
+
+    /**
+     * @return the path to where PETL is installed, defined by the PETL_HOME environment variable
+     */
+    public static String getHomePath() {
+        String path = System.getenv(ENV_PETL_HOME);
+        if (StringUtils.isBlank(path)) {
+            throw new PetlException("The " + ENV_PETL_HOME + " environment variable is required.");
+        }
+        return path;
+    }
+
+    /**
+     * @return the File representing the PETL_HOME directory
+     */
+    public static File getHomeDir() {
+        String path = getHomePath();
+        File dir = new File(path);
+        if (!dir.exists() || !dir.isDirectory()) {
+            throw new PetlException("The " + ENV_PETL_HOME + " setting of <" + path + ">" + " does not point to a valid directory");
+        }
+        return dir;
+    }
+
+    /**
+     * @return the File representing the log file
+     */
+    public static File getLogFile() {
+        File dir = new File(getHomeDir(), "logs");
+        if (!dir.exists()) {
+            dir.mkdir();
+        }
+        return new File(dir, "petl.log");
+    }
 }
