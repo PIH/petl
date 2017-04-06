@@ -1,11 +1,11 @@
-package org.openmrs.contrib.glimpse;
+package org.pih.petl;
 
 import org.apache.commons.lang.time.StopWatch;
-import org.openmrs.contrib.glimpse.api.JobRunner;
-import org.openmrs.contrib.glimpse.api.config.Config;
-import org.openmrs.contrib.glimpse.api.config.DatabaseConnection;
-import org.openmrs.contrib.glimpse.api.config.SourceEnvironment;
-import org.openmrs.contrib.glimpse.api.config.TargetEnvironment;
+import org.pih.petl.api.JobRunner;
+import org.pih.petl.api.config.Config;
+import org.pih.petl.api.config.DatabaseConnection;
+import org.pih.petl.api.config.SourceEnvironment;
+import org.pih.petl.api.config.TargetEnvironment;
 import org.pentaho.di.core.logging.LogLevel;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -35,7 +35,7 @@ import java.util.Map;
 @SpringBootApplication
 @EnableConfigurationProperties
 @Configuration
-public class GlimpseApplication {
+public class Application {
 
     @ConfigurationProperties
     @Bean
@@ -47,7 +47,7 @@ public class GlimpseApplication {
      * Run the application
      */
 	public static void main(String[] args) {
-        ApplicationContext context = SpringApplication.run(GlimpseApplication.class, args);
+        ApplicationContext context = SpringApplication.run(Application.class, args);
 
         // Normally for a web application, we would run above, and that's it
         // For now, we want this application to start up, run a job, and then exit
@@ -59,7 +59,7 @@ public class GlimpseApplication {
             String jobPath = args[0];
             LogLevel logLevel = args.length > 1 ? LogLevel.valueOf(args[1]) : LogLevel.BASIC;
 
-            GlimpseApplication app = context.getBean(GlimpseApplication.class);
+            Application app = context.getBean(Application.class);
             TargetEnvironment targetEnvironment = app.getConfig().getTargetEnvironment();
             DatabaseConnection targetDb = targetEnvironment.getDatabaseConnection();
             List<SourceEnvironment> sources = app.getConfig().getSourceEnvironments();

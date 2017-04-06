@@ -11,7 +11,7 @@
  *
  * Copyright (C) OpenMRS, LLC.  All Rights Reserved.
  */
-package org.openmrs.contrib.glimpse.api.config;
+package org.pih.petl.api.config;
 
 public class DatabaseConnection {
 

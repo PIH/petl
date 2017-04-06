@@ -1,4 +1,4 @@
-package org.openmrs.contrib.glimpse.web;
+package org.pih.petl.web;
 
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.stereotype.Controller;
@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 @EnableAutoConfiguration
 /**
  * This mainly just serves to demonstrate that we can serve up web content
- * Run the GlimpseApplication class from Intellij, and then navigate to localhost:8080 and see "Hello World"
+ * Run the Application class from Intellij, and then navigate to localhost:8080 and see "Hello World"
  */
 public class HelloWorldController {
 

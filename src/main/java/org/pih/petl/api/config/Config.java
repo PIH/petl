@@ -1,9 +1,9 @@
-package org.openmrs.contrib.glimpse.api.config;
+package org.pih.petl.api.config;
 
 import java.util.List;
 
 /**
- * Encapsulates the Configuration properties for the Glimpse Application
+ * Encapsulates the Configuration properties for the Application
  */
 public class Config {
 

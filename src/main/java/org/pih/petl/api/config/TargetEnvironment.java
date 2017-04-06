@@ -11,38 +11,19 @@
  *
  * Copyright (C) OpenMRS, LLC.  All Rights Reserved.
  */
-package org.openmrs.contrib.glimpse.api.config;
+package org.pih.petl.api.config;
 
-public class SourceEnvironment {
+public class TargetEnvironment {
 
 	//***** PROPERTIES *****
 
-    private String name;
-    private String country;
 	private DatabaseConnection databaseConnection;
-	private String keyPrefix;
 
     //***** CONSTRUCTORS *****
 
-    public SourceEnvironment() {}
+    public TargetEnvironment() {}
 
     //***** ACCESSORS *****
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getCountry() {
-        return country;
-    }
-
-    public void setCountry(String country) {
-        this.country = country;
-    }
 
     public DatabaseConnection getDatabaseConnection() {
         return databaseConnection;
@@ -50,13 +31,5 @@ public class SourceEnvironment {
 
     public void setDatabaseConnection(DatabaseConnection databaseConnection) {
         this.databaseConnection = databaseConnection;
-    }
-
-    public String getKeyPrefix() {
-        return keyPrefix;
-    }
-
-    public void setKeyPrefix(String keyPrefix) {
-        this.keyPrefix = keyPrefix;
     }
 }
