@@ -83,6 +83,7 @@ public class JobRunner {
                 Properties kettleProperties = new Properties();
                 kettleProperties.put("PIH_PENTAHO_HOME", srcDir.getAbsolutePath());
                 kettleProperties.store(new FileWriter(new File(kettleDir, "kettle.properties")), null);
+                log.info("Wrote kettle.properties to " + kettleDir);
             }
             catch (IOException e) {
                 throw new PetlException("Unable to initialize kettle environemnt.  Error writing to kettle.properties.", e);
@@ -90,6 +91,8 @@ public class JobRunner {
 
             // Initialize the Kettle environment
             try {
+                log.info("Initializing Kettle Environment");
+                log.info("KETTLE_HOME = " + System.getProperty("KETTLE_HOME"));
                 KettleEnvironment.init();
             }
             catch (KettleException e) {
@@ -113,6 +116,7 @@ public class JobRunner {
                 p.put("warehouse.db.password", targetDb.getPassword());
                 p.put("warehouse.db.key_prefix", getSourceEnvironment().getKeyPrefix());
                 p.store(new FileWriter(new File(kettleDir, "pih-kettle.properties")), null);
+                log.info("Wrote pih-kettle.properties to " + kettleDir);
             }
             catch (IOException e) {
                 throw new PetlException("Unable to initialize kettle environemnt.  Error writing to pih-kettle.properties.", e);
