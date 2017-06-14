@@ -54,7 +54,8 @@ public class ApplicationTests {
 
     @Test
     public void jobRunnerRunsJobs() throws Exception {
-        Application.main(new String[] {"/home/mseaton/code/pih-pentaho/malawi/jobs/refresh-warehouse.kjb", "BASIC"});
+        String country = app.getConfig().getSourceEnvironments().get(0).getCountry();
+        Application.main(new String[] {"/home/mseaton/code/pih-pentaho/" + country + "/jobs/refresh-warehouse.kjb", "BASIC"});
     }
 
 }

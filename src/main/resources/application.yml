@@ -10,12 +10,12 @@ targetEnvironment:
     connectionName: "Warehouse"
     hostname: "localhost"
     port: 3308
-    databaseName: "pentaho_neno"
+    databaseName: "openmrs_warehouse"
     username: "root"
     password: "root"
 
 sourceEnvironments:
-  - name: "Neno"
+  - name: "OpenMRS"
     country: "malawi"
     databaseConnection:
         connectionName: "OpenMRS"
@@ -24,4 +24,4 @@ sourceEnvironments:
         databaseName: "openmrs"
         username: "root"
         password: "root"
-    keyPrefix: "100"
+    keyPrefix: "10"
