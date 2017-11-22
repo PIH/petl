@@ -101,20 +101,24 @@ public class JobRunner {
 
             Properties p = new Properties();
             try {
-                DatabaseConnection sourceDb = getSourceEnvironment().getDatabaseConnection();
-                DatabaseConnection targetDb = getTargetEnvironment().getDatabaseConnection();
-                p.put("pih.country", getSourceEnvironment().getCountry());
-                p.put("openmrs.db.host", sourceDb.getHostname());
-                p.put("openmrs.db.port", sourceDb.getPort().toString());
-                p.put("openmrs.db.name", sourceDb.getDatabaseName());
-                p.put("openmrs.db.user", sourceDb.getUsername());
-                p.put("openmrs.db.password", sourceDb.getPassword());
-                p.put("warehouse.db.host", targetDb.getHostname());
-                p.put("warehouse.db.port", targetDb.getPort().toString());
-                p.put("warehouse.db.name", targetDb.getDatabaseName());
-                p.put("warehouse.db.user", targetDb.getUsername());
-                p.put("warehouse.db.password", targetDb.getPassword());
-                p.put("warehouse.db.key_prefix", getSourceEnvironment().getKeyPrefix());
+                if (getSourceEnvironment() != null) {
+                    DatabaseConnection sourceDb = getSourceEnvironment().getDatabaseConnection();
+                    p.put("pih.country", getSourceEnvironment().getCountry());
+                    p.put("openmrs.db.host", sourceDb.getHostname());
+                    p.put("openmrs.db.port", sourceDb.getPort().toString());
+                    p.put("openmrs.db.name", sourceDb.getDatabaseName());
+                    p.put("openmrs.db.user", sourceDb.getUsername());
+                    p.put("openmrs.db.password", sourceDb.getPassword());
+                    p.put("warehouse.db.key_prefix", getSourceEnvironment().getKeyPrefix());
+                }
+                if (getTargetEnvironment() != null) {
+                    DatabaseConnection targetDb = getTargetEnvironment().getDatabaseConnection();
+                    p.put("warehouse.db.host", targetDb.getHostname());
+                    p.put("warehouse.db.port", targetDb.getPort().toString());
+                    p.put("warehouse.db.name", targetDb.getDatabaseName());
+                    p.put("warehouse.db.user", targetDb.getUsername());
+                    p.put("warehouse.db.password", targetDb.getPassword());
+                }
                 p.store(new FileWriter(new File(kettleDir, "pih-kettle.properties")), null);
                 log.info("Wrote pih-kettle.properties to " + kettleDir);
             }
