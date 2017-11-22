@@ -110,6 +110,8 @@ public class JobRunner {
                     p.put("openmrs.db.user", sourceDb.getUsername());
                     p.put("openmrs.db.password", sourceDb.getPassword());
                     p.put("warehouse.db.key_prefix", getSourceEnvironment().getKeyPrefix());
+                    log.info("Country = " + getSourceEnvironment().getCountry());
+                    log.info("Source = " + getSourceEnvironment().getName());
                 }
                 if (getTargetEnvironment() != null) {
                     DatabaseConnection targetDb = getTargetEnvironment().getDatabaseConnection();
@@ -118,6 +120,7 @@ public class JobRunner {
                     p.put("warehouse.db.name", targetDb.getDatabaseName());
                     p.put("warehouse.db.user", targetDb.getUsername());
                     p.put("warehouse.db.password", targetDb.getPassword());
+                    log.info("Target = " + targetDb.getConnectionName());
                 }
                 p.store(new FileWriter(new File(kettleDir, "pih-kettle.properties")), null);
                 log.info("Wrote pih-kettle.properties to " + kettleDir);
@@ -148,7 +151,7 @@ public class JobRunner {
             StopWatch stopWatch = new StopWatch();
             stopWatch.start();
 
-            log.info("Starting Job Execution: " + sourceEnvironment.getName() + " -> " + targetEnvironment.getDatabaseConnection().getDatabaseName());
+            log.info("Starting Job Execution...");
 
             FileLoggingEventListener logger = setupLogger(job);
             job.start();  // Start the job thread, which will execute asynchronously
