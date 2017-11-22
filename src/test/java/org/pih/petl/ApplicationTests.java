@@ -31,7 +31,7 @@ public class ApplicationTests {
         assertThat(targetDbConnection.getConnectionName(), is("Warehouse"));
         assertThat(targetDbConnection.getHostname(), is("localhost"));
         assertThat(targetDbConnection.getPort(), is(3308));
-        assertThat(targetDbConnection.getDatabaseName(), is("pentaho_neno"));
+        assertThat(targetDbConnection.getDatabaseName(), is("openmrs_warehouse"));
         assertThat(targetDbConnection.getUsername(), is("root"));
         assertThat(targetDbConnection.getPassword(), is("root"));
 
@@ -39,9 +39,9 @@ public class ApplicationTests {
         assertThat(sources.size(), is(1));
 
         SourceEnvironment source = sources.get(0);
-        assertThat(source.getName(), is("Neno"));
+        assertThat(source.getName(), is("OpenMRS"));
         assertThat(source.getCountry(), is("malawi"));
-        assertThat(source.getKeyPrefix(), is("100"));
+        assertThat(source.getKeyPrefix(), is("10"));
 
         DatabaseConnection sourceDbConnection = source.getDatabaseConnection();
         assertThat(sourceDbConnection.getConnectionName(), is("OpenMRS"));
@@ -51,11 +51,4 @@ public class ApplicationTests {
         assertThat(sourceDbConnection.getUsername(), is("root"));
         assertThat(sourceDbConnection.getPassword(), is("root"));
     }
-
-    @Test
-    public void jobRunnerRunsJobs() throws Exception {
-        String country = app.getConfig().getSourceEnvironments().get(0).getCountry();
-        Application.main(new String[] {"/home/mseaton/code/pih-pentaho/" + country + "/jobs/refresh-warehouse.kjb", "BASIC"});
-    }
-
 }
