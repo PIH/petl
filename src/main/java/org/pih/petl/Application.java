@@ -19,7 +19,6 @@ import org.springframework.context.annotation.Configuration;
 import java.io.File;
 import java.lang.management.ManagementFactory;
 import java.lang.management.RuntimeMXBean;
-import java.util.List;
 
 /**
  * This mainly just serves to demonstrate that we can start up and run our Spring Boot application.
@@ -75,24 +74,37 @@ public class Application {
         // For now, we want this application to start up, run a job, and then exit
         // We determine what job to run, and what LogLevel to use from the arguments passed in
         // Arg1:  The absolute path of the kjb file to run
-        // Arg2:  Optional: The LogLevel to use [NOTHING, ERROR, MINIMAL, BASIC, DETAILED, DEBUG, ROWLEVEL] (default is BASIC)
+        // Arg2:  The LogLevel to use [NOTHING, ERROR, MINIMAL, BASIC, DETAILED, DEBUG, ROWLEVEL]
+        // Arg3:  The name of the source to connect to (if only 1 source is defined, can be left out)
 
         try {
             String jobPath = args[0];
-            LogLevel logLevel = args.length > 1 ? LogLevel.valueOf(args[1]) : LogLevel.BASIC;
+            LogLevel logLevel = args.length > 1 ? LogLevel.valueOf(args[1]) : LogLevel.MINIMAL;
+            String sourceEnvironmentName = args.length > 2 ? args[2] : null;
 
             Application app = context.getBean(Application.class);
             TargetEnvironment target = app.getConfig().getTargetEnvironment();
-            List<SourceEnvironment> sources = app.getConfig().getSourceEnvironments();
-
-            for (SourceEnvironment source : sources) {
-                JobRunner jobRunner = new JobRunner();
-                jobRunner.setJobFilePath(jobPath);
-                jobRunner.setLogLevel(logLevel);
-                jobRunner.setSourceEnvironment(source);
-                jobRunner.setTargetEnvironment(target);
-                jobRunner.runJob();
+            SourceEnvironment source = null;
+            for (SourceEnvironment se : app.getConfig().getSourceEnvironments()) {
+                if (se.getName().equalsIgnoreCase(sourceEnvironmentName)) {
+                    source = se;
+                }
             }
+            if (source == null) {
+                if (sourceEnvironmentName != null) {
+                    throw new IllegalArgumentException("Unable to find source environment named " + sourceEnvironmentName);
+                }
+                if (app.getConfig().getSourceEnvironments().size() == 1) {
+                    source = app.getConfig().getSourceEnvironments().get(0);
+                }
+            }
+
+            JobRunner jobRunner = new JobRunner();
+            jobRunner.setJobFilePath(jobPath);
+            jobRunner.setLogLevel(logLevel);
+            jobRunner.setSourceEnvironment(source);
+            jobRunner.setTargetEnvironment(target);
+            jobRunner.runJob();
         }
         catch (Exception e) {
             throw new RuntimeException("Unable to execute job", e);
