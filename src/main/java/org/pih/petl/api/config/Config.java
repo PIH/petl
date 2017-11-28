@@ -1,7 +1,5 @@
 package org.pih.petl.api.config;
 
-import java.util.List;
-
 /**
  * Encapsulates the Configuration properties for the Application
  */
@@ -9,8 +7,7 @@ public class Config {
 
     //***** PROPERTIES *****
 
-    private TargetEnvironment targetEnvironment;
-    private List<SourceEnvironment> sourceEnvironments;
+    private StartupJobs startupJobs;
 
     //***** CONSTRUCTORS *****
 
@@ -18,19 +15,12 @@ public class Config {
 
     //***** ACCESSORS *****
 
-    public TargetEnvironment getTargetEnvironment() {
-        return targetEnvironment;
+
+    public StartupJobs getStartupJobs() {
+        return startupJobs;
     }
 
-    public void setTargetEnvironment(TargetEnvironment targetEnvironment) {
-        this.targetEnvironment = targetEnvironment;
-    }
-
-    public List<SourceEnvironment> getSourceEnvironments() {
-        return sourceEnvironments;
-    }
-
-    public void setSourceEnvironments(List<SourceEnvironment> sourceEnvironments) {
-        this.sourceEnvironments = sourceEnvironments;
+    public void setStartupJobs(StartupJobs startupJobs) {
+        this.startupJobs = startupJobs;
     }
 }

@@ -5,23 +5,8 @@ logging:
     root: "WARN"
     org.pih: "DEBUG"
 
-targetEnvironment:
-  databaseConnection:
-    connectionName: "Warehouse"
-    hostname: "localhost"
-    port: 3308
-    databaseName: "openmrs_warehouse"
-    username: "root"
-    password: "root"
-
-sourceEnvironments:
-  - name: "OpenMRS"
-    country: "malawi"
-    databaseConnection:
-        connectionName: "OpenMRS"
-        hostname: "localhost"
-        port: 3308
-        databaseName: "openmrs"
-        username: "root"
-        password: "root"
-    keyPrefix: "10"
+startupJobs:
+  exitAutomatically: "true"
+  jobs:
+    - "/job1.properties"
+    - "/job2.properties"

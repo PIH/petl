@@ -13,23 +13,34 @@
  */
 package org.pih.petl.api.config;
 
-public class TargetEnvironment {
+import java.util.List;
+
+public class StartupJobs {
 
 	//***** PROPERTIES *****
 
-	private DatabaseConnection databaseConnection;
+	private List<String> jobs;
+	private boolean exitAutomatically;
 
-    //***** CONSTRUCTORS *****
+	//***** CONSTRUCTORS *****
 
-    public TargetEnvironment() {}
+	public StartupJobs() {}
 
     //***** ACCESSORS *****
 
-    public DatabaseConnection getDatabaseConnection() {
-        return databaseConnection;
+    public List<String> getJobs() {
+        return jobs;
     }
 
-    public void setDatabaseConnection(DatabaseConnection databaseConnection) {
-        this.databaseConnection = databaseConnection;
+    public void setJobs(List<String> jobs) {
+        this.jobs = jobs;
+    }
+
+    public boolean isExitAutomatically() {
+        return exitAutomatically;
+    }
+
+    public void setExitAutomatically(boolean exitAutomatically) {
+        this.exitAutomatically = exitAutomatically;
     }
 }

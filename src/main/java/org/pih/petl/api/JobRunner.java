@@ -15,14 +15,12 @@ import org.pentaho.di.job.Job;
 import org.pentaho.di.job.JobMeta;
 import org.pih.petl.Application;
 import org.pih.petl.PetlException;
-import org.pih.petl.api.config.DatabaseConnection;
-import org.pih.petl.api.config.SourceEnvironment;
-import org.pih.petl.api.config.TargetEnvironment;
 
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Properties;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -32,12 +30,14 @@ public class JobRunner {
 
     private static final Log log = LogFactory.getLog(JobRunner.class);
 
+    //******** CONSTANT CONFIGURATION PARAMETERS *******
+
+    public static final String JOB_FILE_PATH = "job.filePath";
+    public static final String JOB_LOG_LEVEL = "job.logLevel";
+
     //******** PROPERTIES *************
     private String jobId = UUID.randomUUID().toString();
-    private String jobFilePath;
-    private SourceEnvironment sourceEnvironment;
-    private TargetEnvironment targetEnvironment;
-    private LogLevel logLevel = LogLevel.BASIC;
+    private Properties configuration;
 
     //******** CONSTRUCTORS ***********
 
@@ -99,54 +99,51 @@ public class JobRunner {
                 throw new PetlException("Unable to initialize kettle environment.", e);
             }
 
-            Properties p = new Properties();
+            log.info("CONFIGURATION:");
+            Set<String> propertyNames = configuration.stringPropertyNames();
+            for (String property : propertyNames) {
+                String propertyValue = configuration.getProperty(property);
+                if (property.toLowerCase().contains("password")) {
+                    propertyValue = "************";
+                }
+                log.info(property + " = " + propertyValue);
+            }
+
+            // Write passed configuration properties to pih-kettle.properties
+
             try {
-                if (getSourceEnvironment() != null) {
-                    DatabaseConnection sourceDb = getSourceEnvironment().getDatabaseConnection();
-                    p.put("pih.country", getSourceEnvironment().getCountry());
-                    p.put("openmrs.db.host", sourceDb.getHostname());
-                    p.put("openmrs.db.port", sourceDb.getPort().toString());
-                    p.put("openmrs.db.name", sourceDb.getDatabaseName());
-                    p.put("openmrs.db.user", sourceDb.getUsername());
-                    p.put("openmrs.db.password", sourceDb.getPassword());
-                    p.put("warehouse.db.key_prefix", getSourceEnvironment().getKeyPrefix());
-                    log.info("Country = " + getSourceEnvironment().getCountry());
-                    log.info("Source = " + getSourceEnvironment().getName());
-                }
-                if (getTargetEnvironment() != null) {
-                    DatabaseConnection targetDb = getTargetEnvironment().getDatabaseConnection();
-                    p.put("warehouse.db.host", targetDb.getHostname());
-                    p.put("warehouse.db.port", targetDb.getPort().toString());
-                    p.put("warehouse.db.name", targetDb.getDatabaseName());
-                    p.put("warehouse.db.user", targetDb.getUsername());
-                    p.put("warehouse.db.password", targetDb.getPassword());
-                    log.info("Target = " + targetDb.getConnectionName());
-                }
-                p.store(new FileWriter(new File(kettleDir, "pih-kettle.properties")), null);
+                configuration.store(new FileWriter(new File(kettleDir, "pih-kettle.properties")), null);
                 log.info("Wrote pih-kettle.properties to " + kettleDir);
             }
             catch (IOException e) {
                 throw new PetlException("Unable to initialize kettle environemnt.  Error writing to pih-kettle.properties.", e);
             }
 
-            JobMeta jobMeta = new JobMeta(getJobFilePath(), null);
+            // Load job path, log level, and set named parameters based on configuration properties
 
-            log.info("Setting job parameters");
+            String jobFilePath = getConfig(JOB_FILE_PATH);
+            log.info("Job file path: " + jobFilePath);
+
+            JobMeta jobMeta = new JobMeta(jobFilePath, null);
+
+            log.info("Job parameters: ");
             String[] declaredParameters = jobMeta.listParameters();
             for (int i = 0; i < declaredParameters.length; i++) {
                 String parameterName = declaredParameters[i];
-                String description = jobMeta.getParameterDescription(parameterName);
                 String parameterValue = jobMeta.getParameterDefault(parameterName);
-                if (p.containsKey(parameterName)) {
-                    parameterValue = p.getProperty(parameterName);
+                if (configuration.containsKey(parameterName)) {
+                    parameterValue = configuration.getProperty(parameterName);
                 }
-                log.info("Setting parameter " + parameterName + " to " + parameterValue + " [description: " + description + "]");
+                log.info(parameterName + " -> " + parameterValue);
                 jobMeta.setParameterValue(parameterName, parameterValue);
             }
 
+            String logLevelConfig = configuration.getProperty(JOB_LOG_LEVEL, "MINIMAL");
+            LogLevel logLevel = LogLevel.valueOf(logLevelConfig);
+            log.info("Job log level: " + logLevel);
+
             Job job = new Job(null, jobMeta);
             job.setLogLevel(logLevel);
-            log.info("Job file: " + jobFilePath);
 
             StopWatch stopWatch = new StopWatch();
             stopWatch.start();
@@ -206,35 +203,19 @@ public class JobRunner {
         return jobId;
     }
 
-    public String getJobFilePath() {
-        return jobFilePath;
+    public Properties getConfiguration() {
+        return configuration;
     }
 
-    public void setJobFilePath(String jobFilePath) {
-        this.jobFilePath = jobFilePath;
+    public void setConfiguration(Properties configuration) {
+        this.configuration = configuration;
     }
 
-    public SourceEnvironment getSourceEnvironment() {
-        return sourceEnvironment;
+    public String getConfig(String property) {
+        return configuration.getProperty(property);
     }
 
-    public void setSourceEnvironment(SourceEnvironment sourceEnvironment) {
-        this.sourceEnvironment = sourceEnvironment;
-    }
-
-    public TargetEnvironment getTargetEnvironment() {
-        return targetEnvironment;
-    }
-
-    public void setTargetEnvironment(TargetEnvironment targetEnvironment) {
-        this.targetEnvironment = targetEnvironment;
-    }
-
-    public LogLevel getLogLevel() {
-        return logLevel;
-    }
-
-    public void setLogLevel(LogLevel logLevel) {
-        this.logLevel = logLevel;
+    public String getConfig(String property, String defaultValue) {
+        return configuration.getProperty(property, defaultValue);
     }
 }

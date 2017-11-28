@@ -3,11 +3,8 @@ package org.pih.petl;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.pentaho.di.core.logging.LogLevel;
 import org.pih.petl.api.JobRunner;
 import org.pih.petl.api.config.Config;
-import org.pih.petl.api.config.SourceEnvironment;
-import org.pih.petl.api.config.TargetEnvironment;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -19,6 +16,7 @@ import org.springframework.context.annotation.Configuration;
 import java.io.File;
 import java.lang.management.ManagementFactory;
 import java.lang.management.RuntimeMXBean;
+import java.util.Properties;
 
 /**
  * This mainly just serves to demonstrate that we can start up and run our Spring Boot application.
@@ -69,48 +67,25 @@ public class Application {
         log.info("LOGGING TO: " + petlLogFile);
 
         ApplicationContext context = SpringApplication.run(Application.class, args);
+        Application app = context.getBean(Application.class);
 
-        // Normally for a web application, we would run above, and that's it
-        // For now, we want this application to start up, run a job, and then exit
-        // We determine what job to run, and what LogLevel to use from the arguments passed in
-        // Arg1:  The absolute path of the kjb file to run
-        // Arg2:  The LogLevel to use [NOTHING, ERROR, MINIMAL, BASIC, DETAILED, DEBUG, ROWLEVEL]
-        // Arg3:  The name of the source to connect to (if only 1 source is defined, can be left out)
-
+        // If any startup jobs are defined, execute these
         try {
-            String jobPath = args[0];
-            LogLevel logLevel = args.length > 1 ? LogLevel.valueOf(args[1]) : LogLevel.MINIMAL;
-            String sourceEnvironmentName = args.length > 2 ? args[2] : null;
-
-            Application app = context.getBean(Application.class);
-            TargetEnvironment target = app.getConfig().getTargetEnvironment();
-            SourceEnvironment source = null;
-            for (SourceEnvironment se : app.getConfig().getSourceEnvironments()) {
-                if (se.getName().equalsIgnoreCase(sourceEnvironmentName)) {
-                    source = se;
-                }
+            for (String jobConfigFile : app.getConfig().getStartupJobs().getJobs()) {
+                Properties jobConfig = PetlUtil.loadPropertiesFromFile(jobConfigFile);
+                JobRunner jobRunner = new JobRunner();
+                jobRunner.setConfiguration(jobConfig);
+                jobRunner.runJob();
             }
-            if (source == null) {
-                if (sourceEnvironmentName != null) {
-                    throw new IllegalArgumentException("Unable to find source environment named " + sourceEnvironmentName);
-                }
-                if (app.getConfig().getSourceEnvironments().size() == 1) {
-                    source = app.getConfig().getSourceEnvironments().get(0);
-                }
-            }
-
-            JobRunner jobRunner = new JobRunner();
-            jobRunner.setJobFilePath(jobPath);
-            jobRunner.setLogLevel(logLevel);
-            jobRunner.setSourceEnvironment(source);
-            jobRunner.setTargetEnvironment(target);
-            jobRunner.runJob();
         }
         catch (Exception e) {
             throw new RuntimeException("Unable to execute job", e);
         }
         finally {
-            SpringApplication.exit(context);
+            // If configured to exist after startup jobs, exit application
+            if (app.getConfig().getStartupJobs().isExitAutomatically()) {
+                SpringApplication.exit(context);
+            }
         }
 	}
 

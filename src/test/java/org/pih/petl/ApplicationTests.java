@@ -4,8 +4,7 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.pih.petl.api.config.Config;
-import org.pih.petl.api.config.DatabaseConnection;
-import org.pih.petl.api.config.SourceEnvironment;
+import org.pih.petl.api.config.StartupJobs;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -27,28 +26,11 @@ public class ApplicationTests {
         Assert.assertNotNull(app);
         Config config = app.getConfig();
 
-        DatabaseConnection targetDbConnection = config.getTargetEnvironment().getDatabaseConnection();
-        assertThat(targetDbConnection.getConnectionName(), is("Warehouse"));
-        assertThat(targetDbConnection.getHostname(), is("localhost"));
-        assertThat(targetDbConnection.getPort(), is(3308));
-        assertThat(targetDbConnection.getDatabaseName(), is("openmrs_warehouse"));
-        assertThat(targetDbConnection.getUsername(), is("root"));
-        assertThat(targetDbConnection.getPassword(), is("root"));
-
-        List<SourceEnvironment> sources = config.getSourceEnvironments();
-        assertThat(sources.size(), is(1));
-
-        SourceEnvironment source = sources.get(0);
-        assertThat(source.getName(), is("OpenMRS"));
-        assertThat(source.getCountry(), is("malawi"));
-        assertThat(source.getKeyPrefix(), is("10"));
-
-        DatabaseConnection sourceDbConnection = source.getDatabaseConnection();
-        assertThat(sourceDbConnection.getConnectionName(), is("OpenMRS"));
-        assertThat(sourceDbConnection.getHostname(), is("localhost"));
-        assertThat(sourceDbConnection.getPort(), is(3308));
-        assertThat(sourceDbConnection.getDatabaseName(), is("openmrs"));
-        assertThat(sourceDbConnection.getUsername(), is("root"));
-        assertThat(sourceDbConnection.getPassword(), is("root"));
+        StartupJobs startupConfig = config.getStartupJobs();
+        assertThat(startupConfig.isExitAutomatically(), is(true));
+        List<String> startupJobs = startupConfig.getJobs();
+        assertThat(startupJobs.size(), is(2));
+        assertThat(startupJobs.get(0), is("/job1.properties"));
+        assertThat(startupJobs.get(1), is("/job2.properties"));
     }
 }
