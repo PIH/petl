@@ -49,7 +49,7 @@ public class JobRunner {
     /**
      * Runs this job
      */
-    public void runJob() throws Exception {
+    public Result runJob() throws Exception {
 
         log.info("***************");
         log.info("Running Job: " + jobId);
@@ -163,6 +163,8 @@ public class JobRunner {
             log.info("Job executed in:  " + stopWatch.toString());
             log.info("Job Result: " + result);
             log.info("***************");
+
+            return result;
         }
         finally {
             FileUtils.deleteDirectory(jobDir);

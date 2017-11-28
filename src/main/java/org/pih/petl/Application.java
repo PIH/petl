@@ -3,6 +3,7 @@ package org.pih.petl;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.pentaho.di.core.Result;
 import org.pih.petl.api.JobRunner;
 import org.pih.petl.api.config.Config;
 import org.springframework.boot.SpringApplication;
@@ -75,7 +76,10 @@ public class Application {
                 Properties jobConfig = PetlUtil.loadPropertiesFromFile(jobConfigFile);
                 JobRunner jobRunner = new JobRunner();
                 jobRunner.setConfiguration(jobConfig);
-                jobRunner.runJob();
+                Result result = jobRunner.runJob();
+                if (result.getNrErrors() > 0) {
+                    throw new RuntimeException("One or more errors was detected in job result: " + result);
+                }
             }
         }
         catch (Exception e) {
