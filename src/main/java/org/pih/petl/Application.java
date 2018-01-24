@@ -71,6 +71,7 @@ public class Application {
         Application app = context.getBean(Application.class);
 
         // If any startup jobs are defined, execute these
+        PetlExitCodeGenerator exitCodeGenerator = new PetlExitCodeGenerator();
         try {
             for (String jobConfigFile : app.getConfig().getStartupJobs().getJobs()) {
                 Properties jobConfig = PetlUtil.loadPropertiesFromFile(jobConfigFile);
@@ -83,12 +84,17 @@ public class Application {
             }
         }
         catch (Exception e) {
+            exitCodeGenerator.addException(e);
             throw new RuntimeException("Unable to execute job", e);
         }
         finally {
             // If configured to exist after startup jobs, exit application
             if (app.getConfig().getStartupJobs().isExitAutomatically()) {
-                SpringApplication.exit(context);
+                int exitCode = SpringApplication.exit(context, exitCodeGenerator);
+                for (Throwable exception : exitCodeGenerator.getExceptions()) {
+                    log.error(exception);
+                }
+                System.exit(exitCode);
             }
         }
 	}
