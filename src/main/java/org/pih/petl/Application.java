@@ -79,7 +79,7 @@ public class Application {
                 jobRunner.setConfiguration(jobConfig);
                 Result result = jobRunner.runJob();
                 if (result.getNrErrors() > 0) {
-                    throw new RuntimeException("One or more errors was detected in job result: " + result);
+                    throw new RuntimeException("One or more errors was detected in job result: " + result.getLogText());
                 }
             }
         }
