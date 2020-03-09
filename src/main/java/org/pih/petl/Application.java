@@ -6,6 +6,7 @@ import org.apache.commons.logging.LogFactory;
 import org.pentaho.di.core.Result;
 import org.pih.petl.api.JobRunner;
 import org.pih.petl.api.config.Config;
+import org.pih.petl.api.status.EtlStatusTable;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -69,6 +70,9 @@ public class Application {
 
         ApplicationContext context = SpringApplication.run(Application.class, args);
         Application app = context.getBean(Application.class);
+
+        // If the target status table does not exist, create it here
+        EtlStatusTable.createStatusTable();
 
         // If any startup jobs are defined, execute these
         PetlExitCodeGenerator exitCodeGenerator = new PetlExitCodeGenerator();
