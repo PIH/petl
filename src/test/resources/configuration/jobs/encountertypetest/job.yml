@@ -1,4 +1,4 @@
-type: "load-sqlserver"
+type: "sqlserver-bulk-import"
 configuration:
   extract:
     datasource: "datasources/mysql-openmrs.yml"

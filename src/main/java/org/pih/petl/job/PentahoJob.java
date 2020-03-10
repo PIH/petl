@@ -64,9 +64,12 @@ public class PentahoJob implements PetlJob {
                 Properties configuration = config.getAsProperties();
 
                 // TODO: Add validation in
+                String jobFilePath = configuration.getProperty(JOB_FILE_PATH);
+                log.info("PetlJob file path: " + jobFilePath);
+                File jobFile = configReader.getConfigFile(jobFilePath);
 
                 // Initialize the status table with this job execution
-                EtlStatus etlStatus = etlService.createStatus(configFile.getName());
+                EtlStatus etlStatus = etlService.createStatus(jobFilePath);
 
                 /*
                 First, we want to create an execution environment for this job to set up Kettle with appropriate properties
@@ -129,10 +132,7 @@ public class PentahoJob implements PetlJob {
 
                     // Load job path, log level, and set named parameters based on configuration properties
 
-                    String jobFilePath = configuration.getProperty(JOB_FILE_PATH);
-                    log.info("PetlJob file path: " + jobFilePath);
-
-                    JobMeta jobMeta = new JobMeta(jobFilePath, null);
+                    JobMeta jobMeta = new JobMeta(jobFile.getAbsolutePath(), null);
 
                     log.info("PetlJob parameters: ");
                     String[] declaredParameters = jobMeta.listParameters();

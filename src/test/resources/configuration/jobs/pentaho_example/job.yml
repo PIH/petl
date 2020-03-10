@@ -1,0 +1,4 @@
+type: "pentaho-job"
+configuration:
+  job:
+    filePath: "jobs/pentaho_example/job.kjb"

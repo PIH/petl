@@ -4,7 +4,7 @@ logging:
     name: "${PETL_HOME}/logs/petl.log"
   level:
     root: "WARN"
-    org.pih: "DEBUG"
+    org.pih: "INFO"
 
 spring:
   datasource:
@@ -15,3 +15,5 @@ spring:
     password: "Test123"
     data: "schema-h2.sql"
 
+petl:
+  jobDir: "${PETL_HOME}/config"

@@ -19,12 +19,14 @@ public class PetlJobFactory {
         File jobFile = configReader.getConfigFile(configFilePath);
         JobConfig jobConfig = configReader.getEtlJobConfigFromFile(jobFile);
 
-        if ("run-pipeline".equals(jobConfig.getType())) {
+        if ("job-pipeline".equals(jobConfig.getType())) {
             return new RunMultipleJob(etlService, configReader, configFilePath);
-
         }
-        else if ("load-sqlserver".equals(jobConfig.getType())) {
+        else if ("sqlserver-bulk-import".equals(jobConfig.getType())) {
             return new SqlServerImportJob(etlService, configReader, configFilePath);
+        }
+        else if ("pentaho-job".equals(jobConfig.getType())) {
+            return new PentahoJob(etlService, configReader, configFilePath);
         }
         else {
             throw new PetlException("Invalid job type of " + jobConfig.getType());
