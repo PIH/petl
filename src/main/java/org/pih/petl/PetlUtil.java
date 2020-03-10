@@ -19,7 +19,7 @@ public class PetlUtil {
             ret.load(is);
         }
         catch (Exception e) {
-            throw new RuntimeException("Unable to load properties from file at: " + filePath, e);
+            throw new PetlException("Unable to load properties from file at: " + filePath, e);
         }
         finally {
             IOUtils.closeQuietly(is);

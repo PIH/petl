@@ -7,7 +7,7 @@
  * Copyright (C) OpenMRS Inc. OpenMRS is a registered trademark and the OpenMRS
  * graphic logo is a trademark of OpenMRS Inc.
  */
-package org.pih.petl.api.db;
+package org.pih.petl.job.datasource;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,9 +22,9 @@ import org.apache.commons.logging.LogFactory;
  * Copied out of the reporting module SqlRunner class, just to avoid that dependency for now.
  * Can depend on that in the future if helpful
  */
-public class StatementParser {
+public class SqlStatementParser {
 
-	private static Log log = LogFactory.getLog(StatementParser.class);
+	private static Log log = LogFactory.getLog(SqlStatementParser.class);
 
 	// Regular expression to identify a change in the delimiter.  This ignores spaces, allows delimiter in comment, allows an equals-sign
     private static final Pattern DELIMITER_PATTERN = Pattern.compile("^\\s*(--)?\\s*delimiter\\s*=?\\s*([^\\s]+)+\\s*.*$", Pattern.CASE_INSENSITIVE);

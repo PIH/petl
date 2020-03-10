@@ -1,4 +1,4 @@
-package org.pih.petl.api.config;
+package org.pih.petl.job.datasource;
 
 /**
  * Encapsulates a data source configuration

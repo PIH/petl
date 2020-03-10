@@ -1,11 +1,11 @@
-package org.pih.petl.api.db;
+package org.pih.petl.job.datasource;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
 
 import org.apache.commons.dbutils.DbUtils;
 import org.apache.commons.lang.StringUtils;
-import org.pih.petl.api.config.EtlDataSource;
+import org.pih.petl.PetlException;
 
 /**
  * Encapsulates a data source configuration
@@ -77,11 +77,11 @@ public class EtlConnectionManager {
                 return DriverManager.getConnection(sb.toString(), ds.getUser(), ds.getPassword());
             }
             else {
-                throw new IllegalStateException("You must specify a databaseType of 'mysql', 'sqlserver', or 'h2'");
+                throw new PetlException("You must specify a databaseType of 'mysql', 'sqlserver', or 'h2'");
             }
         }
         catch (Exception e) {
-            throw new IllegalStateException("An error occured trying to open a connection to the database", e);
+            throw new PetlException("An error occured trying to open a connection to the database", e);
         }
     }
 

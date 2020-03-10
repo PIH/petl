@@ -1,8 +1,10 @@
-package org.pih.petl.api.job;
+package org.pih.petl.job;
 
+import java.io.File;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
@@ -13,54 +15,77 @@ import org.apache.commons.dbutils.QueryRunner;
 import org.apache.commons.lang.time.StopWatch;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.pih.petl.api.config.ConfigLoader;
-import org.pih.petl.api.config.EtlDataSource;
-import org.pih.petl.api.config.EtlJobConfig;
-import org.pih.petl.api.db.DbQuery;
-import org.pih.petl.api.db.EtlConnectionManager;
-import org.pih.petl.api.db.StatementParser;
-import org.pih.petl.api.status.EtlStatusTable;
+import org.pih.petl.PetlException;
+import org.pih.petl.api.EtlStatus;
+import org.pih.petl.api.EtlService;
+import org.pih.petl.job.config.JobConfig;
+import org.pih.petl.job.config.JobConfigReader;
+import org.pih.petl.job.datasource.EtlConnectionManager;
+import org.pih.petl.job.datasource.EtlDataSource;
+import org.pih.petl.job.datasource.SqlStatementParser;
+import org.pih.petl.job.datasource.SqlUtils;
 
 /**
- * Job that can load into SQL Server table
+ * PetlJob that can load into SQL Server table
  */
-public class LoadSqlServerJob implements EtlJob {
+public class SqlServerImportJob implements PetlJob {
 
-    private static Log log = LogFactory.getLog(LoadSqlServerJob.class);
+    private static Log log = LogFactory.getLog(SqlServerImportJob.class);
     private static boolean refreshInProgress = false;
 
-    private EtlJobConfig config;
+    private EtlService etlService;
+    private JobConfigReader configReader;
+    private File configFile;
     private Connection sourceConnection = null;
     private Connection targetConnection = null;
 
-    //***** CONSTRUCTORS AND PROPERTY ACCESS *****
-
-    public LoadSqlServerJob(EtlJobConfig config) {
-        this.config = config;
+    /**
+     * Creates a new instance of the job with the given configuration path
+     */
+    public SqlServerImportJob(EtlService etlService, JobConfigReader configReader, String configPath) {
+        this.etlService = etlService;
+        this.configReader = configReader;
+        this.configFile = configReader.getConfigFile(configPath);
     }
 
     /**
-     * @see EtlJob
+     * @see PetlJob
      */
     @Override
     public void execute() {
         if (!refreshInProgress) {
             refreshInProgress = true;
             try {
-                String sds = config.getString("extract", "datasource");
-                EtlDataSource sourceDatasource = ConfigLoader.getConfigurationFromFile(sds, EtlDataSource.class);
-                String sourceQueryFile = config.getString("extract", "query");
-                String sourceQuery = ConfigLoader.getFileContents(sourceQueryFile);
+                JobConfig config = configReader.getEtlJobConfigFromFile(configFile);
+                String jobName = configFile.getName();
+
+                // Get source datasource
+                String sourceDataSourceFilename = config.getString("extract", "datasource");
+                File sourceDataFile = configReader.getConfigFile(sourceDataSourceFilename);
+                EtlDataSource sourceDatasource = configReader.getConfigurationFromFile(sourceDataFile, EtlDataSource.class);
+
+                // Get source query
+                String sourceQueryFileName = config.getString("extract", "query");
+                File sourceQueryFile = configReader.getConfigFile(sourceQueryFileName);
+                String sourceQuery = configReader.getFileContents(sourceQueryFile);
+
+                // Get target datasource
+                String targetDataFileName = config.getString("load", "datasource");
+                File targetDataFile = configReader.getConfigFile(targetDataFileName);
+                EtlDataSource targetDatasource = configReader.getConfigurationFromFile(targetDataFile, EtlDataSource.class);
+
+                // Get target table name
                 String targetTable = config.getString("load", "table");
-                String targetSchemaFile = config.getString("load", "schema");
-                String targetSchema = ConfigLoader.getFileContents(targetSchemaFile);
-                String tds = config.getString("load", "datasource");
-                EtlDataSource targetDatasource = ConfigLoader.getConfigurationFromFile(tds, EtlDataSource.class);
+
+                // Get target table schema
+                String targetSchemaFilename = config.getString("load", "schema");
+                File targetSchemaFile = configReader.getConfigFile(targetSchemaFilename);
+                String targetSchema = configReader.getFileContents(targetSchemaFile);
 
                 // TODO: Add validation in
 
                 // Initialize the status table with this job execution
-                String uuid = EtlStatusTable.createStatus(targetTable);
+                EtlStatus etlStatus = etlService.createStatus(jobName);
 
                 try {
                     QueryRunner qr = new QueryRunner();
@@ -70,25 +95,28 @@ public class LoadSqlServerJob implements EtlJob {
                     boolean originalSourceAutoCommit = sourceConnection.getAutoCommit();
                     boolean originalTargetAutocommit = targetConnection.getAutoCommit();
 
-                    RowCountUpdater updater = new RowCountUpdater(targetConnection, uuid, targetTable);
+                    RowCountUpdater updater = new RowCountUpdater(targetConnection, etlStatus, targetTable);
                     try {
                         updater.start();
                         sourceConnection.setAutoCommit(false); // We intend to rollback changes to source after querying DB
                         targetConnection.setAutoCommit(true);  // We want to commit to target as we go, to query status
 
                         // First, drop any existing target table
-                        EtlStatusTable.updateStatus(uuid, "Dropping existing table");
+                        etlStatus.setStatus("Dropping existing table");
+                        etlService.updateEtlStatus(etlStatus);
                         qr.update(targetConnection, "drop table if exists " + targetTable);
 
                         // Then, recreate the target table
-                        EtlStatusTable.updateStatus(uuid, "Creating table");
+                        etlStatus.setStatus("Creating table");
+                        etlService.updateEtlStatus(etlStatus);
                         qr.update(targetConnection, targetSchema);
 
                         // Now execute a bulk import
-                        EtlStatusTable.updateStatus(uuid, "Executing import");
+                        etlStatus.setStatus("Executing import");
+                        etlService.updateEtlStatus(etlStatus);
 
                         // Parse the source query into statements
-                        List<String> stmts = StatementParser.parseSqlIntoStatements(sourceQuery, ";");
+                        List<String> stmts = SqlStatementParser.parseSqlIntoStatements(sourceQuery, ";");
                         log.debug("Parsed extract query into " + stmts.size() + " statements");
 
                         // Iterate over each statement, and execute.  The final statement is expected to select the data out.
@@ -111,7 +139,8 @@ public class LoadSqlServerJob implements EtlJob {
                                             // Skip to the end to get the number of rows that ResultSet contains
                                             resultSet.last();
                                             Integer rowCount = resultSet.getRow();
-                                            EtlStatusTable.updateTotalCount(uuid, rowCount);
+                                            etlStatus.setTotalExpected(rowCount);
+                                            etlService.updateEtlStatus(etlStatus);
 
                                             // Reset back to the beginning to ensure all rows are extracted
                                             resultSet.beforeFirst();
@@ -127,7 +156,7 @@ public class LoadSqlServerJob implements EtlJob {
                                             bulkCopy.writeToServer(resultSet);
                                         }
                                         else {
-                                            throw new IllegalStateException("Invalid SQL extraction, no result set found");
+                                            throw new PetlException("Invalid SQL extraction, no result set found");
                                         }
                                     }
                                     finally {
@@ -143,11 +172,19 @@ public class LoadSqlServerJob implements EtlJob {
                         }
 
                         // Update the status at the end of the bulk copy
-                        EtlStatusTable.updateCurrentCount(uuid, DbQuery.rowCount(targetConnection, targetTable));
-                        EtlStatusTable.updateStatusSuccess(uuid);
+                        Integer rowCount = SqlUtils.rowCount(targetConnection, targetTable);
+                        etlStatus.setTotalLoaded(rowCount);
+                        etlStatus.setStatus("Import Completed Sucessfully");
+                        etlStatus.setCompleted(new Date());
+                        etlService.updateEtlStatus(etlStatus);
                     }
                     catch (Exception e) {
-                        EtlStatusTable.updateStatusError(uuid, e);
+                        etlStatus.setStatus("Import Failed");
+                        etlStatus.setCompleted(new Date());
+                        etlStatus.setErrorMessage(e.getMessage());
+                        etlService.updateEtlStatus(etlStatus);
+                        log.error("PETL Job Failed", e);
+                        throw e;
                     }
                     finally {
                         updater.cancel();
@@ -162,7 +199,7 @@ public class LoadSqlServerJob implements EtlJob {
                 }
             }
             catch (Exception e) {
-                throw new IllegalStateException("An error occured during SQL Server Load task", e);
+                throw new PetlException("An error occured during SQL Server Load task", e);
             }
             finally {
                 refreshInProgress = false;
@@ -176,12 +213,12 @@ public class LoadSqlServerJob implements EtlJob {
         private long msBetweenExecutions = 1000*5;
 
         private Connection connection;
-        private String uuid;
+        private EtlStatus status;
         private String table;
 
-        public RowCountUpdater(Connection connection, String uuid, String table) {
+        public RowCountUpdater(Connection connection, EtlStatus status, String table) {
             this.connection = connection;
-            this.uuid = uuid;
+            this.status = status;
             this.table = table;
         }
 
@@ -191,8 +228,9 @@ public class LoadSqlServerJob implements EtlJob {
                 long msSinceLast = System.currentTimeMillis() - lastExecutionTime;
                 if (msSinceLast >= msBetweenExecutions) {
                     try {
-                        Integer rowCount = DbQuery.rowCount(connection, table);
-                        EtlStatusTable.updateCurrentCount(uuid, rowCount);
+                        Integer rowCount = SqlUtils.rowCount(connection, table);
+                        status.setTotalLoaded(rowCount);
+                        etlService.updateEtlStatus(status);
                     }
                     catch (Exception e) {}
                     lastExecutionTime = System.currentTimeMillis();

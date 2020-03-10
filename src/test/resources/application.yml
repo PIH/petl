@@ -8,10 +8,10 @@ logging:
 
 spring:
   datasource:
-    platform: "h2"
     driver-class-name: "org.h2.Driver"
     url: "jdbc:h2:file:${PETL_HOME}/data/petl;DB_CLOSE_ON_EXIT=FALSE;AUTO_SERVER=TRUE"
     username: "sa"
     password: "Test123"
-    data: "schema-h2.sql"
 
+petl:
+  jobDir: "src/test/resources/configuration"
