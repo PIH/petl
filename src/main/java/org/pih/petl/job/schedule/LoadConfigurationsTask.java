@@ -2,7 +2,7 @@ package org.pih.petl.job.schedule;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.pih.petl.job.config.JobConfigReader;
+import org.pih.petl.job.config.ConfigFileReader;
 import org.quartz.Job;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
@@ -18,7 +18,7 @@ public class LoadConfigurationsTask implements Job {
     private static final Log log = LogFactory.getLog(LoadConfigurationsTask.class);
 
     @Autowired
-    JobConfigReader jobConfigReader;
+    ConfigFileReader jobConfigReader;
 
     @Override
     public void execute(JobExecutionContext jobExecutionContext) throws JobExecutionException {

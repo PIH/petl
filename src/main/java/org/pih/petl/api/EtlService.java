@@ -5,9 +5,10 @@ import java.util.UUID;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.pih.petl.ApplicationConfig;
 import org.pih.petl.job.PetlJob;
 import org.pih.petl.job.PetlJobFactory;
-import org.pih.petl.job.config.JobConfigReader;
+import org.pih.petl.job.config.ConfigFileReader;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,7 +22,10 @@ public class EtlService {
     private static Log log = LogFactory.getLog(EtlService.class);
 
     @Autowired
-    JobConfigReader jobConfigReader;
+    ApplicationConfig applicationConfig;
+
+    @Autowired
+    ConfigFileReader configFileReader;
 
     @Autowired
     EtlStatusRepository repository;
@@ -49,7 +53,15 @@ public class EtlService {
     }
 
     public void executeJob(String jobPath) {
-        PetlJob job = PetlJobFactory.instantiate(this, jobConfigReader, jobPath);
+        PetlJob job = PetlJobFactory.instantiate(this, jobPath);
         job.execute();
+    }
+
+    public ConfigFileReader getConfigFileReader() {
+        return configFileReader;
+    }
+
+    public ApplicationConfig getApplicationConfig() {
+        return applicationConfig;
     }
 }

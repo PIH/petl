@@ -19,7 +19,6 @@ import org.pih.petl.api.EtlService;
 import org.pih.petl.api.EtlStatus;
 import org.pih.petl.job.config.ConfigFile;
 import org.pih.petl.job.config.JobConfig;
-import org.pih.petl.job.config.JobConfigReader;
 import org.pih.petl.job.datasource.EtlConnectionManager;
 import org.pih.petl.job.datasource.EtlDataSource;
 import org.pih.petl.job.datasource.SqlStatementParser;
@@ -34,7 +33,6 @@ public class SqlServerImportJob implements PetlJob {
     private static boolean refreshInProgress = false;
 
     private EtlService etlService;
-    private JobConfigReader configReader;
     private ConfigFile configFile;
     private Connection sourceConnection = null;
     private Connection targetConnection = null;
@@ -42,10 +40,9 @@ public class SqlServerImportJob implements PetlJob {
     /**
      * Creates a new instance of the job with the given configuration path
      */
-    public SqlServerImportJob(EtlService etlService, JobConfigReader configReader, String configPath) {
+    public SqlServerImportJob(EtlService etlService, String configPath) {
         this.etlService = etlService;
-        this.configReader = configReader;
-        this.configFile = configReader.getConfigFile(configPath);
+        this.configFile = etlService.getConfigFileReader().getConfigFile(configPath);
     }
 
     /**
@@ -56,30 +53,30 @@ public class SqlServerImportJob implements PetlJob {
         if (!refreshInProgress) {
             refreshInProgress = true;
             try {
-                JobConfig config = configReader.read(configFile, JobConfig.class);
+                JobConfig config = etlService.getConfigFileReader().read(configFile, JobConfig.class);
                 String jobName = configFile.getFilePath();
 
                 // Get source datasource
                 String sourceDataSourceFilename = config.getString("extract", "datasource");
-                ConfigFile sourceDataFile = configReader.getConfigFile(sourceDataSourceFilename);
-                EtlDataSource sourceDatasource = configReader.read(sourceDataFile, EtlDataSource.class);
+                ConfigFile sourceDataFile = etlService.getConfigFileReader().getConfigFile(sourceDataSourceFilename);
+                EtlDataSource sourceDatasource = etlService.getConfigFileReader().read(sourceDataFile, EtlDataSource.class);
 
                 // Get source query
                 String sourceQueryFileName = config.getString("extract", "query");
-                ConfigFile sourceQueryFile = configReader.getConfigFile(sourceQueryFileName);
+                ConfigFile sourceQueryFile = etlService.getConfigFileReader().getConfigFile(sourceQueryFileName);
                 String sourceQuery = sourceQueryFile.getContents();
 
                 // Get target datasource
                 String targetDataFileName = config.getString("load", "datasource");
-                ConfigFile targetDataFile = configReader.getConfigFile(targetDataFileName);
-                EtlDataSource targetDatasource = configReader.read(targetDataFile, EtlDataSource.class);
+                ConfigFile targetDataFile = etlService.getConfigFileReader().getConfigFile(targetDataFileName);
+                EtlDataSource targetDatasource = etlService.getConfigFileReader().read(targetDataFile, EtlDataSource.class);
 
                 // Get target table name
                 String targetTable = config.getString("load", "table");
 
                 // Get target table schema
                 String targetSchemaFilename = config.getString("load", "schema");
-                ConfigFile targetSchemaFile = configReader.getConfigFile(targetSchemaFilename);
+                ConfigFile targetSchemaFile = etlService.getConfigFileReader().getConfigFile(targetSchemaFilename);
                 String targetSchema = targetSchemaFile.getContents();
 
                 // TODO: Add validation in

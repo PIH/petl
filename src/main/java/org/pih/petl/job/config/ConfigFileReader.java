@@ -13,7 +13,8 @@ import org.springframework.stereotype.Component;
  * Utilities for reading in PetlJob Configuration Files, parsing these files, converting between formats, etc.
  */
 @Component
-public class JobConfigReader {
+public class ConfigFileReader {
+
 
     @Autowired
     ApplicationConfig applicationConfig;

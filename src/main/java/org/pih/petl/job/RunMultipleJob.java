@@ -8,7 +8,6 @@ import org.pih.petl.api.EtlService;
 import org.pih.petl.api.EtlStatus;
 import org.pih.petl.job.config.ConfigFile;
 import org.pih.petl.job.config.JobConfig;
-import org.pih.petl.job.config.JobConfigReader;
 
 /**
  * Encapsulates a particular ETL job configuration
@@ -19,16 +18,14 @@ public class RunMultipleJob implements PetlJob {
     private static boolean refreshInProgress = false;
 
     private EtlService etlService;
-    private JobConfigReader configReader;
     private ConfigFile configFile;
 
     /**
      * Creates a new instance of the job with the given configuration path
      */
-    public RunMultipleJob(EtlService etlService, JobConfigReader configReader, String configPath) {
+    public RunMultipleJob(EtlService etlService, String configPath) {
         this.etlService = etlService;
-        this.configReader = configReader;
-        this.configFile = configReader.getConfigFile(configPath);
+        this.configFile = etlService.getConfigFileReader().getConfigFile(configPath);
     }
 
     /**
@@ -39,7 +36,7 @@ public class RunMultipleJob implements PetlJob {
         if (!refreshInProgress) {
             refreshInProgress = true;
             try {
-                JobConfig config = configReader.read(configFile, JobConfig.class);
+                JobConfig config = etlService.getConfigFileReader().read(configFile, JobConfig.class);
                 String jobName = configFile.getFilePath();
                 List<String> jobs = config.getStringList("jobs");
                 boolean parallelExecution = config.getBoolean("parallelExecution");
@@ -52,7 +49,7 @@ public class RunMultipleJob implements PetlJob {
                 for (String jobPath : jobs) {
                     etlStatus.setStatus("Running job: " + jobPath);
                     etlService.updateEtlStatus(etlStatus);
-                    PetlJob job = PetlJobFactory.instantiate(etlService, configReader, jobPath);
+                    PetlJob job = PetlJobFactory.instantiate(etlService, jobPath);
                     job.execute();
                 }
             }
