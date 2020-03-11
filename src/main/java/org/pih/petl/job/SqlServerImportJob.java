@@ -1,6 +1,5 @@
 package org.pih.petl.job;
 
-import java.io.File;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
@@ -16,8 +15,9 @@ import org.apache.commons.lang.time.StopWatch;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.pih.petl.PetlException;
-import org.pih.petl.api.EtlStatus;
 import org.pih.petl.api.EtlService;
+import org.pih.petl.api.EtlStatus;
+import org.pih.petl.job.config.ConfigFile;
 import org.pih.petl.job.config.JobConfig;
 import org.pih.petl.job.config.JobConfigReader;
 import org.pih.petl.job.datasource.EtlConnectionManager;
@@ -35,7 +35,7 @@ public class SqlServerImportJob implements PetlJob {
 
     private EtlService etlService;
     private JobConfigReader configReader;
-    private File configFile;
+    private ConfigFile configFile;
     private Connection sourceConnection = null;
     private Connection targetConnection = null;
 
@@ -56,31 +56,31 @@ public class SqlServerImportJob implements PetlJob {
         if (!refreshInProgress) {
             refreshInProgress = true;
             try {
-                JobConfig config = configReader.getEtlJobConfigFromFile(configFile);
-                String jobName = configFile.getName();
+                JobConfig config = configReader.read(configFile, JobConfig.class);
+                String jobName = configFile.getFilePath();
 
                 // Get source datasource
                 String sourceDataSourceFilename = config.getString("extract", "datasource");
-                File sourceDataFile = configReader.getConfigFile(sourceDataSourceFilename);
-                EtlDataSource sourceDatasource = configReader.getConfigurationFromFile(sourceDataFile, EtlDataSource.class);
+                ConfigFile sourceDataFile = configReader.getConfigFile(sourceDataSourceFilename);
+                EtlDataSource sourceDatasource = configReader.read(sourceDataFile, EtlDataSource.class);
 
                 // Get source query
                 String sourceQueryFileName = config.getString("extract", "query");
-                File sourceQueryFile = configReader.getConfigFile(sourceQueryFileName);
-                String sourceQuery = configReader.getFileContents(sourceQueryFile);
+                ConfigFile sourceQueryFile = configReader.getConfigFile(sourceQueryFileName);
+                String sourceQuery = sourceQueryFile.getContents();
 
                 // Get target datasource
                 String targetDataFileName = config.getString("load", "datasource");
-                File targetDataFile = configReader.getConfigFile(targetDataFileName);
-                EtlDataSource targetDatasource = configReader.getConfigurationFromFile(targetDataFile, EtlDataSource.class);
+                ConfigFile targetDataFile = configReader.getConfigFile(targetDataFileName);
+                EtlDataSource targetDatasource = configReader.read(targetDataFile, EtlDataSource.class);
 
                 // Get target table name
                 String targetTable = config.getString("load", "table");
 
                 // Get target table schema
                 String targetSchemaFilename = config.getString("load", "schema");
-                File targetSchemaFile = configReader.getConfigFile(targetSchemaFilename);
-                String targetSchema = configReader.getFileContents(targetSchemaFile);
+                ConfigFile targetSchemaFile = configReader.getConfigFile(targetSchemaFilename);
+                String targetSchema = targetSchemaFile.getContents();
 
                 // TODO: Add validation in
 

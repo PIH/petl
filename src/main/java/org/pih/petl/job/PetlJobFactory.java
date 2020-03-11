@@ -1,9 +1,8 @@
 package org.pih.petl.job;
 
-import java.io.File;
-
 import org.pih.petl.PetlException;
 import org.pih.petl.api.EtlService;
+import org.pih.petl.job.config.ConfigFile;
 import org.pih.petl.job.config.JobConfig;
 import org.pih.petl.job.config.JobConfigReader;
 
@@ -16,8 +15,8 @@ public class PetlJobFactory {
      * Instantiate a new ETL PetlJob from the given configuration file
      */
     public static PetlJob instantiate(EtlService etlService, JobConfigReader configReader, String configFilePath) {
-        File jobFile = configReader.getConfigFile(configFilePath);
-        JobConfig jobConfig = configReader.getEtlJobConfigFromFile(jobFile);
+        ConfigFile jobFile = configReader.getConfigFile(configFilePath);
+        JobConfig jobConfig = configReader.read(jobFile, JobConfig.class);
 
         if ("job-pipeline".equals(jobConfig.getType())) {
             return new RunMultipleJob(etlService, configReader, configFilePath);

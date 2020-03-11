@@ -19,8 +19,9 @@ import org.pentaho.di.core.logging.KettleLogStore;
 import org.pentaho.di.core.logging.LogLevel;
 import org.pentaho.di.job.JobMeta;
 import org.pih.petl.PetlException;
-import org.pih.petl.api.EtlStatus;
 import org.pih.petl.api.EtlService;
+import org.pih.petl.api.EtlStatus;
+import org.pih.petl.job.config.ConfigFile;
 import org.pih.petl.job.config.JobConfig;
 import org.pih.petl.job.config.JobConfigReader;
 
@@ -39,7 +40,7 @@ public class PentahoJob implements PetlJob {
 
     private EtlService etlService;
     private JobConfigReader configReader;
-    private File configFile;
+    private ConfigFile configFile;
     private JobConfig config;
 
     /**
@@ -49,7 +50,7 @@ public class PentahoJob implements PetlJob {
         this.etlService = etlService;
         this.configReader = configReader;
         this.configFile = configReader.getConfigFile(configPath);
-        this.config = configReader.getEtlJobConfigFromFile(this.configFile);
+        this.config = configReader.read(configFile, JobConfig.class);
     }
 
     /**
@@ -66,7 +67,7 @@ public class PentahoJob implements PetlJob {
                 // TODO: Add validation in
                 String jobFilePath = configuration.getProperty(JOB_FILE_PATH);
                 log.info("PetlJob file path: " + jobFilePath);
-                File jobFile = configReader.getConfigFile(jobFilePath);
+                File jobFile = configReader.getConfigFile(jobFilePath).getConfigFile();
 
                 // Initialize the status table with this job execution
                 EtlStatus etlStatus = etlService.createStatus(jobFilePath);
