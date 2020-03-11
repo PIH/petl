@@ -14,6 +14,8 @@ spring:
     username: "sa"
     password: "Test123"
     data: "schema-h2.sql"
+  quartz:
+    job-store-type: "memory"
 
 petl:
   jobDir: "${PETL_HOME}/config"

@@ -21,11 +21,13 @@ public class JobConfig {
     private static final Log log = LogFactory.getLog(JobConfig.class);
 
     private String type;
+    private JsonNode schedule;
     private JsonNode configuration;
 
     public JobConfig(JsonNode config) {
         this.type = config.get("type").asText();
         this.configuration = config.get("configuration");
+        this.schedule = config.get("schedule");
     }
 
     /**
@@ -132,11 +134,15 @@ public class JobConfig {
         return p;
     }
 
-    public String getType() {
-        return type;
+    public JsonNode getSchedule() {
+        return schedule;
     }
 
-    public void setType(String type) {
-        this.type = type;
+    public JsonNode getConfiguration() {
+        return configuration;
+    }
+
+    public String getType() {
+        return type;
     }
 }
