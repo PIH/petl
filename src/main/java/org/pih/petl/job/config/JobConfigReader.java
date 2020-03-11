@@ -8,6 +8,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import org.apache.commons.io.FileUtils;
 import org.pih.petl.ApplicationConfig;
 import org.pih.petl.PetlException;
+import org.pih.petl.job.schedule.Schedule;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -71,7 +72,14 @@ public class JobConfigReader {
         }
         try {
             JsonNode jsonNode = getYamlMapper().readTree(f);
-            return new JobConfig(jsonNode);
+            JobConfig jobConfig = new JobConfig();
+            jobConfig.setType(jsonNode.get("type").asText());
+            jobConfig.setConfiguration(jsonNode.get("configuration"));
+            JsonNode scheduleNode = jsonNode.get("schedule");
+            if (scheduleNode != null) {
+                jobConfig.setSchedule(getYamlMapper().treeToValue(scheduleNode, Schedule.class));
+            }
+            return jobConfig;
         }
         catch (Exception e) {
             throw new PetlException("Error parsing " + f + ", please check that the YML is valid", e);

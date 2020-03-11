@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.ValueNode;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.pih.petl.job.schedule.Schedule;
 
 /**
  * Encapsulates a particular ETL job configuration
@@ -21,14 +22,10 @@ public class JobConfig {
     private static final Log log = LogFactory.getLog(JobConfig.class);
 
     private String type;
-    private JsonNode schedule;
+    private Schedule schedule;
     private JsonNode configuration;
 
-    public JobConfig(JsonNode config) {
-        this.type = config.get("type").asText();
-        this.configuration = config.get("configuration");
-        this.schedule = config.get("schedule");
-    }
+    public JobConfig() {}
 
     /**
      * @return the configuration setting at the nested level of configuration
@@ -134,15 +131,27 @@ public class JobConfig {
         return p;
     }
 
-    public JsonNode getSchedule() {
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    public Schedule getSchedule() {
         return schedule;
+    }
+
+    public void setSchedule(Schedule schedule) {
+        this.schedule = schedule;
     }
 
     public JsonNode getConfiguration() {
         return configuration;
     }
 
-    public String getType() {
-        return type;
+    public void setConfiguration(JsonNode configuration) {
+        this.configuration = configuration;
     }
 }
