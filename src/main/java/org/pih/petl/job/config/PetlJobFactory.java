@@ -1,10 +1,12 @@
-package org.pih.petl.job;
+package org.pih.petl.job.config;
 
+import org.pih.petl.ApplicationConfig;
 import org.pih.petl.PetlException;
 import org.pih.petl.api.EtlService;
-import org.pih.petl.job.config.ConfigFile;
-import org.pih.petl.job.config.JobConfig;
-import org.pih.petl.job.config.ConfigFileReader;
+import org.pih.petl.job.PentahoJob;
+import org.pih.petl.job.PetlJob;
+import org.pih.petl.job.RunMultipleJob;
+import org.pih.petl.job.SqlServerImportJob;
 
 /**
  * Encapsulates a runnable pipeline
@@ -15,8 +17,10 @@ public class PetlJobFactory {
      * Instantiate a new ETL PetlJob from the given configuration file
      */
     public static PetlJob instantiate(EtlService etlService, String configFilePath) {
-        ConfigFile jobFile = etlService.getConfigFileReader().getConfigFile(configFilePath);
-        JobConfig jobConfig = etlService.getConfigFileReader().read(jobFile, JobConfig.class);
+
+        ApplicationConfig config = etlService.getApplicationConfig();
+        ConfigFile jobFile = config.getConfigFile(configFilePath);
+        PetlJobConfig jobConfig = config.loadConfiguration(jobFile, PetlJobConfig.class);
 
         if ("job-pipeline".equals(jobConfig.getType())) {
             return new RunMultipleJob(etlService, configFilePath);

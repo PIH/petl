@@ -21,8 +21,7 @@ import org.pentaho.di.job.JobMeta;
 import org.pih.petl.PetlException;
 import org.pih.petl.api.EtlService;
 import org.pih.petl.api.EtlStatus;
-import org.pih.petl.job.config.ConfigFile;
-import org.pih.petl.job.config.JobConfig;
+import org.pih.petl.job.config.PetlJobConfig;
 
 /**
  * This class is responsible for running a Pentaho Kettle PetlJob
@@ -38,16 +37,14 @@ public class PentahoJob implements PetlJob {
     public static final String JOB_LOG_LEVEL = "job.logLevel";
 
     private EtlService etlService;
-    private ConfigFile configFile;
-    private JobConfig config;
+    private String configPath;
 
     /**
      * Creates a new instance of the job with the given configuration path
      */
     public PentahoJob(EtlService etlService, String configPath) {
         this.etlService = etlService;
-        this.configFile = etlService.getConfigFileReader().getConfigFile(configPath);
-        this.config = etlService.getConfigFileReader().read(configFile, JobConfig.class);
+        this.configPath = configPath;
     }
 
     /**
@@ -59,12 +56,13 @@ public class PentahoJob implements PetlJob {
         if (!refreshInProgress) {
             refreshInProgress = true;
             try {
-                Properties configuration = config.getAsProperties();
+                PetlJobConfig jobConfig = etlService.loadJobConfig(configPath);
+                Properties configuration = jobConfig.getAsProperties();
 
                 // TODO: Add validation in
                 String jobFilePath = configuration.getProperty(JOB_FILE_PATH);
                 log.info("PetlJob file path: " + jobFilePath);
-                File jobFile = etlService.getConfigFileReader().getConfigFile(jobFilePath).getConfigFile();
+                File jobFile = etlService.getApplicationConfig().getConfigFile(jobFilePath).getConfigFile();
 
                 // Initialize the status table with this job execution
                 EtlStatus etlStatus = etlService.createStatus(jobFilePath);
@@ -76,14 +74,14 @@ public class PentahoJob implements PetlJob {
                 This gives us somewhere for this execution, where we can write kettle.properties and pih-kettle.properties,
                 so that the pipeline can find and use these as currently designed.
                 */
-                File workDir = ensureDir(etlService.getApplicationConfig().getHomeDir(), "work");
+                File workDir = ensureDir(etlService.getApplicationConfig().getPetlHomeDir(), "work");
                 File jobDir = ensureDir(workDir, etlStatus.getUuid());
                 File kettleDir = ensureDir(jobDir, ".kettle");
                 System.setProperty("KETTLE_HOME", jobDir.getAbsolutePath());
 
                 try {
                     // Configure kettle.properties with PIH_PENTAHO_HOME which we aquire from the configuration
-                    File srcDir = etlService.getConfigFileReader().getApplicationConfig().getHomeDir();
+                    File srcDir = etlService.getApplicationConfig().getPetlHomeDir();
                     if (!srcDir.exists()) {
                         throw new PetlException("Unable to initialize kettle environemnt.  Unable to find: " + srcDir);
                     }
@@ -195,7 +193,7 @@ public class PentahoJob implements PetlJob {
     }
 
     public FileLoggingEventListener setupLogger(org.pentaho.di.job.Job job) {
-        File logFile = etlService.getConfigFileReader().getApplicationConfig().getLogFile();
+        File logFile = etlService.getApplicationConfig().getLogFile();
         try {
             FileLoggingEventListener fileLogListener = new FileLoggingEventListener(job.getLogChannelId(), logFile.getAbsolutePath(), true);
             KettleLogStore.getAppender().addLoggingEventListener(fileLogListener);

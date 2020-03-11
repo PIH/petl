@@ -46,7 +46,7 @@ public class Application {
         Application app = context.getBean(Application.class);
 
         log.info("PETL Started Successfully");
-        log.info("PETL_HOME: " + app.getAppConfig().getHomeDir());
+        log.info("PETL_HOME: " + app.getAppConfig().getPetlHomeDir());
         log.info("LOG DIR: " + app.getAppConfig().getLogFile());
         log.info("JOB CONFIG DIR: " + app.getAppConfig().getJobConfigDir());
 

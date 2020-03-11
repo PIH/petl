@@ -7,8 +7,9 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.pih.petl.ApplicationConfig;
 import org.pih.petl.job.PetlJob;
-import org.pih.petl.job.PetlJobFactory;
-import org.pih.petl.job.config.ConfigFileReader;
+import org.pih.petl.job.config.ConfigFile;
+import org.pih.petl.job.config.PetlJobConfig;
+import org.pih.petl.job.config.PetlJobFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,9 +24,6 @@ public class EtlService {
 
     @Autowired
     ApplicationConfig applicationConfig;
-
-    @Autowired
-    ConfigFileReader configFileReader;
 
     @Autowired
     EtlStatusRepository repository;
@@ -52,13 +50,14 @@ public class EtlService {
         return etlStatus;
     }
 
+    public PetlJobConfig loadJobConfig(String jobPath) {
+        ConfigFile configFile = applicationConfig.getConfigFile(jobPath);
+        return applicationConfig.loadConfiguration(configFile, PetlJobConfig.class);
+    }
+
     public void executeJob(String jobPath) {
         PetlJob job = PetlJobFactory.instantiate(this, jobPath);
         job.execute();
-    }
-
-    public ConfigFileReader getConfigFileReader() {
-        return configFileReader;
     }
 
     public ApplicationConfig getApplicationConfig() {

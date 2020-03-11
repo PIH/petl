@@ -6,8 +6,8 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.pih.petl.api.EtlService;
 import org.pih.petl.api.EtlStatus;
-import org.pih.petl.job.config.ConfigFile;
-import org.pih.petl.job.config.JobConfig;
+import org.pih.petl.job.config.PetlJobConfig;
+import org.pih.petl.job.config.PetlJobFactory;
 
 /**
  * Encapsulates a particular ETL job configuration
@@ -18,14 +18,14 @@ public class RunMultipleJob implements PetlJob {
     private static boolean refreshInProgress = false;
 
     private EtlService etlService;
-    private ConfigFile configFile;
+    private String configPath;
 
     /**
      * Creates a new instance of the job with the given configuration path
      */
     public RunMultipleJob(EtlService etlService, String configPath) {
         this.etlService = etlService;
-        this.configFile = etlService.getConfigFileReader().getConfigFile(configPath);
+        this.configPath = configPath;
     }
 
     /**
@@ -36,8 +36,8 @@ public class RunMultipleJob implements PetlJob {
         if (!refreshInProgress) {
             refreshInProgress = true;
             try {
-                JobConfig config = etlService.getConfigFileReader().read(configFile, JobConfig.class);
-                String jobName = configFile.getFilePath();
+                PetlJobConfig config = etlService.loadJobConfig(configPath);
+                String jobName = configPath;
                 List<String> jobs = config.getStringList("jobs");
                 boolean parallelExecution = config.getBoolean("parallelExecution");
 

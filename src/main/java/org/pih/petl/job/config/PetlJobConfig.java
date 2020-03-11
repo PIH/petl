@@ -17,15 +17,15 @@ import org.pih.petl.job.schedule.Schedule;
 /**
  * Encapsulates a particular ETL job configuration
  */
-public class JobConfig {
+public class PetlJobConfig {
 
-    private static final Log log = LogFactory.getLog(JobConfig.class);
+    private static final Log log = LogFactory.getLog(PetlJobConfig.class);
 
     private String type;
     private Schedule schedule;
     private JsonNode configuration;
 
-    public JobConfig() {}
+    public PetlJobConfig() {}
 
     /**
      * @return the configuration setting at the nested level of configuration
