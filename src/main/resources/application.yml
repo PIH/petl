@@ -18,4 +18,4 @@ spring:
     job-store-type: "memory"
 
 petl:
-  jobDir: "${PETL_HOME}/config"
+  configDir: "${PETL_HOME}/config"

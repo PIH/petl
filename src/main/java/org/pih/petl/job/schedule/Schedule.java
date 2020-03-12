@@ -9,6 +9,11 @@ public class Schedule {
 
     public Schedule() {}
 
+    @Override
+    public String toString() {
+        return cron;
+    }
+
     public String getCron() {
         return cron;
     }

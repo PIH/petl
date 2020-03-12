@@ -21,6 +21,7 @@ public class PetlJobConfig {
 
     private static final Log log = LogFactory.getLog(PetlJobConfig.class);
 
+    private String path;
     private String type;
     private Schedule schedule;
     private JsonNode configuration;
@@ -129,6 +130,14 @@ public class PetlJobConfig {
             }
         }
         return p;
+    }
+
+    public String getPath() {
+        return path;
+    }
+
+    public void setPath(String path) {
+        this.path = path;
     }
 
     public String getType() {

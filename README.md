@@ -34,5 +34,9 @@ USAGE:
 * Build project using maven (mvn clean package), using Java 8
 * Run at the command line, or via running directly through Intellij
 
+TODO:
+
+* https://www.baeldung.com/docker-test-containers
+
 CONFIGURATION:
 * See PETL ansible scripts for expected installation, setup, and configuration settings

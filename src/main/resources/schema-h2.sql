@@ -1,8 +1,7 @@
 
-create table if not exists etl_status (
+create table if not exists petl_job_execution (
     uuid            CHAR(36) NOT NULL,
-    num             INT NOT NULL,
-    job_name        VARCHAR(100) NOT NULL,
+    job_path        VARCHAR(100) NOT NULL,
     total_expected  INT,
     total_loaded    INT,
     started         DATETIME NOT NULL,

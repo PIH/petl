@@ -1,12 +1,13 @@
 package org.pih.petl.job.config;
 
-import org.pih.petl.ApplicationConfig;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 import org.pih.petl.PetlException;
-import org.pih.petl.api.EtlService;
-import org.pih.petl.job.PentahoJob;
 import org.pih.petl.job.PetlJob;
-import org.pih.petl.job.RunMultipleJob;
-import org.pih.petl.job.SqlServerImportJob;
+import org.pih.petl.job.type.PentahoJob;
+import org.pih.petl.job.type.RunMultipleJob;
+import org.pih.petl.job.type.SqlServerImportJob;
 
 /**
  * Encapsulates a runnable pipeline
@@ -14,25 +15,37 @@ import org.pih.petl.job.SqlServerImportJob;
 public class PetlJobFactory {
 
     /**
+     * @return the available job types in the system
+     */
+    public static Map<String, Class<? extends PetlJob>> getJobTypes() {
+        Map<String, Class<? extends PetlJob>> m = new LinkedHashMap<>();
+        m.put("job-pipeline", RunMultipleJob.class);
+        m.put("sqlserver-bulk-import", SqlServerImportJob.class);
+        m.put("pentaho-job", PentahoJob.class);
+        return m;
+    }
+
+    /**
+     * Returns true if the PetlJobConfig is valid
+     * TODO: Expand on this
+     */
+    public static boolean isValid(PetlJobConfig config) {
+        return getJobTypes().containsKey(config.getType());
+    }
+
+    /**
      * Instantiate a new ETL PetlJob from the given configuration file
      */
-    public static PetlJob instantiate(EtlService etlService, String configFilePath) {
-
-        ApplicationConfig config = etlService.getApplicationConfig();
-        ConfigFile jobFile = config.getConfigFile(configFilePath);
-        PetlJobConfig jobConfig = config.loadConfiguration(jobFile, PetlJobConfig.class);
-
-        if ("job-pipeline".equals(jobConfig.getType())) {
-            return new RunMultipleJob(etlService, configFilePath);
+    public static PetlJob instantiate(PetlJobConfig jobConfig) {
+        try {
+            Class<? extends PetlJob> type = getJobTypes().get(jobConfig.getType());
+            if (type == null) {
+                throw new PetlException("Invalid job type of " + jobConfig.getType());
+            }
+            return type.newInstance();
         }
-        else if ("sqlserver-bulk-import".equals(jobConfig.getType())) {
-            return new SqlServerImportJob(etlService, configFilePath);
-        }
-        else if ("pentaho-job".equals(jobConfig.getType())) {
-            return new PentahoJob(etlService, configFilePath);
-        }
-        else {
-            throw new PetlException("Invalid job type of " + jobConfig.getType());
+        catch (Exception e) {
+            throw new PetlException("Unable to instantiate job using reflection, passing EtlService and job path", e);
         }
     }
 }

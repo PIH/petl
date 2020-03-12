@@ -14,4 +14,4 @@ spring:
     password: "Test123"
 
 petl:
-  jobDir: "src/test/resources/configuration"
+  configDir: "src/test/resources/configuration"

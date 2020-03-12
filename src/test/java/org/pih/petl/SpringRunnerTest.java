@@ -36,6 +36,6 @@ public class SpringRunnerTest {
     @Test
     public void contextLoads() {
         Assert.assertNotNull(applicationConfig);
-        Assert.assertNotNull(applicationConfig.getJobConfigDir());
+        Assert.assertNotNull(applicationConfig.getConfigDir());
     }
 }

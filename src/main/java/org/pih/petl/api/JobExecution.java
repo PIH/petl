@@ -11,19 +11,16 @@ import org.apache.commons.logging.LogFactory;
 /**
  * Represents an ETL job execution and the status of this
  */
-@Entity(name = "etl_status")
-public class EtlStatus {
+@Entity(name = "petl_job_execution")
+public class JobExecution {
 
-    private static Log log = LogFactory.getLog(EtlStatus.class);
+    private static Log log = LogFactory.getLog(JobExecution.class);
 
     @Id
     private String uuid;
 
-    @Column(name = "num", nullable = false)
-    private Integer num;
-
-    @Column(name = "job_name", nullable = false, length = 100)
-    private String jobName;
+    @Column(name = "job_path", nullable = false, length = 100)
+    private String jobPath;
 
     @Column(name = "total_expected")
     private Integer totalExpected;
@@ -43,12 +40,13 @@ public class EtlStatus {
     @Column(name = "error_message", length = 1000)
     private String errorMessage;
 
-    public EtlStatus() {}
+    public JobExecution() {}
 
-    public EtlStatus(String uuid, String jobName) {
+    public JobExecution(String uuid, String jobPath) {
         this.uuid = uuid;
-        this.jobName = jobName;
+        this.jobPath = jobPath;
         this.started = new Date();
+        this.status = "Execution Initiated";
     }
 
     public int getDurationSeconds() {
@@ -61,7 +59,7 @@ public class EtlStatus {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append("Job " + jobName + " (" + uuid + "): " + status);
+        sb.append("Job " + jobPath + " (" + uuid + "): " + status);
         if (totalLoaded != null && totalExpected != null) {
             sb.append(" ").append(totalLoaded + "/" + totalExpected);
         }
@@ -82,20 +80,12 @@ public class EtlStatus {
         this.uuid = uuid;
     }
 
-    public Integer getNum() {
-        return num;
+    public String getJobPath() {
+        return jobPath;
     }
 
-    public void setNum(Integer num) {
-        this.num = num;
-    }
-
-    public String getJobName() {
-        return jobName;
-    }
-
-    public void setJobName(String jobName) {
-        this.jobName = jobName;
+    public void setJobPath(String jobPath) {
+        this.jobPath = jobPath;
     }
 
     public Integer getTotalExpected() {

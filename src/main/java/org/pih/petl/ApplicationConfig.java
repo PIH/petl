@@ -1,15 +1,25 @@
 package org.pih.petl;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.util.Map;
+import java.util.TreeMap;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.pih.petl.job.config.ConfigFile;
 import org.pih.petl.job.config.PetlJobConfig;
+import org.pih.petl.job.config.PetlJobFactory;
 import org.pih.petl.job.schedule.Schedule;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
@@ -24,35 +34,10 @@ public class ApplicationConfig {
     private static final Log log = LogFactory.getLog(ApplicationConfig.class);
 
     public static final String ENV_PETL_HOME = "PETL_HOME";
-    public static final String JOB_CONFIG_DIR = "petl.jobDir";
+    public static final String CONFIG_DIR = "petl.configDir";
 
     @Autowired
     Environment environment;
-
-    /**
-     * @return the directory in which job configurations are found for this PETL instance
-     */
-    public File getJobConfigDir() {
-        File ret = new File(getPetlHomeDir(), "config");
-        String jobDir = environment.getProperty(JOB_CONFIG_DIR);
-        if (StringUtils.isBlank(jobDir)) {
-            log.warn("No value specified for " + JOB_CONFIG_DIR + ", using default of " + ret.getAbsolutePath());
-        }
-        else {
-            ret = new File(jobDir);
-        }
-        if (!ret.exists()) {
-            throw new PetlException("The configuration directory does not exist: " + ret.getAbsolutePath());
-        }
-        return ret;
-    }
-
-    /**
-     * @return the configuration file at the path relative to the base configuration directory
-     */
-    public ConfigFile getConfigFile(String path) {
-        return new ConfigFile(getJobConfigDir(), path);
-    }
 
     /**
      * @return the File representing the PETL_HOME directory
@@ -76,6 +61,24 @@ public class ApplicationConfig {
     }
 
     /**
+     * @return the directory in which job configurations are found for this PETL instance
+     */
+    public File getConfigDir() {
+        File ret = new File(getPetlHomeDir(), "config");
+        String configDir = environment.getProperty(CONFIG_DIR);
+        if (StringUtils.isBlank(configDir)) {
+            log.warn("No value specified for " + CONFIG_DIR + ", using default of " + ret.getAbsolutePath());
+        }
+        else {
+            ret = new File(configDir);
+        }
+        if (!ret.exists()) {
+            throw new PetlException("The configuration directory does not exist: " + ret.getAbsolutePath());
+        }
+        return ret;
+    }
+
+    /**
      * @return the File representing the log file
      */
     public File getLogFile() {
@@ -84,6 +87,22 @@ public class ApplicationConfig {
             dir.mkdir();
         }
         return new File(dir, "petl.log");
+    }
+
+    /**
+     * @return the configuration file at the path relative to the base configuration directory
+     */
+    public ConfigFile getConfigFile(String path) {
+        return new ConfigFile(getConfigDir(), path);
+    }
+
+    /**
+     * Convenience method to retrieve a PETL Job Config with the given path
+     */
+    public PetlJobConfig getPetlJobConfig(String path) {
+        ConfigFile jobFile = getConfigFile(path);
+        PetlJobConfig jobConfig = loadConfiguration(jobFile, PetlJobConfig.class);
+        return jobConfig;
     }
 
     /**
@@ -97,6 +116,7 @@ public class ApplicationConfig {
             JsonNode jsonNode = getYamlMapper().readTree(configFile.getConfigFile());
             if (type == PetlJobConfig.class) {
                 PetlJobConfig jobConfig = new PetlJobConfig();
+                jobConfig.setPath(configFile.getFilePath());
                 jobConfig.setType(jsonNode.get("type").asText());
                 jobConfig.setConfiguration(jsonNode.get("configuration"));
                 JsonNode scheduleNode = jsonNode.get("schedule");
