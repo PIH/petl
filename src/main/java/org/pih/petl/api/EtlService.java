@@ -101,12 +101,15 @@ public class EtlService {
     public JobExecution executeJob(String jobPath) {
         PetlJobConfig jobConfig = applicationConfig.getPetlJobConfig(jobPath);
         PetlJob job = PetlJobFactory.instantiate(jobConfig);
-        JobExecution execution = new JobExecution(UUID.randomUUID().toString(), jobPath);
+        String executionUuid = UUID.randomUUID().toString();
+        JobExecution execution = new JobExecution(executionUuid, jobPath);
+        log.info("Executing Job: " + jobPath + " (" + executionUuid + ")");
         try {
             saveJobExecution(execution);
             ExecutionContext context = new ExecutionContext(execution, jobConfig, applicationConfig);
             job.execute(context);
             execution.setStatus("Execution Successful");
+            log.info("Job Successful: " + jobPath + " (" + executionUuid + ")");
         }
         catch (Exception e) {
             execution.setErrorMessage(e.getMessage());

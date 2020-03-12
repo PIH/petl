@@ -19,9 +19,9 @@ import org.springframework.stereotype.Component;
  * Schedulable task for loading all of the configurations
  */
 @Component
-public class LoadConfigurationsTask implements Job {
+public class PetlScheduledExecutionTask implements Job {
 
-    private static final Log log = LogFactory.getLog(LoadConfigurationsTask.class);
+    private static final Log log = LogFactory.getLog(PetlScheduledExecutionTask.class);
 
     private static boolean inProgress = false;
 
@@ -43,32 +43,35 @@ public class LoadConfigurationsTask implements Job {
             try {
                 inProgress = true;
                 Date currentDate = new Date();
-                log.debug("Executing Load Configurations Task: " + currentDate);
+                log.debug("Executing Task: " + currentDate);
                 Map<String, PetlJobConfig> jobs = etlService.getAllConfiguredJobs();
                 log.debug("Found " + jobs.size() + " configured Jobs");
                 for (String jobPath : jobs.keySet()) {
                     log.debug("Checking job: " + jobPath);
                     JobExecution latestExecution = etlService.getLatestJobExecution(jobPath);
                     if (latestExecution == null) {
-                        log.debug("Job has never been executed, executing now");
+                        log.info("Job: " + jobPath + " - Executing for the first time.");
                         etlService.executeJob(jobPath);
                     }
                     else {
                         Date lastStartDate = latestExecution.getStarted();
+                        log.debug("Last Execution Start: " + lastStartDate);
                         Date lastEndDate = latestExecution.getCompleted();
-                        log.debug("Job has previously been executed: " + lastStartDate + " - " + lastEndDate);
+                        log.debug("Last Execution End: " + lastEndDate);
                         if (lastEndDate != null) {
                             PetlJobConfig jobConfig = jobs.get(jobPath);
                             Schedule schedule = jobConfig.getSchedule();
                             if (schedule != null) {
                                 log.debug("Schedule found: " + schedule);
                                 CronExpression cronExpression = new CronExpression(schedule.getCron());
-                                log.debug("Scheduled based on cron: " + cronExpression.getExpressionSummary());
                                 Date nextScheduledDate = cronExpression.getNextValidTimeAfter(lastStartDate);
                                 log.debug("Next scheduled for: " + nextScheduledDate);
                                 if (nextScheduledDate != null && nextScheduledDate.compareTo(currentDate) <= 0) {
-                                    log.debug("Schedule is satisfied, executing task");
-                                    etlService.executeJob(jobPath);
+                                    log.info("Executing scheduled job: " + jobPath);
+                                    log.info("Last run: " + lastStartDate);
+                                    JobExecution execution = etlService.executeJob(jobPath);
+                                    nextScheduledDate = cronExpression.getNextValidTimeAfter(execution.getStarted());
+                                    log.info("Scheduled job will run again at: " + nextScheduledDate);
                                 }
                                 else {
                                     log.debug("This is in the future, not executing");

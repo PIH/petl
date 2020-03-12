@@ -53,7 +53,7 @@ public class PentahoJob implements PetlJob {
 
         // TODO: Add validation in
         String jobFilePath = configuration.getProperty(JOB_FILE_PATH);
-        log.info("PetlJob file path: " + jobFilePath);
+        log.debug("PetlJob file path: " + jobFilePath);
         File jobFile = appConfig.getConfigFile(jobFilePath).getConfigFile();
 
         /*
@@ -78,7 +78,7 @@ public class PentahoJob implements PetlJob {
                 Properties kettleProperties = new Properties();
                 kettleProperties.put("PIH_PENTAHO_HOME", srcDir.getAbsolutePath());
                 kettleProperties.store(new FileWriter(new File(kettleDir, "kettle.properties")), null);
-                log.info("Wrote kettle.properties to " + kettleDir);
+                log.debug("Wrote kettle.properties to " + kettleDir);
             }
             catch (IOException e) {
                 throw new PetlException("Unable to initialize kettle.  Error writing to kettle.properties.", e);
@@ -86,15 +86,15 @@ public class PentahoJob implements PetlJob {
 
             // Initialize the Kettle environment
             try {
-                log.info("Initializing Kettle Environment");
-                log.info("KETTLE_HOME = " + System.getProperty("KETTLE_HOME"));
+                log.debug("Initializing Kettle Environment");
+                log.debug("KETTLE_HOME = " + System.getProperty("KETTLE_HOME"));
                 KettleEnvironment.init();
             }
             catch (KettleException e) {
                 throw new PetlException("Unable to initialize kettle environment.", e);
             }
 
-            log.info("CONFIGURATION:");
+            log.debug("CONFIGURATION:");
 
             Set<String> propertyNames = configuration.stringPropertyNames();
             for (String property : propertyNames) {
@@ -102,14 +102,14 @@ public class PentahoJob implements PetlJob {
                 if (property.toLowerCase().contains("password")) {
                     propertyValue = "************";
                 }
-                log.info(property + " = " + propertyValue);
+                log.debug(property + " = " + propertyValue);
             }
 
             // Write passed configuration properties to pih-kettle.properties
 
             try {
                 configuration.store(new FileWriter(new File(kettleDir, "pih-kettle.properties")), null);
-                log.info("Wrote pih-kettle.properties to " + kettleDir);
+                log.debug("Wrote pih-kettle.properties to " + kettleDir);
             }
             catch (IOException e) {
                 throw new PetlException("Unable to initialize kettle.  Error writing to pih-kettle.properties.", e);
@@ -119,7 +119,7 @@ public class PentahoJob implements PetlJob {
 
             JobMeta jobMeta = new JobMeta(jobFile.getAbsolutePath(), null);
 
-            log.info("PetlJob parameters: ");
+            log.debug("PetlJob parameters: ");
             String[] declaredParameters = jobMeta.listParameters();
             for (int i = 0; i < declaredParameters.length; i++) {
                 String parameterName = declaredParameters[i];
@@ -127,13 +127,13 @@ public class PentahoJob implements PetlJob {
                 if (configuration.containsKey(parameterName)) {
                     parameterValue = configuration.getProperty(parameterName);
                 }
-                log.info(parameterName + " -> " + parameterValue);
+                log.debug(parameterName + " -> " + parameterValue);
                 jobMeta.setParameterValue(parameterName, parameterValue);
             }
 
             String logLevelConfig = configuration.getProperty(JOB_LOG_LEVEL, "MINIMAL");
             LogLevel logLevel = LogLevel.valueOf(logLevelConfig);
-            log.info("PetlJob log level: " + logLevel);
+            log.debug("PetlJob log level: " + logLevel);
 
             org.pentaho.di.job.Job job = new org.pentaho.di.job.Job(null, jobMeta);
             job.setLogLevel(logLevel);
@@ -141,7 +141,7 @@ public class PentahoJob implements PetlJob {
             StopWatch stopWatch = new StopWatch();
             stopWatch.start();
 
-            log.info("Starting PetlJob Execution...");
+            log.debug("Starting PetlJob Execution...");
 
             FileLoggingEventListener logger = setupLogger(context, job);
             job.start();  // Start the job thread, which will execute asynchronously
@@ -153,10 +153,10 @@ public class PentahoJob implements PetlJob {
             Result result = job.getResult();
             // TODO: We can inspect the result here and take action (eg. notify on errors, etc)
 
-            log.info("***************");
-            log.info("PetlJob executed in:  " + stopWatch.toString());
-            log.info("PetlJob Result: " + result);
-            log.info("***************");
+            log.debug("***************");
+            log.debug("PetlJob executed in:  " + stopWatch.toString());
+            log.debug("PetlJob Result: " + result);
+            log.debug("***************");
         }
         finally {
             try {

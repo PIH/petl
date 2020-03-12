@@ -8,7 +8,7 @@ import java.lang.management.RuntimeMXBean;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.pih.petl.job.schedule.JobScheduler;
-import org.pih.petl.job.schedule.LoadConfigurationsTask;
+import org.pih.petl.job.schedule.PetlScheduledExecutionTask;
 import org.quartz.SimpleScheduleBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
@@ -52,7 +52,7 @@ public class Application {
 
         // Set up the schedule to check if any etl jobs need to execute every minute
         SimpleScheduleBuilder schedule = simpleSchedule().repeatForever().withIntervalInSeconds(60);
-        app.getScheduler().schedule(LoadConfigurationsTask.class, schedule);
+        app.getScheduler().schedule(PetlScheduledExecutionTask.class, schedule);
     }
 
     /**
