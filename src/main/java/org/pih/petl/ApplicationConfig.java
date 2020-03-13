@@ -1,25 +1,16 @@
 package org.pih.petl;
 
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.FileVisitResult;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.SimpleFileVisitor;
-import java.nio.file.attribute.BasicFileAttributes;
-import java.util.Map;
-import java.util.TreeMap;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.pih.petl.job.config.ConfigFile;
 import org.pih.petl.job.config.PetlJobConfig;
-import org.pih.petl.job.config.PetlJobFactory;
+import org.pih.petl.job.datasource.EtlDataSource;
 import org.pih.petl.job.schedule.Schedule;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
@@ -100,9 +91,16 @@ public class ApplicationConfig {
      * Convenience method to retrieve a PETL Job Config with the given path
      */
     public PetlJobConfig getPetlJobConfig(String path) {
-        ConfigFile jobFile = getConfigFile(path);
-        PetlJobConfig jobConfig = loadConfiguration(jobFile, PetlJobConfig.class);
-        return jobConfig;
+        ConfigFile configFile = getConfigFile(path);
+        return loadConfiguration(configFile, PetlJobConfig.class);
+    }
+
+    /**
+     * Convenience method to retrieve an EtlDataSource with the given path
+     */
+    public EtlDataSource getEtlDataSource(String path) {
+        ConfigFile configFile = getConfigFile(path);
+        return loadConfiguration(configFile, EtlDataSource.class);
     }
 
     /**

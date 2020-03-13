@@ -1,6 +1,0 @@
-databaseType: "mysql"
-host: "localhost"
-port: "3308"
-databaseName: "openmrs"
-user: "root"
-password: "root"

@@ -1,0 +1,10 @@
+type: "sqlserver-bulk-import"
+configuration:
+  extract:
+    datasource: "datasources/mysql-testcontainer.yml"
+    query:  "jobs/sqlserverimport/source.sql"
+
+  load:
+    datasource: "datasources/sqlserver-testcontainer.yml"
+    table: "encounter_types"
+    schema: "jobs/sqlserverimport/target.sql"

@@ -14,15 +14,18 @@ import org.pih.petl.job.type.SqlServerImportJob;
  */
 public class PetlJobFactory {
 
+    private static Map<String, Class<? extends PetlJob>> jobTypes = new LinkedHashMap<>();
+    static {
+        jobTypes.put("job-pipeline", RunMultipleJob.class);
+        jobTypes.put("sqlserver-bulk-import", SqlServerImportJob.class);
+        jobTypes.put("pentaho-job", PentahoJob.class);
+    }
+
     /**
      * @return the available job types in the system
      */
     public static Map<String, Class<? extends PetlJob>> getJobTypes() {
-        Map<String, Class<? extends PetlJob>> m = new LinkedHashMap<>();
-        m.put("job-pipeline", RunMultipleJob.class);
-        m.put("sqlserver-bulk-import", SqlServerImportJob.class);
-        m.put("pentaho-job", PentahoJob.class);
-        return m;
+        return jobTypes;
     }
 
     /**

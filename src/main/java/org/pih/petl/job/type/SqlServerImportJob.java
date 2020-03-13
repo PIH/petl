@@ -2,10 +2,12 @@ package org.pih.petl.job.type;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Iterator;
 import java.util.List;
 
+import com.microsoft.sqlserver.jdbc.ISQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopyOptions;
 import org.apache.commons.dbutils.DbUtils;
@@ -19,10 +21,9 @@ import org.pih.petl.api.ExecutionContext;
 import org.pih.petl.job.PetlJob;
 import org.pih.petl.job.config.ConfigFile;
 import org.pih.petl.job.config.PetlJobConfig;
-import org.pih.petl.job.datasource.EtlConnectionManager;
+import org.pih.petl.job.datasource.DatabaseUtil;
 import org.pih.petl.job.datasource.EtlDataSource;
 import org.pih.petl.job.datasource.SqlStatementParser;
-import org.pih.petl.job.datasource.SqlUtils;
 
 /**
  * PetlJob that can load into SQL Server table
@@ -78,8 +79,8 @@ public class SqlServerImportJob implements PetlJob {
 
         try {
             QueryRunner qr = new QueryRunner();
-            sourceConnection = EtlConnectionManager.openConnection(sourceDatasource);
-            targetConnection = EtlConnectionManager.openConnection(targetDatasource);
+            sourceConnection = DatabaseUtil.openConnection(sourceDatasource);
+            targetConnection = DatabaseUtil.openConnection(targetDatasource);
 
             boolean originalSourceAutoCommit = sourceConnection.getAutoCommit();
             boolean originalTargetAutocommit = targetConnection.getAutoCommit();
@@ -131,7 +132,8 @@ public class SqlServerImportJob implements PetlJob {
                                     resultSet.beforeFirst();
 
                                     // Pass the ResultSet to bulk copy to SQL Server (TODO: Handle other DBs)
-                                    SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(targetConnection);
+                                    Connection sqlServerConnection = getAsSqlServerConnection(targetConnection);
+                                    SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(sqlServerConnection);
                                     SQLServerBulkCopyOptions bco = new SQLServerBulkCopyOptions();
                                     bco.setKeepIdentity(true);
                                     bco.setBatchSize(100);
@@ -157,7 +159,7 @@ public class SqlServerImportJob implements PetlJob {
                 }
 
                 // Update the status at the end of the bulk copy
-                Integer rowCount = SqlUtils.rowCount(targetConnection, targetTable);
+                Integer rowCount = DatabaseUtil.rowCount(targetConnection, targetTable);
                 context.setTotalLoaded(rowCount);
                 context.setStatus("Import Completed Sucessfully");
             }
@@ -174,6 +176,22 @@ public class SqlServerImportJob implements PetlJob {
         }
     }
 
+    /**
+     * @return a connection for the given connection.  This allows mocking to occur in unit tests as needed
+     */
+    public Connection getAsSqlServerConnection(Connection connection) throws SQLException {
+        if (connection.isWrapperFor(ISQLServerConnection.class)) {
+            if (!(connection instanceof ISQLServerConnection)) {
+                log.warn("The passed connection is a wrapper for ISQLServerConnection, unwrapping it.");
+                return connection.unwrap(ISQLServerConnection.class);
+            }
+        }
+        return connection;
+    }
+
+    /**
+     * Inner class allows for checking the target for the number or rows currently loaded, to update status over time
+     */
     class RowCountUpdater extends Thread {
 
         private long lastExecutionTime = System.currentTimeMillis();
@@ -195,7 +213,7 @@ public class SqlServerImportJob implements PetlJob {
                 long msSinceLast = System.currentTimeMillis() - lastExecutionTime;
                 if (msSinceLast >= msBetweenExecutions) {
                     try {
-                        Integer rowCount = SqlUtils.rowCount(connection, table);
+                        Integer rowCount = DatabaseUtil.rowCount(connection, table);
                         context.setTotalLoaded(rowCount);
                     }
                     catch (Exception e) {}

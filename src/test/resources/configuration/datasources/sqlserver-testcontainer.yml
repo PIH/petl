@@ -1,0 +1,3 @@
+url: "jdbc:tc:sqlserver://localhost?TC_DAEMON=true"
+user: "SA"
+password: "Admin123"

@@ -26,11 +26,10 @@ public class EtlServiceTest {
     }
 
     @Test
-    public void testServiceLoadsAllConfiguredJobs() throws Exception {
+    public void testServiceLoadsAllConfiguredJobs() {
         Map<String, PetlJobConfig> configuredJobs = etlService.getAllConfiguredJobs();
-        Assert.assertEquals(3, configuredJobs.size());
-        Assert.assertNotNull(configuredJobs.get("jobs/encountertypetest/job.yml"));
-        Assert.assertNotNull(configuredJobs.get("jobs/pentaho_example/job.yml"));
-        Assert.assertNotNull(configuredJobs.get("jobs/vaccinations_anc/job.yml"));
+        Assert.assertEquals(2, configuredJobs.size());
+        Assert.assertNotNull(configuredJobs.get("jobs/sqlserverimport/job.yml"));
+        Assert.assertNotNull(configuredJobs.get("jobs/pentaho/job.yml"));
     }
 }

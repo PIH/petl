@@ -24,6 +24,6 @@ public class PentahoJobTest {
 
     @Test
     public void testSimpleJobThatOutputsLoggingMessage() {
-        etlService.executeJob("jobs/pentaho_example/job.yml");
+        etlService.executeJob("jobs/pentaho/job.yml");
     }
 }
