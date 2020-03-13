@@ -52,7 +52,7 @@ public class Application {
 
         // Set up the schedule to check if any etl jobs need to execute every minute
         SimpleScheduleBuilder schedule = simpleSchedule().repeatForever().withIntervalInSeconds(60);
-        app.getScheduler().schedule(PetlScheduledExecutionTask.class, schedule);
+        app.getScheduler().schedule(PetlScheduledExecutionTask.class, schedule, 10000);  // Delay 10 seconds
     }
 
     /**

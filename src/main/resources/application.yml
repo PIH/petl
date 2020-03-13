@@ -14,6 +14,9 @@ spring:
     username: "sa"
     password: "Test123"
     data: "classpath:schema-h2.sql"
+  jpa:
+    hibernate:
+      ddl-auto: "none"
   quartz:
     job-store-type: "memory"
 

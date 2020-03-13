@@ -32,7 +32,7 @@ public class SchedulerTest {
     @Test
     public void testSimpleJobThatOutputsLoggingMessage() throws Exception {
         SimpleScheduleBuilder schedule = simpleSchedule().withIntervalInMilliseconds(1).withRepeatCount(9); // Run 10 times
-        scheduler.schedule(SchedulerTestTask.class, schedule);
+        scheduler.schedule(SchedulerTestTask.class, schedule, 0);
         Thread.sleep(1000);
         Assert.assertEquals(10, SchedulerTestTask.numExecutions);
     }

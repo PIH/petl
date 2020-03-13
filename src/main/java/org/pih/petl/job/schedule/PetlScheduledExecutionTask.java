@@ -23,6 +23,7 @@ public class PetlScheduledExecutionTask implements Job {
 
     private static final Log log = LogFactory.getLog(PetlScheduledExecutionTask.class);
 
+    private static boolean enabled = true;
     private static boolean inProgress = false;
 
     @Autowired
@@ -39,10 +40,10 @@ public class PetlScheduledExecutionTask implements Job {
      */
     @Override
     public void execute(JobExecutionContext jobExecutionContext) throws JobExecutionException {
-        if (!inProgress) {
+        if (enabled && !inProgress) {
             try {
                 inProgress = true;
-                Date currentDate = new Date();
+                Date currentDate = jobExecutionContext.getFireTime();
                 log.debug("Executing Task: " + currentDate);
                 Map<String, PetlJobConfig> jobs = etlService.getAllConfiguredJobs();
                 log.debug("Found " + jobs.size() + " configured Jobs");
@@ -99,5 +100,11 @@ public class PetlScheduledExecutionTask implements Job {
         }
     }
 
+    public static boolean isEnabled() {
+        return enabled;
+    }
 
+    public static void setEnabled(boolean enabled) {
+        PetlScheduledExecutionTask.enabled = enabled;
+    }
 }
