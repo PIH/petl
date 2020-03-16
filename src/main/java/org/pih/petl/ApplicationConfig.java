@@ -1,11 +1,17 @@
 package org.pih.petl;
 
 import java.io.File;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.text.StrSubstitutor;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.pih.petl.job.config.ConfigFile;
@@ -13,7 +19,10 @@ import org.pih.petl.job.config.PetlJobConfig;
 import org.pih.petl.job.datasource.EtlDataSource;
 import org.pih.petl.job.schedule.Schedule;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.AbstractEnvironment;
+import org.springframework.core.env.EnumerablePropertySource;
 import org.springframework.core.env.Environment;
+import org.springframework.core.env.PropertySource;
 import org.springframework.stereotype.Component;
 
 /**
@@ -27,21 +36,40 @@ public class ApplicationConfig {
     public static final String ENV_PETL_HOME = "PETL_HOME";
     public static final String CONFIG_DIR = "petl.configDir";
 
+    private Map<String, String> env = null;
+
     @Autowired
     Environment environment;
+
+    /**
+     * @return a Map of the environment that PETL is running in (Environment variables and system properties, etc)
+     */
+    public Map<String, String> getEnv() {
+        if (env == null) {
+            env = new HashMap<>();
+            Set<String> propertyNames = new TreeSet<String>();
+            for (PropertySource s : ((AbstractEnvironment)environment).getPropertySources()) {
+                if (s instanceof EnumerablePropertySource) {
+                    for (String propertyName : ((EnumerablePropertySource)s).getPropertyNames()) {
+                        propertyNames.add(propertyName);
+                    }
+                }
+            }
+            for (String propertyName : propertyNames) {
+                env.put(propertyName, environment.getProperty(propertyName));
+            }
+        }
+        return env;
+    }
 
     /**
      * @return the File representing the PETL_HOME directory
      */
     public File getPetlHomeDir() {
-        log.debug("Loading home directory configuration from environment variable");
-        String path = System.getenv(ENV_PETL_HOME);
+        log.debug("Loading home directory configuration from environment");
+        String path = environment.getProperty(ENV_PETL_HOME);
         if (StringUtils.isBlank(path)) {
-            log.debug("Not found, loading home dir from system property");
-            path = System.getProperty(ENV_PETL_HOME);
-            if (StringUtils.isBlank(path)) {
-                throw new PetlException("The " + ENV_PETL_HOME + " environment variable is required.");
-            }
+            throw new PetlException("The " + ENV_PETL_HOME + " environment variable is required.");
         }
         log.debug("Home directory configuration found: " + path);
         File dir = new File(path);
@@ -111,7 +139,9 @@ public class ApplicationConfig {
             throw new PetlException("Configuration file not found: " + configFile);
         }
         try {
-            JsonNode jsonNode = getYamlMapper().readTree(configFile.getConfigFile());
+            String fileContents = FileUtils.readFileToString(configFile.getConfigFile(), "UTF-8");
+            String fileWithVariablesReplaced = StrSubstitutor.replace(fileContents, getEnv());
+            JsonNode jsonNode = getYamlMapper().readTree(fileWithVariablesReplaced);
             if (type == PetlJobConfig.class) {
                 PetlJobConfig jobConfig = new PetlJobConfig();
                 jobConfig.setPath(configFile.getFilePath());
