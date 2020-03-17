@@ -1,38 +1,47 @@
 PETL - PIH ETL Framework
 ================
 
-This is a lightweight application that embeds the Pentaho libraries and is built to execute a pentaho pipeline and provide a set of wraparound services and user interfaces.
+This is an application whose goal is to support the execution of ETL jobs for PIH
+Initially, this application  was written specifically to execute Pentaho Jobs and Transforms using Kettle.
+However, it has since evolved to enable the execution of other types of Jobs, as well as to schedule these jobs.
 
-RELATED PROJECTS:
+# REQUIREMENTS:
+
+* Java 8
+
+# RELATED PROJECTS:
+
 * PIH-PENTAHO:  https://github.com/PIH/pih-pentaho
 * PETL Ansible Scripts:  BitBucket PETL playbook/role
 
-REQUIREMENTS:
+# OBJECTIVES:
 
-* Java 8
-* Maven
+* Provide a simple tool that can execution ETL transformations that are defined in external configuration files
+* Provide an easy to understand and author syntax for authoring ETL jobs
+* Enable support for Pentaho/Kettle but not require it, and do so without requiring the full PDI installation
 
-OBJECTIVES:
+# TODO:
 
-* Simplify the deployment of the Pipeline, using technologies that we know well
-* Provide a lighter footprint (the petl jar file is around 40MB currently.  Our Docker image for PDI is 1.23 GB)
-* Automate some of the setup that should happen outside of a given Pipeline (eg. database creation, bookkeeping tables, scheduling of jobs)
 * Provide web services and/or a web application that enables a broad range of users to:
-** Enable, disable, and re-configure the various pipelines
+** View the details of the various jobs and the history of their execution
 ** View the last update date and current status of the Pipeline(s)
 ** Kick off an update of the pipeline(s)
-* View any errors in running the pipeline(s) 
-* Provide a mechanism for integrating with DHIS2
-**Thinking through whether we would have pipeline jobs that would load configuration and send data to DHIS2 via the REST API
-* Potentially provide a platform for future reporting (TBD)
-** Should a new Cohort Builder live here?
-** Should any other Data Analysis tools live here?
-** Should reports live here?  Should reporting frameworks simply use this as a source?
+** View any errors in running the pipeline(s) 
 
-USAGE:
+# USAGE:
 
 * Build project using maven (mvn clean package), using Java 8
 * Run at the command line, or via running directly through Intellij
 
 CONFIGURATION:
 * See PETL ansible scripts for expected installation, setup, and configuration settings
+
+# TESTING WITH SQL SERVER:
+
+### Create a Docker instance of SQL Server
+`
+docker pull mcr.microsoft.com/mssql/server:2019-GA-ubuntu-16.04
+docker run -e "ACCEPT_EULA=Y" -e "SA_PASSWORD=<YOUR_DB_ROOT_PW_CHOICE>" -p 1433:1433 --name <YOUR_DB_CONTAINER_NAME> -d mcr.microsoft.com/mssql/server:2019-GA-ubuntu-16.04
+`
+### Connect with Intellij or other client and create a new DB
+`create database <YourDBName>;`

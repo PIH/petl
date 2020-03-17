@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<job>
+  <name>job</name>
+  <directory>/</directory>
+  <entries>
+    <entry>
+      <name>Start</name>
+      <type>SPECIAL</type>
+      <start>Y</start>
+      <dummy>N</dummy>
+      <repeat>N</repeat>
+      <schedulerType>0</schedulerType>
+      <intervalSeconds>0</intervalSeconds>
+      <intervalMinutes>60</intervalMinutes>
+      <hour>12</hour>
+      <minutes>0</minutes>
+      <weekDay>1</weekDay>
+      <DayOfMonth>1</DayOfMonth>
+      <parallel>N</parallel>
+      <draw>Y</draw>
+      <nr>0</nr>
+      <xloc>256</xloc>
+      <yloc>160</yloc>
+      <attributes_kjc />
+    </entry>
+    <entry>
+      <name>Write to log</name>
+      <type>WRITE_TO_LOG</type>
+      <logmessage>THIS IS A TEST STEP IN A PENTAHO JOB</logmessage>
+      <loglevel>Minimal</loglevel>
+      <logsubject>TEST LOG ENTRY</logsubject>
+      <parallel>N</parallel>
+      <draw>Y</draw>
+      <nr>0</nr>
+      <xloc>384</xloc>
+      <yloc>160</yloc>
+      <attributes_kjc />
+    </entry>
+  </entries>
+  <hops>
+    <hop>
+      <from>Start</from>
+      <to>Write to log</to>
+      <from_nr>0</from_nr>
+      <to_nr>0</to_nr>
+      <enabled>Y</enabled>
+      <evaluation>Y</evaluation>
+      <unconditional>Y</unconditional>
+    </hop>
+  </hops>
+</job>
