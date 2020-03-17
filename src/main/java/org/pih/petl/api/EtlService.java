@@ -43,11 +43,11 @@ public class EtlService {
      * It will do this by iterating over all of the files recursively, retrieving any files it finds with a .yml or .yaml
      * extension, and checking if they represent valid job configuration files.  Each valid job configuration
      * will be returned in a Map keyed off of the job config path, relative to the configuration directory
-     * eg. A job at ${configDir}/jobs/maternalhealth/deliveries.yml will be keyed at "jobs/maternalhealth/deliveries.yml"
+     * eg. A job at ${PETL_JOB_DIR}/maternalhealth/deliveries.yml will be keyed at "maternalhealth/deliveries.yml"
      */
     public Map<String, PetlJobConfig> getAllConfiguredJobs() {
         Map<String, PetlJobConfig> m = new TreeMap<>();
-        final Path configPath = applicationConfig.getConfigDir().toPath();
+        final Path configPath = applicationConfig.getJobDir().toPath();
         log.debug("Loading configured jobs from: " + configPath);
         try {
             Files.walkFileTree(configPath, new SimpleFileVisitor<Path>() {

@@ -19,11 +19,11 @@ public class PentahoJobTest {
     EtlService etlService;
 
     static {
-        SpringRunnerTest.setupPetlHome();
+        SpringRunnerTest.setupEnvironment();
     }
 
     @Test
     public void testSimpleJobThatOutputsLoggingMessage() {
-        etlService.executeJob("jobs/pentaho/job.yml");
+        etlService.executeJob("pentaho/job.yml");
     }
 }

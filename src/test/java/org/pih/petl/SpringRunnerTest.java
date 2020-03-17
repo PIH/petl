@@ -18,24 +18,27 @@ public class SpringRunnerTest {
     ApplicationConfig applicationConfig;
 
     static {
-        setupPetlHome();
+        setupEnvironment();
     }
 
     /**
      * Sets up the PETL Home Directory for a given unit test
      */
-    public static File setupPetlHome() {
+    public static File setupEnvironment() {
         File targetDir = new File("target");
         File petlHome = new File(targetDir, UUID.randomUUID().toString());
         File petlDataDir = new File(petlHome, "data");
         petlDataDir.mkdirs();
         System.setProperty(ApplicationConfig.ENV_PETL_HOME, petlHome.getAbsolutePath());
+        System.setProperty(ApplicationConfig.ENV_JOB_DIR, "src/test/resources/configuration/jobs");
+        System.setProperty(ApplicationConfig.ENV_DATASOURCE_DIR, "src/test/resources/configuration/datasources");
         return petlHome;
     }
 
     @Test
     public void contextLoads() {
         Assert.assertNotNull(applicationConfig);
-        Assert.assertNotNull(applicationConfig.getConfigDir());
+        Assert.assertNotNull(applicationConfig.getJobDir());
+        Assert.assertNotNull(applicationConfig.getDataSourceDir());
     }
 }

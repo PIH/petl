@@ -19,6 +19,3 @@ spring:
       ddl-auto: "none"
   quartz:
     job-store-type: "memory"
-
-petl:
-  configDir: "${PETL_HOME}/config"

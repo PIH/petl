@@ -25,18 +25,18 @@ public class SqlServerImportJobTest {
     EtlService etlService;
 
     static {
-        SpringRunnerTest.setupPetlHome();
+        SpringRunnerTest.setupEnvironment();
     }
 
     @Test
     public void testLoadingFromMySQL() throws Exception {
-        etlService.executeJob("jobs/sqlserverimport/job.yml");
+        etlService.executeJob("sqlserverimport/job.yml");
         verifyRowCount("encounter_types", 62);
     }
 
     public void verifyRowCount(String table, int expectedRows) throws Exception {
         ApplicationConfig appConfig = etlService.getApplicationConfig();
-        EtlDataSource sqlServerDataSource = appConfig.getEtlDataSource("datasources/sqlserver-testcontainer.yml");
+        EtlDataSource sqlServerDataSource = appConfig.getEtlDataSource("sqlserver-testcontainer.yml");
         try (Connection c = DatabaseUtil.openConnection(sqlServerDataSource)) {
             int rowsFound = DatabaseUtil.rowCount(c, table);
             Assert.assertEquals(expectedRows, rowsFound);

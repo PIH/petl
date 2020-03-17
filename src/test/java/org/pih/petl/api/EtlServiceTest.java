@@ -22,14 +22,14 @@ public class EtlServiceTest {
     EtlService etlService;
 
     static {
-        SpringRunnerTest.setupPetlHome();
+        SpringRunnerTest.setupEnvironment();
     }
 
     @Test
     public void testServiceLoadsAllConfiguredJobs() {
         Map<String, PetlJobConfig> configuredJobs = etlService.getAllConfiguredJobs();
         Assert.assertEquals(2, configuredJobs.size());
-        Assert.assertNotNull(configuredJobs.get("jobs/sqlserverimport/job.yml"));
-        Assert.assertNotNull(configuredJobs.get("jobs/pentaho/job.yml"));
+        Assert.assertNotNull(configuredJobs.get("sqlserverimport/job.yml"));
+        Assert.assertNotNull(configuredJobs.get("pentaho/job.yml"));
     }
 }

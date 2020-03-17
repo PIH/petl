@@ -47,8 +47,9 @@ public class Application {
 
         log.info("PETL Started Successfully");
         log.info("PETL_HOME: " + app.getAppConfig().getPetlHomeDir());
-        log.info("LOG DIR: " + app.getAppConfig().getLogFile());
-        log.info("JOB CONFIG DIR: " + app.getAppConfig().getConfigDir());
+        log.info("JOB DIR: " + app.getAppConfig().getJobDir());
+        log.info("DATASOURCE DIR: " + app.getAppConfig().getDataSourceDir());
+        log.info("LOGGING TO: " + app.getAppConfig().getLogFile());
 
         // Set up the schedule to check if any etl jobs need to execute every minute
         SimpleScheduleBuilder schedule = simpleSchedule().repeatForever().withIntervalInSeconds(60);

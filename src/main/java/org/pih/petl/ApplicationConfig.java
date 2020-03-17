@@ -34,7 +34,8 @@ public class ApplicationConfig {
     private static final Log log = LogFactory.getLog(ApplicationConfig.class);
 
     public static final String ENV_PETL_HOME = "PETL_HOME";
-    public static final String CONFIG_DIR = "petl.configDir";
+    public static final String ENV_JOB_DIR = "PETL_JOB_DIR";
+    public static final String ENV_DATASOURCE_DIR = "PETL_DATASOURCE_DIR";
 
     private Map<String, String> env = null;
 
@@ -65,36 +66,51 @@ public class ApplicationConfig {
     /**
      * @return the File representing the PETL_HOME directory
      */
-    public File getPetlHomeDir() {
-        log.debug("Loading home directory configuration from environment");
-        String path = environment.getProperty(ENV_PETL_HOME);
+    public File getDirectoryFromEnvironment(String envName, boolean required) {
+        log.debug("Loading " + envName + " from environment");
+        String path = environment.getProperty(envName);
         if (StringUtils.isBlank(path)) {
-            throw new PetlException("The " + ENV_PETL_HOME + " environment variable is required.");
+            if (required) {
+                throw new PetlException("The " + envName + " environment variable is required.");
+            }
+            else {
+                return null;
+            }
         }
-        log.debug("Home directory configuration found: " + path);
+        log.debug(envName + " configuration found: " + path);
         File dir = new File(path);
         if (!dir.exists() || !dir.isDirectory()) {
-            throw new PetlException("The " + ENV_PETL_HOME + " setting of <" + path + ">" + " does not point to a valid directory");
+            String message = envName + " = " + path + " does not point to a valid directory";
+            if (required) {
+                throw new PetlException(message);
+            }
+            else {
+                log.warn(message);
+                return null;
+            }
         }
         return dir;
     }
 
     /**
+     * @return the File representing the PETL_HOME directory
+     */
+    public File getPetlHomeDir() {
+        return getDirectoryFromEnvironment(ENV_PETL_HOME, true);
+    }
+
+    /**
      * @return the directory in which job configurations are found for this PETL instance
      */
-    public File getConfigDir() {
-        File ret = new File(getPetlHomeDir(), "config");
-        String configDir = environment.getProperty(CONFIG_DIR);
-        if (StringUtils.isBlank(configDir)) {
-            log.warn("No value specified for " + CONFIG_DIR + ", using default of " + ret.getAbsolutePath());
-        }
-        else {
-            ret = new File(configDir);
-        }
-        if (!ret.exists()) {
-            throw new PetlException("The configuration directory does not exist: " + ret.getAbsolutePath());
-        }
-        return ret;
+    public File getJobDir() {
+        return getDirectoryFromEnvironment(ENV_JOB_DIR, true);
+    }
+
+    /**
+     * @return the directory in which data source configurations are found for this PETL instance
+     */
+    public File getDataSourceDir() {
+        return getDirectoryFromEnvironment(ENV_DATASOURCE_DIR, true);
     }
 
     /**
@@ -109,25 +125,25 @@ public class ApplicationConfig {
     }
 
     /**
-     * @return the configuration file at the path relative to the base configuration directory
+     * Convenience method to retrieve a PETL Job Config with the given path
      */
-    public ConfigFile getConfigFile(String path) {
-        return new ConfigFile(getConfigDir(), path);
+    public PetlJobConfig getPetlJobConfig(String path) {
+        ConfigFile configFile = new ConfigFile(getJobDir(), path);
+        return loadConfiguration(configFile, PetlJobConfig.class);
     }
 
     /**
      * Convenience method to retrieve a PETL Job Config with the given path
      */
-    public PetlJobConfig getPetlJobConfig(String path) {
-        ConfigFile configFile = getConfigFile(path);
-        return loadConfiguration(configFile, PetlJobConfig.class);
+    public ConfigFile getConfigFile(String path) {
+        return new ConfigFile(getJobDir(), path);
     }
 
     /**
      * Convenience method to retrieve an EtlDataSource with the given path
      */
     public EtlDataSource getEtlDataSource(String path) {
-        ConfigFile configFile = getConfigFile(path);
+        ConfigFile configFile = new ConfigFile(getDataSourceDir(), path);
         return loadConfiguration(configFile, EtlDataSource.class);
     }
 
@@ -144,7 +160,7 @@ public class ApplicationConfig {
             JsonNode jsonNode = getYamlMapper().readTree(fileWithVariablesReplaced);
             if (type == PetlJobConfig.class) {
                 PetlJobConfig jobConfig = new PetlJobConfig();
-                jobConfig.setPath(configFile.getFilePath());
+                jobConfig.setConfigFile(configFile);
                 jobConfig.setType(jsonNode.get("type").asText());
                 jobConfig.setConfiguration(jsonNode.get("configuration"));
                 JsonNode scheduleNode = jsonNode.get("schedule");

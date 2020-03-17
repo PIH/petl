@@ -26,7 +26,7 @@ public class SchedulerTest {
     JobScheduler scheduler;
 
     static {
-        SpringRunnerTest.setupPetlHome();
+        SpringRunnerTest.setupEnvironment();
     }
 
     @Test

@@ -54,8 +54,7 @@ public class SqlServerImportJob implements PetlJob {
 
         // Get source datasource
         String sourceDataSourceFilename = config.getString("extract", "datasource");
-        ConfigFile sourceDataFile = appConfig.getConfigFile(sourceDataSourceFilename);
-        EtlDataSource sourceDatasource = appConfig.loadConfiguration(sourceDataFile, EtlDataSource.class);
+        EtlDataSource sourceDatasource = appConfig.getEtlDataSource(sourceDataSourceFilename);
 
         // Get source query
         String sourceQueryFileName = config.getString("extract", "query");
@@ -64,8 +63,7 @@ public class SqlServerImportJob implements PetlJob {
 
         // Get target datasource
         String targetDataFileName = config.getString("load", "datasource");
-        ConfigFile targetDataFile = appConfig.getConfigFile(targetDataFileName);
-        EtlDataSource targetDatasource = appConfig.loadConfiguration(targetDataFile, EtlDataSource.class);
+        EtlDataSource targetDatasource = appConfig.getEtlDataSource(targetDataFileName);
 
         // Get target table name
         String targetTable = config.getString("load", "table");
