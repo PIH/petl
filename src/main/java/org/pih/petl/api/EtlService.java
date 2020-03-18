@@ -1,5 +1,6 @@
 package org.pih.petl.api;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -47,29 +48,36 @@ public class EtlService {
      */
     public Map<String, PetlJobConfig> getAllConfiguredJobs() {
         Map<String, PetlJobConfig> m = new TreeMap<>();
-        final Path configPath = applicationConfig.getJobDir().toPath();
-        log.debug("Loading configured jobs from: " + configPath);
-        try {
-            Files.walkFileTree(configPath, new SimpleFileVisitor<Path>() {
-                @Override
-                public FileVisitResult visitFile(Path path, BasicFileAttributes basicFileAttributes) throws IOException {
-                    if (FilenameUtils.isExtension(path.toString().toLowerCase(), new String[] {"yml", "yaml"})) {
-                        String relativePath = configPath.relativize(path).toString();
-                        try {
-                            PetlJobConfig jobConfig = applicationConfig.getPetlJobConfig(relativePath);
-                            if (PetlJobFactory.isValid(jobConfig)) {
-                                m.put(relativePath, jobConfig);
+        File jobDir = applicationConfig.getJobDir();
+        if (jobDir != null) {
+            final Path configPath = jobDir.toPath();
+            log.debug("Loading configured jobs from: " + configPath);
+            try {
+                Files.walkFileTree(configPath, new SimpleFileVisitor<Path>() {
+
+                    @Override
+                    public FileVisitResult visitFile(Path path, BasicFileAttributes basicFileAttributes) throws IOException {
+                        if (FilenameUtils.isExtension(path.toString().toLowerCase(), new String[] { "yml", "yaml" })) {
+                            String relativePath = configPath.relativize(path).toString();
+                            try {
+                                PetlJobConfig jobConfig = applicationConfig.getPetlJobConfig(relativePath);
+                                if (PetlJobFactory.isValid(jobConfig)) {
+                                    m.put(relativePath, jobConfig);
+                                }
+                            }
+                            catch (Exception e) {
                             }
                         }
-                        catch (Exception e) {
-                        }
+                        return FileVisitResult.CONTINUE;
                     }
-                    return FileVisitResult.CONTINUE;
-                }
-            });
+                });
+            }
+            catch (Exception e) {
+                throw new PetlException("Error reading configuration files from " + configPath, e);
+            }
         }
-        catch (Exception e) {
-            throw new PetlException("Error reading configuration files from " + configPath, e);
+        else {
+            log.warn("No Job Directory configured, not returning any available jobs");
         }
         return m;
     }

@@ -103,14 +103,14 @@ public class ApplicationConfig {
      * @return the directory in which job configurations are found for this PETL instance
      */
     public File getJobDir() {
-        return getDirectoryFromEnvironment(ENV_JOB_DIR, true);
+        return getDirectoryFromEnvironment(ENV_JOB_DIR, false);
     }
 
     /**
      * @return the directory in which data source configurations are found for this PETL instance
      */
     public File getDataSourceDir() {
-        return getDirectoryFromEnvironment(ENV_DATASOURCE_DIR, true);
+        return getDirectoryFromEnvironment(ENV_DATASOURCE_DIR, false);
     }
 
     /**
