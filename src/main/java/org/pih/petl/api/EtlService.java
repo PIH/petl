@@ -77,7 +77,7 @@ public class EtlService {
             }
         }
         else {
-            log.warn("No Job Directory configured, not returning any available jobs");
+            log.debug("No Job Directory configured, not returning any available jobs");
         }
         return m;
     }
