@@ -114,17 +114,6 @@ public class ApplicationConfig {
     }
 
     /**
-     * @return the File representing the log file
-     */
-    public File getLogFile() {
-        File dir = new File(getPetlHomeDir(), "logs");
-        if (!dir.exists()) {
-            dir.mkdir();
-        }
-        return new File(dir, "petl.log");
-    }
-
-    /**
      * Convenience method to retrieve a PETL Job Config with the given path
      */
     public PetlJobConfig getPetlJobConfig(String path) {

@@ -13,9 +13,8 @@ import org.apache.commons.logging.LogFactory;
 import org.pentaho.di.core.KettleEnvironment;
 import org.pentaho.di.core.Result;
 import org.pentaho.di.core.exception.KettleException;
-import org.pentaho.di.core.logging.FileLoggingEventListener;
-import org.pentaho.di.core.logging.KettleLogStore;
 import org.pentaho.di.core.logging.LogLevel;
+import org.pentaho.di.job.Job;
 import org.pentaho.di.job.JobMeta;
 import org.pih.petl.ApplicationConfig;
 import org.pih.petl.PetlException;
@@ -135,7 +134,7 @@ public class PentahoJob implements PetlJob {
             LogLevel logLevel = LogLevel.valueOf(logLevelConfig);
             log.debug("PetlJob log level: " + logLevel);
 
-            org.pentaho.di.job.Job job = new org.pentaho.di.job.Job(null, jobMeta);
+            Job job = new Job(null, jobMeta);
             job.setLogLevel(logLevel);
 
             StopWatch stopWatch = new StopWatch();
@@ -143,10 +142,8 @@ public class PentahoJob implements PetlJob {
 
             log.debug("Starting PetlJob Execution...");
 
-            FileLoggingEventListener logger = setupLogger(context, job);
             job.start();  // Start the job thread, which will execute asynchronously
             job.waitUntilFinished(); // Wait until the job thread is finished
-            shutdownLogger(logger);
 
             stopWatch.stop();
 
@@ -165,28 +162,6 @@ public class PentahoJob implements PetlJob {
             catch (Exception e) {
                 log.warn("Error deleting job directory: " + jobDir);
             }
-        }
-    }
-
-    public FileLoggingEventListener setupLogger(ExecutionContext context, org.pentaho.di.job.Job job) {
-        File logFile = context.getApplicationConfig().getLogFile();
-        try {
-            FileLoggingEventListener fileLogListener = new FileLoggingEventListener(job.getLogChannelId(), logFile.getAbsolutePath(), true);
-            KettleLogStore.getAppender().addLoggingEventListener(fileLogListener);
-            return fileLogListener;
-        }
-        catch (Exception e) {
-            throw new PetlException("Error setting up logging to " + logFile, e);
-        }
-    }
-
-    public void shutdownLogger(FileLoggingEventListener loggingEventListener) {
-        try {
-            KettleLogStore.getAppender().removeLoggingEventListener(loggingEventListener);
-            loggingEventListener.close();
-        }
-        catch (KettleException e) {
-            throw new PetlException("Unable to shutdown logger", e);
         }
     }
 
