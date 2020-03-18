@@ -1,7 +1,5 @@
 
 logging:
-  file:
-    name: "${PETL_HOME}/logs/petl.log"
   level:
     root: "WARN"
     org.pih: "DEBUG"
@@ -9,7 +7,11 @@ logging:
 spring:
   datasource:
     driver-class-name: "org.h2.Driver"
-    url: "jdbc:h2:file:${PETL_HOME}/data/petl;DB_CLOSE_ON_EXIT=FALSE;AUTO_SERVER=TRUE"
+    url: "jdbc:h2:file:${petl.homeDir}/data/petl;DB_CLOSE_ON_EXIT=FALSE;AUTO_SERVER=TRUE"
     username: "sa"
     password: "Test123"
 
+petl:
+  homeDir: "/home/petl"
+  datasourceDir: ""
+  jobDir: ""

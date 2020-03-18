@@ -33,9 +33,9 @@ public class ApplicationConfig {
 
     private static final Log log = LogFactory.getLog(ApplicationConfig.class);
 
-    public static final String ENV_PETL_HOME = "PETL_HOME";
-    public static final String ENV_JOB_DIR = "PETL_JOB_DIR";
-    public static final String ENV_DATASOURCE_DIR = "PETL_DATASOURCE_DIR";
+    public static final String ENV_PETL_HOME = "petl.homeDir";
+    public static final String ENV_JOB_DIR = "petl.jobDir";
+    public static final String ENV_DATASOURCE_DIR = "petl.datasourceDir";
 
     private Map<String, String> env = null;
 
