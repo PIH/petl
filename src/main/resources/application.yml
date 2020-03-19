@@ -20,5 +20,5 @@ spring:
 
 petl:
   homeDir: "/home/petl"
-  datasourceDir: ""
-  jobDir: ""
+  datasourceDir: "${petl.homeDir}/config/datasources"
+  jobDir: "${petl.homeDir}/config/jobs"

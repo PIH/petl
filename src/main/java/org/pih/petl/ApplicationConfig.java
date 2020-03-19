@@ -33,9 +33,9 @@ public class ApplicationConfig {
 
     private static final Log log = LogFactory.getLog(ApplicationConfig.class);
 
-    public static final String ENV_PETL_HOME = "petl.homeDir";
-    public static final String ENV_JOB_DIR = "petl.jobDir";
-    public static final String ENV_DATASOURCE_DIR = "petl.datasourceDir";
+    public static final String PETL_HOME_DIR = "petl.homeDir";
+    public static final String PETL_JOB_DIR = "petl.jobDir";
+    public static final String PETL_DATASOURCE_DIR = "petl.datasourceDir";
 
     private Map<String, String> env = null;
 
@@ -96,21 +96,21 @@ public class ApplicationConfig {
      * @return the File representing the PETL_HOME directory
      */
     public File getPetlHomeDir() {
-        return getDirectoryFromEnvironment(ENV_PETL_HOME, true);
+        return getDirectoryFromEnvironment(PETL_HOME_DIR, true);
     }
 
     /**
      * @return the directory in which job configurations are found for this PETL instance
      */
     public File getJobDir() {
-        return getDirectoryFromEnvironment(ENV_JOB_DIR, false);
+        return getDirectoryFromEnvironment(PETL_JOB_DIR, true);
     }
 
     /**
      * @return the directory in which data source configurations are found for this PETL instance
      */
     public File getDataSourceDir() {
-        return getDirectoryFromEnvironment(ENV_DATASOURCE_DIR, false);
+        return getDirectoryFromEnvironment(PETL_DATASOURCE_DIR, true);
     }
 
     /**

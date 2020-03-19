@@ -29,9 +29,9 @@ public class SpringRunnerTest {
         File petlHome = new File(targetDir, UUID.randomUUID().toString());
         File petlDataDir = new File(petlHome, "data");
         petlDataDir.mkdirs();
-        System.setProperty(ApplicationConfig.ENV_PETL_HOME, petlHome.getAbsolutePath());
-        System.setProperty(ApplicationConfig.ENV_JOB_DIR, "src/test/resources/configuration/jobs");
-        System.setProperty(ApplicationConfig.ENV_DATASOURCE_DIR, "src/test/resources/configuration/datasources");
+        System.setProperty(ApplicationConfig.PETL_HOME_DIR, petlHome.getAbsolutePath());
+        System.setProperty(ApplicationConfig.PETL_JOB_DIR, "src/test/resources/configuration/jobs");
+        System.setProperty(ApplicationConfig.PETL_DATASOURCE_DIR, "src/test/resources/configuration/datasources");
         return petlHome;
     }
 

@@ -22,7 +22,12 @@ However, it has since evolved to enable the execution of other types of Jobs, as
 
 # TODO:
 
+* Add ability to load (initial + updates) to jobs and datasources from external location (eg. url)
+* Add ability to check for updates to existing jobs and datasources from external location
+
 * Provide web services and/or a web application that enables a broad range of users to:
+** Check for updates to current configuration based on source + version
+** Load updates to current configuration if available
 ** View the details of the various jobs and the history of their execution
 ** View the last update date and current status of the Pipeline(s)
 ** Kick off an update of the pipeline(s)
