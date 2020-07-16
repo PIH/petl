@@ -1,12 +1,5 @@
 package org.pih.petl.job.type;
 
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.Iterator;
-import java.util.List;
-
 import com.microsoft.sqlserver.jdbc.ISQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopyOptions;
@@ -24,6 +17,13 @@ import org.pih.petl.job.config.PetlJobConfig;
 import org.pih.petl.job.datasource.DatabaseUtil;
 import org.pih.petl.job.datasource.EtlDataSource;
 import org.pih.petl.job.datasource.SqlStatementParser;
+
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.Iterator;
+import java.util.List;
 
 /**
  * PetlJob that can load into SQL Server table
@@ -89,9 +89,9 @@ public class SqlServerImportJob implements PetlJob {
                 sourceConnection.setAutoCommit(false); // We intend to rollback changes to source after querying DB
                 targetConnection.setAutoCommit(true);  // We want to commit to target as we go, to query status
 
-                // First, drop any existing target table
+                // First, drop any existing target table  (we don't use "drop table if exists..." syntax for backwards compatibility with earlier versions of SQL Server
                 context.setStatus("Dropping existing table");
-                qr.update(targetConnection, "drop table if exists " + targetTable);
+                qr.update(targetConnection, "IF OBJECT_ID('dbo." + targetTable+ "') IS NOT NULL DROP TABLE dbo." + targetTable);
 
                 // Then, recreate the target table
                 context.setStatus("Creating table");
