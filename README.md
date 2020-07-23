@@ -11,6 +11,7 @@ However, it has since evolved to enable the execution of other types of Jobs, as
 
 # RELATED PROJECTS:
 
+* PIH Puppet: https://github.com/PIH/mirebalais-puppet
 * PIH-PENTAHO:  https://github.com/PIH/pih-pentaho
 * PETL Ansible Scripts:  BitBucket PETL playbook/role
 
@@ -19,6 +20,33 @@ However, it has since evolved to enable the execution of other types of Jobs, as
 * Provide a simple tool that can execution ETL transformations that are defined in external configuration files
 * Provide an easy to understand and author syntax for authoring ETL jobs
 * Enable support for Pentaho/Kettle but not require it, and do so without requiring the full PDI installation
+
+
+# USAGE:
+
+* Build project using maven (mvn clean package), using Java 8
+* Run at the command line, or via running directly through Intellij
+
+
+# TESTING WITH SQL SERVER:
+
+### Create a Docker instance of SQL Server
+
+Instructions can be found here:
+
+SQL Server 2019: https://docs.microsoft.com/en-us/sql/linux/quickstart-install-connect-docker?view=sql-server-linux-ver15&pivots=cs1-bash
+
+SQL Server 2017: https://docs.microsoft.com/en-us/sql/linux/quickstart-install-connect-docker?view=sql-server-linux-2017&pivots=cs1-bash
+
+Note your password must be be at least 8 characters long and contain characters from three of the following four sets:
+Uppercase letters, Lowercase letters, Base 10 digits, and Symbols,  or the docker container will fail silently. 
+(You can run "docker logs [docker_id]" to debug)
+
+Also note that the "root" user is named "sa", so you should set the username to "sa" when attempting to connect.
+
+
+### Connect with Intellij or other client and create a new DB
+`create database <YourDBName>;`
 
 # TODO:
 
@@ -33,20 +61,3 @@ However, it has since evolved to enable the execution of other types of Jobs, as
 ** Kick off an update of the pipeline(s)
 ** View any errors in running the pipeline(s) 
 
-# USAGE:
-
-* Build project using maven (mvn clean package), using Java 8
-* Run at the command line, or via running directly through Intellij
-
-CONFIGURATION:
-* See PETL ansible scripts for expected installation, setup, and configuration settings
-
-# TESTING WITH SQL SERVER:
-
-### Create a Docker instance of SQL Server
-`
-docker pull mcr.microsoft.com/mssql/server:2019-GA-ubuntu-16.04
-docker run -e "ACCEPT_EULA=Y" -e "SA_PASSWORD=<YOUR_DB_ROOT_PW_CHOICE>" -p 1433:1433 --name <YOUR_DB_CONTAINER_NAME> -d mcr.microsoft.com/mssql/server:2019-GA-ubuntu-16.04
-`
-### Connect with Intellij or other client and create a new DB
-`create database <YourDBName>;`
