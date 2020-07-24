@@ -30,7 +30,7 @@ fire up dockerized containers of MySQL and SQL Server.  This happens via includi
 in the pom and by then using the "tc" prefix when setting up the connection information in the datasource
 profiles.  (See https://github.com/PIH/petl/tree/master/src/test/resources/configuration/datasources)
 
-# Extracting from OpenMRS and loading into SQL SERVER
+# Extracting from OpenMRS and loading into SQL Server
 
 Although originally written to run Pentaho jobs, currently our primary use case for PETL is to extract data from an 
 OpenMRS MySQL database and load it into a SQL Server DB so that the data can be more easily analyzed using PowerBI.
