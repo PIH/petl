@@ -21,10 +21,19 @@ However, it has since evolved to enable the execution of other types of Jobs, as
 * Provide an easy to understand and author syntax for authoring ETL jobs
 * Enable support for Pentaho/Kettle but not require it, and do so without requiring the full PDI installation
 
+# Building and testing
+
+The PETL project can be build and tested using the standard Maven commands (`mvn clean test`, `mvn clean install`).
+
+Note that when running tests, PETL uses the testcontainers package (see https://www.testcontainers.org/) to
+fire up dockerized containers of MySQL and SQL Server.  This happens via including the testcontainers Maven package 
+in the pom and by then using the "tc" prefix when setting up the connection information in the datasource
+profiles.  (See https://github.com/PIH/petl/tree/master/src/test/resources/configuration/datasources)
+
 # Extracting from OpenMRS and loading into SQL SERVER
 
-Currently, our primary use case for PETL is to extract data from an OpenMRS MySQL database and load
-it into a SQL Server DB so that the data can be more easily analyzed using PowerBI.
+Although originally written to run Pentaho jobs, currently our primary use case for PETL is to extract data from an 
+OpenMRS MySQL database and load it into a SQL Server DB so that the data can be more easily analyzed using PowerBI.
 
 We install PETL on some of our OpenMRS instances via Puppet and then configure PETL to load jobs into found in the 
 the "configuration/pih/petl" subdirectory of the OpenMRS data directory.  The base configuration we set up via Puppet
@@ -33,7 +42,7 @@ can be found here (look for the "petl_" parameters):
 https://github.com/PIH/mirebalais-puppet/blob/master/hieradata/common.yaml#L99
 
 Then, as an example, on HUM-CI we configure it specifically to connect to the OpenMRS instance running locally,
-and then load into SQL Server Azure cloud instance (look for the "petl_" parameters):
+and then load into a SQL Server 2014 instance running at the Boston office (look for the "petl_" parameters):
 
 https://github.com/PIH/mirebalais-puppet/blob/master/hieradata/humci.pih-emr.org.yaml#L29
 
@@ -56,10 +65,10 @@ A few things to note in the above example:
 configuration information for the "extract" and "load" databases and can be found here:
 https://github.com/PIH/openmrs-config-pihemr/tree/master/configuration/pih/petl/datasources
 These files generally reference PETL configuration variables that will be set up via Puppet.  If you are adding
-a new job to an existing pipeline, generally you don't need to modify these
+a new job to an existing pipeline, generally you don't need to modify these.
 
 * The "extraction" yml file (in the above example, source.yml) may perform multiple queries, create temporary tables,
-etc, but as a last set there should be a single "select" the creates the final data to extract
+etc, but as a last set there should be a single "select" the creates the final data to extract.
 
 * The "load" yml file (in the above example, target.yml) generally is a single "create table" command used to create
 the table to load the data into.  Therefore it should match the schema of the "select" at the end of the extract sql
@@ -130,7 +139,7 @@ sqlserver:
 server:
   port: 9109
 
-```
+````
 
 ### Running
 
