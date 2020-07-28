@@ -5,32 +5,44 @@ This is an application whose goal is to support the execution of ETL jobs for PI
 Initially, this application  was written specifically to execute Pentaho Jobs and Transforms using Kettle.
 However, it has since evolved to enable the execution of other types of Jobs, as well as to schedule these jobs.
 
-# Requirements:
+# Requirements
 
 * Java 8
 
-# Related Projects:
+# Related Projects
 
 * PIH Puppet: https://github.com/PIH/mirebalais-puppet
 * PIH-PENTAHO:  https://github.com/PIH/pih-pentaho
 * PETL Ansible Scripts:  BitBucket PETL playbook/role
 
-# Objectives:
+# Objectives
 
 * Provide a simple tool that can execution ETL transformations that are defined in external configuration files
 * Provide an easy to understand and author syntax for authoring ETL jobs
 * Enable support for Pentaho/Kettle but not require it, and do so without requiring the full PDI installation
 
-# Building and testing
+# Supported Job Types
 
-The PETL project can be build and tested using the standard Maven commands (`mvn clean test`, `mvn clean install`).
+Currently PETL supports 3 types of jobs:
 
-Note that when running tests, PETL uses the testcontainers package (see https://www.testcontainers.org/) to
-fire up dockerized containers of MySQL and SQL Server.  This happens via including the testcontainers Maven package 
-in the pom and by then using the "tc" prefix when setting up the connection information in the datasource
-profiles.  (See https://github.com/PIH/petl/tree/master/src/test/resources/configuration/datasources)
+* SQL Server Import - for extracting data from an OpenMRS MySQL instance and loading into SQL Server
+* Pentaho - for running a Pentaho pipeline
+* Job Pipeline - for combining multiple jobs into a pipeline
 
-# Extracting from OpenMRS and loading into SQL Server
+# Job Configuration
+
+All jobs are defined in a YAML file with the following structure:
+
+```
+type: 'job-type'  # valid types are sqlserver-bulk-import, pentaho-job, job-pipeline
+schedule:
+    cron: "0 0 5 ? * *"     # allows scheduling jobs to run using a cron-like schedule, see: 
+                            # https://www.quartz-scheduler.org/api/2.1.7/org/quartz/CronExpression.html
+                            # (*note* that this is only "cron-like"... the left-most field is seconds, not minutes)
+configuration:    # provides specific configuration depending on job type 
+```
+
+# SQL Server Import Job
 
 Although originally written to run Pentaho jobs, currently our primary use case for PETL is to extract data from an 
 OpenMRS MySQL database and load it into a SQL Server DB so that the data can be more easily analyzed using PowerBI.
@@ -49,11 +61,11 @@ https://github.com/PIH/mirebalais-puppet/blob/master/hieradata/humci.pih-emr.org
 ## Anatomy of a OpenMRS to SQL Server PETL job
 
 An OpenMRS-to-SQL-Server PETL job consists of:
-* A SQL file, written in MySQL syntax, to extract the database out of the OpenMRS Database
-* A SQL file, written in SQL Server syntax, to create the table that the extracted data should be loaded into
-* A YML configuration file which defines the "extract" and "load" SQL files to use, and the schedule to run on
+* The YML jobconfiguration file which defines the "extract" and "load" SQL files to use, and the schedule to run on
 (Note that the cron format includes a "seconds" component, so to run at 6:30 AM would be "0 30 6 ? * *", not
 "30 6 * ? * *")
+* A SQL file, written in MySQL syntax, to extract the database out of the OpenMRS Database
+* A SQL file, written in SQL Server syntax, to create the table that the extracted data should be loaded into
 
 As an example, see:
 
@@ -147,6 +159,40 @@ From the directory where you've created your application.yml file, run PETL via 
 (Note that the path to petl-2.1.0-SNAPSHOT.jar should be relative to the current directory you are in).
 
  java -jar target/petl-2.1.0-SNAPSHOT.jar 
+
+# Pentaho Job
+
+A Pentaho job executes a Pentaho job at regular intervals by specifying the .kbj to execute.
+
+An example configuration to run a Pentaho job defined in the file "job.kjb" at 5am every morning:
+
+```
+job.yml
+-------
+type: "pentaho-job"
+configuration:
+  job:
+    filePath: "pentaho/job.kjb"
+schedule:
+    cron: "0 0 5 ? * *"  
+```
+
+# Pipeline Job
+
+A pipeline job allows combining multiple jobs together into a single job which can be configured to run
+the jobs in series or in parallel.
+
+TODO: document and test better
+
+# Building and Testing
+
+The PETL project can be build and tested using the standard Maven commands (`mvn clean test`, `mvn clean install`).
+
+Note that when running tests, PETL uses the testcontainers package (see https://www.testcontainers.org/) to
+fire up dockerized containers of MySQL and SQL Server.  This happens via including the testcontainers Maven package 
+in the pom and by then using the "tc" prefix when setting up the connection information in the datasource
+profiles.  (See https://github.com/PIH/petl/tree/master/src/test/resources/configuration/datasources)
+
 
 # TODO:
 
