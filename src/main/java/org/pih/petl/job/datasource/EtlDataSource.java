@@ -40,7 +40,6 @@ public class EtlDataSource {
                     sb.append("&sessionVariables=default_storage_engine%3DInnoDB");
                     sb.append("&useUnicode=true");
                     sb.append("&characterEncoding=UTF-8");
-                    sb.append("&serverTimezone=UTC");
                 }
             }
             else if ("sqlserver".equalsIgnoreCase(databaseType)) {
