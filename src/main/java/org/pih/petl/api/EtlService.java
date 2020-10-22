@@ -1,5 +1,17 @@
 package org.pih.petl.api;
 
+import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.pih.petl.ApplicationConfig;
+import org.pih.petl.PetlException;
+import org.pih.petl.job.PetlJob;
+import org.pih.petl.job.config.PetlJobConfig;
+import org.pih.petl.job.config.PetlJobFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
@@ -12,18 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
-
-import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.pih.petl.ApplicationConfig;
-import org.pih.petl.PetlException;
-import org.pih.petl.job.PetlJob;
-import org.pih.petl.job.config.PetlJobConfig;
-import org.pih.petl.job.config.PetlJobFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Core service methods for loading jobs, executing jobs, and tracking the status of job executions
@@ -101,6 +101,17 @@ public class EtlService {
         jobExecution = jobExecutionRepository.save(jobExecution);
         log.debug(jobExecution);
         return jobExecution;
+    }
+
+    /**
+     * Update all jobs with null date completed to have date completed = NOW
+     * (Used on startup to make sure hung jobs are rerun)
+     */
+    public void markHungJobsAsRun() {
+        for (JobExecution jobExecution : jobExecutionRepository.findJobExecutionsByCompletedIsNullAndStartedIsNotNull()) {
+            jobExecution.setCompleted(new Date());
+            jobExecutionRepository.save(jobExecution);
+        }
     }
 
     /**

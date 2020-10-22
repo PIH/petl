@@ -1,12 +1,8 @@
 package org.pih.petl;
 
-import static org.quartz.SimpleScheduleBuilder.simpleSchedule;
-
-import java.lang.management.ManagementFactory;
-import java.lang.management.RuntimeMXBean;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.pih.petl.api.EtlService;
 import org.pih.petl.job.schedule.JobScheduler;
 import org.pih.petl.job.schedule.PetlScheduledExecutionTask;
 import org.quartz.SimpleScheduleBuilder;
@@ -14,6 +10,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ApplicationContext;
+
+import java.lang.management.ManagementFactory;
+import java.lang.management.RuntimeMXBean;
+
+import static org.quartz.SimpleScheduleBuilder.simpleSchedule;
 
 /**
  * Main class for the PETL application that starts up the Spring Boot Application
@@ -28,6 +29,9 @@ public class Application {
 
     @Autowired
     JobScheduler scheduler;
+
+    @Autowired
+    EtlService etlService;
 
     /**
      * Run the application
@@ -50,6 +54,9 @@ public class Application {
         log.info("JOB DIR: " + app.getAppConfig().getJobDir());
         log.info("DATASOURCE DIR: " + app.getAppConfig().getDataSourceDir());
 
+        // Reset any hung jobs
+        app.getEtlService().markHungJobsAsRun();
+
         // Set up the schedule to check if any etl jobs need to execute every minute
         SimpleScheduleBuilder schedule = simpleSchedule().repeatForever().withIntervalInSeconds(60);
         app.getScheduler().schedule(PetlScheduledExecutionTask.class, schedule, 10000);  // Delay 10 seconds
@@ -65,4 +72,6 @@ public class Application {
     public JobScheduler getScheduler() {
         return scheduler;
     }
+
+    public EtlService getEtlService() { return etlService; }
 }
