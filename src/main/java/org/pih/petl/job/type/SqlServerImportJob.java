@@ -89,13 +89,15 @@ public class SqlServerImportJob implements PetlJob {
                 sourceConnection.setAutoCommit(false); // We intend to rollback changes to source after querying DB
                 targetConnection.setAutoCommit(true);  // We want to commit to target as we go, to query status
 
-                // First, drop any existing target table  (we don't use "drop table if exists..." syntax for backwards compatibility with earlier versions of SQL Server
-                context.setStatus("Dropping existing table");
-                qr.update(targetConnection, "IF OBJECT_ID('dbo." + targetTable+ "') IS NOT NULL DROP TABLE dbo." + targetTable);
+                if (config.getBoolean(true,"dropAndRecreateTable")) {
+                    // drop existing target table  (we don't use "drop table if exists..." syntax for backwards compatibility with earlier versions of SQL Server
+                    context.setStatus("Dropping existing table");
+                    qr.update(targetConnection, "IF OBJECT_ID('dbo." + targetTable + "') IS NOT NULL DROP TABLE dbo." + targetTable);
+                }
 
-                // Then, recreate the target table
+                // Then, create the target table if necessary
                 context.setStatus("Creating table");
-                qr.update(targetConnection, targetSchema);
+                qr.update(targetConnection, "IF OBJECT_ID('dbo." + targetTable+ "') IS NULL " + targetSchema);
 
                 // Now execute a bulk import
                 context.setStatus("Executing import");
