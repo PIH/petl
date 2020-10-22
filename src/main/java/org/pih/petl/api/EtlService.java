@@ -105,7 +105,7 @@ public class EtlService {
 
     /**
      * Update all jobs with null date completed to have date completed = NOW
-     * (Used on startup to make sure hung jobs are rerun)
+     * (Used on startup to make sure hung jobs are rerun at next scheduled interval)
      */
     public void markHungJobsAsRun() {
         for (JobExecution jobExecution : jobExecutionRepository.findJobExecutionsByCompletedIsNullAndStartedIsNotNull()) {
