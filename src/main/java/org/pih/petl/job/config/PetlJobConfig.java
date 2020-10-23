@@ -1,11 +1,5 @@
 package org.pih.petl.job.config;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -13,6 +7,12 @@ import com.fasterxml.jackson.databind.node.ValueNode;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.pih.petl.job.schedule.Schedule;
+
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 
 /**
  * Encapsulates a particular ETL job configuration
@@ -58,12 +58,16 @@ public class PetlJobConfig {
     /**
      * Convenience to get the configuration of a given setting as a String
      */
-    public boolean getBoolean(String... keys) {
+    public boolean getBoolean(Boolean defaultValue, String... keys) {
         JsonNode n = get(keys);
         if (n != null) {
             return n.asBoolean();
         }
-        return false;
+        return defaultValue;
+    }
+
+    public boolean getBoolean(String... keys) {
+        return getBoolean(false, keys);
     }
 
     /**
