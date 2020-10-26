@@ -5,6 +5,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopyOptions;
 import org.apache.commons.dbutils.DbUtils;
 import org.apache.commons.dbutils.QueryRunner;
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.StopWatch;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -34,6 +35,8 @@ public class SqlServerImportJob implements PetlJob {
 
     private Connection sourceConnection = null;
     private Connection targetConnection = null;
+    private EtlDataSource sourceDatasource = null;
+    private EtlDataSource targetDatasource = null;
 
     /**
      * Creates a new instance of the job
@@ -54,16 +57,19 @@ public class SqlServerImportJob implements PetlJob {
 
         // Get source datasource
         String sourceDataSourceFilename = config.getString("extract", "datasource");
-        EtlDataSource sourceDatasource = appConfig.getEtlDataSource(sourceDataSourceFilename);
+        sourceDatasource = appConfig.getEtlDataSource(sourceDataSourceFilename);
 
         // Get source query
         String sourceQueryFileName = config.getString("extract", "query");
         ConfigFile sourceQueryFile = appConfig.getConfigFile(sourceQueryFileName);
         String sourceQuery = sourceQueryFile.getContents();
 
+        // Get any conditional
+        String conditional = config.getString("conditional");
+
         // Get target datasource
         String targetDataFileName = config.getString("load", "datasource");
-        EtlDataSource targetDatasource = appConfig.getEtlDataSource(targetDataFileName);
+        targetDatasource = appConfig.getEtlDataSource(targetDataFileName);
 
         // Get target table name
         String targetTable = config.getString("load", "table");
@@ -74,6 +80,15 @@ public class SqlServerImportJob implements PetlJob {
         String targetSchema = targetSchemaFile.getContents();
 
         // TODO: Add validation in
+
+        // execute conditional, if present, and skip job if conditional returns false
+        if (StringUtils.isNotEmpty(conditional)) {
+            if (!testConditional(conditional)) {
+                context.setStatus("Conditional returned false, skipping");
+                log.info("Conditional returned false, skipping this job");
+                return;
+            }
+        }
 
         try {
             QueryRunner qr = new QueryRunner();
@@ -187,6 +202,33 @@ public class SqlServerImportJob implements PetlJob {
             }
         }
         return connection;
+    }
+
+    private Boolean testConditional(String conditional) throws SQLException {
+
+        Boolean result = true;
+
+        try {
+            sourceConnection = DatabaseUtil.openConnection(sourceDatasource);
+            boolean originalSourceAutoCommit = sourceConnection.getAutoCommit();
+            try {
+                sourceConnection.setAutoCommit(false); // We intend to rollback changes to source after querying DB
+                Statement statement = sourceConnection.createStatement();
+                statement.execute(conditional);
+                ResultSet resultSet = statement.getResultSet();
+                resultSet.next();
+                result = resultSet.getBoolean(1);
+            }
+            finally {
+                sourceConnection.rollback();
+                sourceConnection.setAutoCommit(originalSourceAutoCommit);
+            }
+        }
+        finally {
+            DbUtils.closeQuietly(sourceConnection);
+        }
+
+        return result;
     }
 
     /**
