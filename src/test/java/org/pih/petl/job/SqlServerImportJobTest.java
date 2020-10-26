@@ -43,6 +43,24 @@ public class SqlServerImportJobTest {
         etlService.executeJob("sqlserverimport/job.yml");
         verifyTableExists("encounter_types");
         verifyRowCount("encounter_types", 62);
+
+        // by default, table should be dropped and recreated on each run, so consecutive runs should return the same result
+        etlService.executeJob("sqlserverimport/job.yml");
+        verifyTableExists("encounter_types");
+        verifyRowCount("encounter_types", 62);
+    }
+
+
+    @Test
+    public void testLoadingFromMySQLWithDropAndRecreateTableFalse() throws Exception {
+        etlService.executeJob("sqlserverimport/jobDropAndRecreateTableFalse.yml");
+        verifyTableExists("encounter_types");
+        verifyRowCount("encounter_types", 62);
+
+        etlService.executeJob("sqlserverimport/jobDropAndRecreateTableFalse.yml");
+        // since we aren't dropping the table, all rows should be inserts twice, doubling the result set
+        // (ignore fact that we really should have a key on uuid, which would result in duplicate key exception)
+        verifyRowCount("encounter_types", 124);
     }
 
     @Test
