@@ -1,7 +1,5 @@
 package org.pih.petl.api;
 
-import java.util.Map;
-
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -10,6 +8,8 @@ import org.pih.petl.job.config.PetlJobConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
+
+import java.util.Map;
 
 /**
  * Tests the SqlServerImportJob
@@ -28,7 +28,7 @@ public class EtlServiceTest {
     @Test
     public void testServiceLoadsAllConfiguredJobs() {
         Map<String, PetlJobConfig> configuredJobs = etlService.getAllConfiguredJobs();
-        Assert.assertEquals(2, configuredJobs.size());
+        Assert.assertEquals(5, configuredJobs.size());
         Assert.assertNotNull(configuredJobs.get("sqlserverimport/job.yml"));
         Assert.assertNotNull(configuredJobs.get("pentaho/job.yml"));
     }
