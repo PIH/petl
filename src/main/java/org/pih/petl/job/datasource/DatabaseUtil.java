@@ -1,13 +1,13 @@
 package org.pih.petl.job.datasource;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-
 import org.apache.commons.dbutils.DbUtils;
 import org.apache.commons.dbutils.QueryRunner;
 import org.apache.commons.dbutils.handlers.ScalarHandler;
 import org.pih.petl.PetlException;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
 
 /**
  * Encapsulates a data source configuration
@@ -44,4 +44,18 @@ public class DatabaseUtil {
         String query = "select count(*) from " + table;
         return qr.query(c, query, new ScalarHandler<>());
     }
+
+    public static void dropTable(Connection c, String table) throws SQLException {
+        QueryRunner qr = new QueryRunner();
+        qr.update(c, "IF OBJECT_ID('dbo." + table + "') IS NOT NULL DROP TABLE dbo." + table);
+    }
+
+    public static Boolean tableExists(Connection c, String table) throws SQLException {
+        QueryRunner qr = new QueryRunner();
+        String query = "IF OBJECT_ID ('dbo." + table + "') IS NOT NULL SELECT 1 ELSE SELECT 0";
+        int result = qr.query(c, query, new ScalarHandler<>());
+        return result == 1;
+    }
 }
+
+
