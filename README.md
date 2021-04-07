@@ -193,6 +193,26 @@ fire up dockerized containers of MySQL and SQL Server.  This happens via includi
 in the pom and by then using the "tc" prefix when setting up the connection information in the datasource
 profiles.  (See https://github.com/PIH/petl/tree/master/src/test/resources/configuration/datasources)
 
+# Releasing
+
+On each build, our Bamboo CI server deploys the Maven artifact to the 'artifacts' directory on our Bamboo server:
+
+http://bamboo.pih-emr.org/artifacts/
+
+So doing a "release" should be as simple as:
+
+* Changing the pom.xml to remove the snapshot from the version number (ie, to do the "2.1.0" release, change the
+  version in the pom from "2.1.0-SNAPSHOT" to "2.1.0")
+  
+* Commit the change and let the Bamboo job run.  Afterwards the new release (ie petl-2.1.0.jar) should appear in the artifacts directory of bamboo: http://bamboo.pih-emr.org/artifacts/
+
+* Once this is confirmed, change the version number to the next snapshot (ie change "2.1.0" to "2.2.0-SNAPSHOT") so 
+  that subsequent commits won't overwrite the "2.1.0" jar
+  
+* Update the "petl_version" variable in Puppet to deploy the version of Petl you want to release on each server
+
+TODO: potentially deploy this properly to Maven
+
 
 # TODO:
 
