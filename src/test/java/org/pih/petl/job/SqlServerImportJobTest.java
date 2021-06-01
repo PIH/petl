@@ -71,6 +71,13 @@ public class SqlServerImportJobTest {
     }
 
     @Test
+    public void testLoadingWithContext() throws Exception {
+        etlService.executeJob("sqlserverimport/jobWithContext.yml");
+        verifyTableExists("encounter_types");
+        verifyRowCount("encounter_types", 4);
+    }
+
+    @Test
     public void testConditionalFalse() throws Exception {
         etlService.executeJob("sqlserverimport/jobConditionalFalse.yml");
         verifyTableDoesNotExist("encounter_types");
