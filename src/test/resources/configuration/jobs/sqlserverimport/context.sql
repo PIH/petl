@@ -1,0 +1,1 @@
+set @encounterType = 'ZL VIH';
