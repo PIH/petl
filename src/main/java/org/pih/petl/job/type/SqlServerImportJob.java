@@ -59,10 +59,18 @@ public class SqlServerImportJob implements PetlJob {
         String sourceDataSourceFilename = config.getString("extract", "datasource");
         sourceDatasource = appConfig.getEtlDataSource(sourceDataSourceFilename);
 
+        // Get source context statements
+        String sourceContextStatements = "";
+        String sourceContextFileName = config.getString("extract", "context");
+        if (sourceContextFileName != null) {
+            ConfigFile sourceContextFile = appConfig.getConfigFile(sourceContextFileName);
+            sourceContextStatements = sourceContextFile.getContents();
+        }
+
         // Get source query
         String sourceQueryFileName = config.getString("extract", "query");
         ConfigFile sourceQueryFile = appConfig.getConfigFile(sourceQueryFileName);
-        String sourceQuery = sourceQueryFile.getContents();
+        String sourceQuery = sourceContextStatements + sourceQueryFile.getContents();
 
         // Get any conditional
         String conditional = config.getString("conditional");
