@@ -216,17 +216,48 @@ NOTE:
 
 ### pentaho-job
 
-This type of job executes a Pentaho ".kjb" file.
+This type of job executes a Pentaho Kettle Job (.kjb) file. The minimum required configuration property is the path to this file.
 
-An example configuration to run a Pentaho job defined in the file "job.kjb" at 5am every morning:
+One can optionally specify the logging level that Pentaho Kettle should use.  Values that are supported (from most verbose to least verbose, include):
+ROWLEVEL, DEBUG, DETAILED, BASIC, MINIMAL, ERROR. The default is "MINIMAL" if not explicitly configured.
 
-```
-job.yml
--------
+Beyond these built-in configuration options, users can configure any other arbitrary values within the configuration
+section, and these will be made available to all jobs and transforms to refer to a variables.  All nested objects within
+the yaml configuration will be flattened with dot syntax.  For example the Job File Path above would be available to refer
+to as a variable named "job.filePath"
+
+For example, jobs within the [pih-pentaho](https://github.com/pih/pih-pentaho) project will expect the following configuration settings:
+
+* pih.pentahoHome:  Defines the location where the pih-pentaho source is available
+* pih.country:  Defines the country to run the job for, which is used within various kjb and ktr
+* source and target datasource information
+
+An example configuration to run a Pentaho job with BASIC level of logging at 5am every morning:
+
+```yaml
 type: "pentaho-job"
 configuration:
   job:
-    filePath: "pentaho/job.kjb"
+    filePath: "pentaho/src/jobs/refresh-warehouse.kjb"
+    logLevel: "BASIC"
+  pih:
+    pentahoHome: "${petl.jobDir}/pentaho/src"
+    country: "haiti"
+  openmrs:
+    db:
+        host: "localhost"
+        port: "3306"
+        name: "openmrs"
+        user: "root"
+        password: "rootpw"
+  warehouse:
+    db:
+        host: "localhost"
+        port: "3306"
+        name: "openmrs_warehouse"
+        user: "root"
+        password: "rootpw"
+        key_prefix: "10"
 schedule:
     cron: "0 0 5 ? * *"  
 ```
@@ -234,9 +265,19 @@ schedule:
 # job-pipeline
 
 A pipeline job allows combining multiple jobs together into a single job which can be configured to run
-the jobs in series or in parallel.
+the jobs in series.  Supporting parallel execution is planned but not yet supported.
 
-TODO: document and test better
+Example configuration:
+
+```yaml
+type: "job-pipeline"
+configuration:
+  jobs:
+    - "load-upper-neno.yml"
+    - "load-lower-neno.yml"
+schedule:
+    cron: "0 0 5 ? * *"  
+```
 
 # Developer Reference
 
@@ -276,7 +317,7 @@ directories in my local check-out of openmrs-config-pihemr)
 
 As an example:
 
-````
+```yaml
 petl:
   homeDir: "/home/mgoodrich/petl"
   datasourceDir: "/home/mgoodrich/openmrs/modules/config-pihemr/configuration/pih/petl/datasources"
@@ -298,8 +339,7 @@ sqlserver:
 
 server:
   port: 9109
-
-````
+```
 
 From the directory where you've created your application.yml file, run PETL via the following command.
 (Note that the path to petl-x.y.z-SNAPSHOT.jar should be relative to the current directory you are in).
