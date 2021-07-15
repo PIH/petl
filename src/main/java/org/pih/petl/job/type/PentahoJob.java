@@ -86,6 +86,7 @@ public class PentahoJob implements PetlJob {
             try {
                 log.debug("Initializing Kettle Environment");
                 log.debug("KETTLE_HOME = " + System.getProperty("KETTLE_HOME"));
+                System.setProperty("KETTLE_PLUGIN_CLASSES", "org.pentaho.di.trans.steps.append.AppendMeta");
                 KettleEnvironment.init();
             }
             catch (KettleException e) {
