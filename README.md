@@ -85,6 +85,13 @@ petl:
   datasourceDir: "${petl.homeDir}/config/datasources"
   jobDir: "${petl.homeDir}/config/jobs"
 ```
+
+* Other server configuration:
+
+```yaml
+server:
+  port: 8080
+```
   
 * **Any other arbitrary configuration values that you wish to refer to within your Job and Datasource files**
   As evidenced above, you can have a config value like ```petl.homeDir``` and then use that config value 
