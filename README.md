@@ -239,6 +239,9 @@ For example, jobs within the [pih-pentaho](https://github.com/pih/pih-pentaho) p
 * pih.country:  Defines the country to run the job for, which is used within various kjb and ktr
 * source and target datasource information
 
+This job currently runs Kettle 9.1.0.0-324.  To develop jobs and transforms within this version, you can download:
+https://sourceforge.net/projects/pentaho/files/Pentaho%209.1/client-tools/pdi-ce-9.1.0.0-324.zip/download
+
 An example configuration to run a Pentaho job with BASIC level of logging at 5am every morning:
 
 ```yaml
