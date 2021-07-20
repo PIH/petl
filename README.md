@@ -23,7 +23,7 @@ PIH EMR can be found here:  https://github.com/PIH/mirebalais-puppet/tree/master
 
 The recommended steps for installing PETL are the following:
 
-* Create a dedicated "petl" user and group, and a home directory at "/home/petl" with the following structure:
+* Create a dedicated "petl" user and group, and a home directory at `/home/petl` with the following structure:
 
 ```bash
 -- home
@@ -35,15 +35,15 @@ The recommended steps for installing PETL are the following:
 
 #### Install the PETL Binary
 
-Add the PETL jar file into ```/home/petl/bin```
+Add the PETL jar file into `/home/petl/bin`
 
 * The latest release of PETL can be downloaded from here:  http://bamboo.pih-emr.org/artifacts/
 * You can also build the petl jar from source.  See developer section below.
-* You should either rename this file to "petl.jar" or create a symbolic link to this file from "petl.jar"
+* You should either rename this file to `petl.jar` or create a symbolic link to this file from `petl.jar`
 
 #### Configure the PETL application
 
-Add a PETL configuration file named ```application.yml``` into ```/home/petl/bin```.  This file will extend and
+Add a PETL configuration file named `application.yml` into `/home/petl/bin`.  This file will extend and
 override the default configuration values found in [application.yml](src/main/resources/application.yml).  This
 file supports the following configuration settings:
 
@@ -77,7 +77,7 @@ spring:
 
 * **PETL Job and Datasource Locations**:  This allows specification of where job and datasource configuration files
   are located for all of the ETL jobs.  By default, these are located in
-  ```/home/petl/config/datasources``` and ```/home/petl/config/jobs``` but these can be overridden as needed here:
+  `/home/petl/config/datasources` and `/home/petl/config/jobs` but these can be overridden as needed here:
   
 ```yaml
 petl:
@@ -94,7 +94,7 @@ server:
 ```
   
 * **Any other arbitrary configuration values that you wish to refer to within your Job and Datasource files**
-  As evidenced above, you can have a config value like ```petl.homeDir``` and then use that config value 
+  As evidenced above, you can have a config value like `petl.homeDir` and then use that config value 
   within other config values.  For example, PIH typically adds variables here containing database connection information
   that can then be referenced by other configuration files.  
   See [Puppet installation code here](https://github.com/PIH/mirebalais-puppet/blob/master/mirebalais-modules/petl/templates/application.yml.erb).
@@ -103,10 +103,10 @@ server:
 
 The recommended way to run PETL is as a service that is always running.
 
-Spring Boot facilitates setting this up by enabling the petl.jar file to be linked directly as a service in /etc/init.d.
+Spring Boot facilitates setting this up by enabling the petl.jar file to be linked directly as a service in `/etc/init.d`.
 See:  https://github.com/PIH/mirebalais-puppet/blob/master/mirebalais-modules/petl/manifests/init.pp
 
-In order to configure this appropriately, one should also install a file named ```petl.conf``` into ```/home/petl/bin```.
+In order to configure this appropriately, one should also install a file named `petl.conf` into `/home/petl/bin`.
 This configuration file should contain environment variables that affect the petl service execution.  For example:
 
 ```bash
@@ -122,7 +122,7 @@ PETL is designed such that jobs can connect to data sources to use to extract an
 configuring and referencing this datasources, PETL supports yaml-based configuration files.
 
 As described in the installation section, PETL is configured such that all data source configuration files are found in 
-the directory defined by ${petl.datasourceDir}, which defaults to ```/home/petl/config/datasources```
+the directory defined by `${petl.datasourceDir}`, which defaults to `/home/petl/config/datasources`
 
 Within this directory, one datasource is defined by one yml file with the following structure:
 
@@ -139,7 +139,7 @@ options: "autoReconnect=true&sessionVariables=default_storage_engine%3DInnoDB&us
 Typically, once the initial setup for a given ETL server is done, the datasources involved rarely change.  Jobs may evolve, but the
 datasources they connect to are more static.
 
-For the PIH EMR, datasources are typically setup to refer to configuration variables that are set by puppet into application.yml.
+For the PIH EMR, datasources are typically setup to refer to configuration variables that are set by puppet into `application.yml`.
 See:  https://github.com/PIH/openmrs-config-pihemr/tree/master/configuration/pih/petl/datasources
 
 ## Overview of Jobs
@@ -149,13 +149,13 @@ job types, to support a fully configurable job directory hierarchy and organizat
 the scheduled frequency that it should execute.
 
 When PETL is running, the service will constantly search for any jobs that are configured within the job directory.
-This directory, as described in the installation section, is configured in the application.yml file, and defaults to
-```/home/petl/config/jobs```
+This directory, as described in the installation section, is configured in the `application.yml` file, and defaults to
+`/home/petl/config/jobs`
 
-Any yml file that is present in the jobs directory or subdirectory that contains the appropriate job file structure 
+Any YAML file that is present in the jobs directory or subdirectory that contains the appropriate job file structure 
 will be interpreted as a job file and PETL will parse it to determine whether or not it should execute.  This allows
 implementations to maintain their job files in whatever organizational hierarchy makes sense and to name these files 
-however they want.  The structure of a job.yml file looks like the following:
+however they want.  The structure of a `job.yml` file looks like the following:
 
 ```yaml
 type: 'job-type'            # valid types are sqlserver-bulk-import, pentaho-job, job-pipeline
@@ -164,11 +164,11 @@ schedule:
 configuration:              # Each job type supports different properties within configuration
 ```
 
-Each job.yml file indicates:
+Each `job.yml` file indicates:
 
 * What type of job it is.  This determines how it is configured and executed.
 * How often should it run.  This uses a [cron-like expression](https://www.quartz-scheduler.org/api/2.1.7/org/quartz/CronExpression.html).  
-  Note that the cron format includes a "seconds" component, so to run at 6:30 AM would be "0 30 6 ? * *", not "30 6 * ? * *"
+  Note that the cron format includes a "seconds" component, so to run at 6:30 AM would be `"0 30 6 ? * *"`, not `"30 6 * ? * *"`
 * How it is configured.  Each type of job will have a different set of supported configuration settings.
 
 ## Supported Job Types
@@ -183,7 +183,7 @@ One of the primary initial use cases of PETL was to facilitate extrating data fr
 a SqlServer database, either on-prem or in the cloud, to enable PowerBI DirectQuery to use it as a data source.
 
 One can find many examples of this type of job in our PIH EMR configuration.  In our PIH EMR instances, typically
-we have PETL configured to read jobs from the .OpenMRS/configuration/pih/petl/jobs directory, 
+we have PETL configured to read jobs from the `.OpenMRS/configuration/pih/petl/jobs` directory, 
 [many of which are found here](https://github.com/PIH/openmrs-config-pihemr/tree/master/configuration/pih/petl/jobs).
 
 Using one of these as an example:
@@ -207,19 +207,19 @@ schedule:
 This indicates that the following should happen:
 
 1. Every day at 6:30am
-2. Drop and create a table called "covid_admission", in SqlServer datasource defined in ```${petl.datasourceDir}/sqlserver/openmrs_extractions.yml```, 
+2. Drop and create a table called "covid_admission", in SqlServer datasource defined in `${petl.datasourceDir}/sqlserver/openmrs_extractions.yml`, 
    using [create table statement](https://github.com/PIH/openmrs-config-pihemr/blob/master/configuration/pih/petl/jobs/covid19/admission/target.sql) 
-   defined in ```${petl.jobDir}/covid19/admission/target.sql```
-3. Execute the extraction query defined in ```${petl.jobDir}/covid19/admission/source.sql``` to stream data out of 
-   the MySQL datasource defined at ```${petl.datasourceDir}/mysql/openmrs.yml```, and into the table created in step 2.
+   defined in `${petl.jobDir}/covid19/admission/target.sql`
+3. Execute the extraction query defined in `${petl.jobDir}/covid19/admission/source.sql` to stream data out of 
+   the MySQL datasource defined at `${petl.datasourceDir}/mysql/openmrs.yml`, and into the table created in step 2.
    
 NOTE:
 
-* The "extraction" yml file (in the above example, ```${petl.jobDir}/covid19/admission/source.sql```) may perform multiple queries, 
-  create temporary tables, etc, but the final statement should be a "select" that extracts the data out of MySQL.
+* The "extraction" YAML file (in the above example, `${petl.jobDir}/covid19/admission/source.sql`) may perform multiple queries, 
+  create temporary tables, etc, but the final statement should be a `select` that extracts the data out of MySQL.
 
-* The "load" yml file (in the above example, target.yml) generally is a single "create table" command used to create
-  the table to load the data into.  Therefore it should match the schema of the "select" at the end of the extract sql
+* The "load" YAML file (in the above example, `target.yml`) generally is a single `create table` command used to create
+  the table to load the data into.  Therefore it should match the schema of the `select` at the end of the extract sql
 
 ### pentaho-job
 
@@ -304,26 +304,33 @@ profiles.  (See https://github.com/PIH/petl/tree/master/src/test/resources/confi
 
 Prerequisites:
 
-* "openmrs-config-pihemr" project checked out (this is where the existing jobs live): https://github.com/PIH/openmrs-config-pihemr
+* [openmrs-config-pihemr](https://github.com/PIH/openmrs-config-pihemr) checked out (this is where the existing jobs live)
 * Local MySQL instance with an OpenMRS DB
-* Local SQL Server instance
 
-To set up a local SQL Server instance using Docker:
+### Set up a SQL Server instance
+
+Set up a local SQL Server instance using Docker:
 
 * SQL Server 2019: https://docs.microsoft.com/en-us/sql/linux/quickstart-install-connect-docker?view=sql-server-linux-ver15&pivots=cs1-bash
 * SQL Server 2017: https://docs.microsoft.com/en-us/sql/linux/quickstart-install-connect-docker?view=sql-server-linux-2017&pivots=cs1-bash
-* Note your password must be be at least 8 characters long and contain characters from three of the following four sets:
-  * Uppercase letters, Lowercase letters, Base 10 digits, and Symbols,  or the docker container will fail silently. 
-  * You can run "docker logs [docker_id]" to debug
-* Also note that the "root" user is named "sa", so you should set the username to "sa" when attempting to connect.
-* create database <your_db_name>
 
-You'll need to set up a "application.yml" file with the configuration you want to use. This tells PETL:
+Note your password must be be at least 8 characters long and contain characters from three of the following four sets:
+uppercase letters, Lowercase letters, Base 10 digits, and Symbols,  or the docker container will fail silently. 
 
-* the directory to use as a working directory ("homeDir")
-* the location of the datasource and job configurations (in the example below, they point to the appropriate
-directories in my local check-out of openmrs-config-pihemr)
-* the connection credentials for the local MySQL and SQL Server databases to conect to
+You can run `docker logs [docker_id]` to debug
+
+Also note that the "root" user is named "sa", so you should set the username to "sa" when attempting to connect.
+
+Once the container is started, get a SQL shell in it and run `create database <your_db_name>`
+
+### Create an `application.yml` file
+
+The `application.yml` file tells PETL
+
+* The directory to use as a working directory (`homeDir`)
+* The location of the datasource and job configurations (in the example below, they point to the appropriate
+directories in my local `openmrs-config-pihemr`)
+* The connection credentials for the local MySQL and SQL Server databases
 
 As an example:
 
@@ -351,10 +358,12 @@ server:
   port: 9109
 ```
 
-From the directory where you've created your application.yml file, run PETL via the following command.
-(Note that the path to petl-x.y.z-SNAPSHOT.jar should be relative to the current directory you are in).
+From the directory where you've created your `application.yml` file, run PETL via the following command.
+(Note that the path to `petl-x.y.z-SNAPSHOT.jar` should be relative to the current directory you are in).
 
+```bash
  java -jar target/petl-x.y.z-SNAPSHOT.jar
+ ```
 
 # Releasing
 
@@ -376,20 +385,17 @@ So doing a "release" should be as simple as:
 
 # TODO:
 
-TODO:
-- Deploy petl to maven (snapshots and releases)
-- Change from pulling petl from bamboo to maven and remove the Bamboo release steps above
-
+* Deploy petl to maven (snapshots and releases)
+* Change from pulling petl from bamboo to maven and remove the Bamboo release steps above
 * Add ability to load (initial + updates) to jobs and datasources from external location (eg. url)
 * Add ability to check for updates to existing jobs and datasources from external location
-
 * Provide web services and/or a web application that enables a broad range of users to:
-** Check for updates to current configuration based on source + version
-** Load updates to current configuration if available
-** View the details of the various jobs and the history of their execution
-** View the last update date and current status of the Pipeline(s)
-** Kick off an update of the pipeline(s)
-** View any errors in running the pipeline(s) 
+  * Check for updates to current configuration based on source + version
+  * Load updates to current configuration if available
+  * View the details of the various jobs and the history of their execution
+  * View the last update date and current status of the Pipeline(s)
+  * Kick off an update of the pipeline(s)
+  * View any errors in running the pipeline(s) 
 
 # Related Projects
 
