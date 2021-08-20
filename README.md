@@ -86,6 +86,18 @@ petl:
   jobDir: "${petl.homeDir}/config/jobs"
 ```
 
+* **PETL Schedule**:  Jobs can be scheduled individually (see "Overview of Jobs" below) but a global schedule can also be provided.  All jobs without an individual schedule defined in their job.yml will be run according to this schedule.  See the "Overview of Jobs" section below for more details about the support Cron format.
+
+```yaml
+petl:
+  homeDir: "/home/petl"
+  datasourceDir: "${petl.homeDir}/config/datasources"
+  jobDir: "${petl.homeDir}/config/jobs"
+  schedule:
+    cron: "0 0 5 ? * *"     # Cron-like expression that determines the execution frequency (see below)
+```
+
+
 * Other server configuration:
 
 ```yaml
@@ -346,6 +358,7 @@ mysql:
   databaseName: "openmrs_mirebalais"
   user: "root"
   password: "***"
+  options: "autoReconnect=true&sessionVariables=default_storage_engine%3DInnoDB&useUnicode=true&characterEncoding=UTF-8&serverTimezone=US/Eastern"
 
 sqlserver:
   host: "localhost"

@@ -1,11 +1,5 @@
 package org.pih.petl;
 
-import java.io.File;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
@@ -25,6 +19,12 @@ import org.springframework.core.env.Environment;
 import org.springframework.core.env.PropertySource;
 import org.springframework.stereotype.Component;
 
+import java.io.File;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
+
 /**
  * Utilities for reading in PetlJob Configuration Files, parsing these files, converting between formats, etc.
  */
@@ -36,6 +36,7 @@ public class ApplicationConfig {
     public static final String PETL_HOME_DIR = "petl.homeDir";
     public static final String PETL_JOB_DIR = "petl.jobDir";
     public static final String PETL_DATASOURCE_DIR = "petl.datasourceDir";
+    public static final String PETL_SCHEDULE_CRON = "petl.schedule.cron";
 
     private Map<String, String> env = null;
 
@@ -112,6 +113,21 @@ public class ApplicationConfig {
     public File getDataSourceDir() {
         return getDirectoryFromEnvironment(PETL_DATASOURCE_DIR, true);
     }
+
+    /**
+     * @return get any schedule set globally for this PETL instance
+     */
+    public Schedule getSchedule() {
+        if (environment.getProperty(PETL_SCHEDULE_CRON) != null) {
+            Schedule schedule = new Schedule();
+            schedule.setCron(environment.getProperty(PETL_SCHEDULE_CRON));
+            return schedule;
+        }
+        else {
+            return null;
+        }
+    }
+
 
     /**
      * Convenience method to retrieve a PETL Job Config with the given path

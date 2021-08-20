@@ -3,6 +3,7 @@ package org.pih.petl.job.schedule;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.pih.petl.ApplicationConfig;
 import org.pih.petl.api.EtlService;
 import org.pih.petl.api.JobExecution;
 import org.pih.petl.job.config.PetlJobConfig;
@@ -28,6 +29,9 @@ public class PetlScheduledExecutionTask implements Job {
     private static boolean inProgress = false;
 
     @Autowired
+    ApplicationConfig applicationConfig;
+
+    @Autowired
     EtlService etlService;
 
     /**
@@ -44,6 +48,7 @@ public class PetlScheduledExecutionTask implements Job {
         if (enabled && !inProgress) {
             try {
                 inProgress = true;
+                Schedule globalSchedule = applicationConfig.getSchedule();  // get the global schedule, if configured
                 Date currentDate = jobExecutionContext.getFireTime();
                 log.debug("Executing Task: " + currentDate);
                 Map<String, PetlJobConfig> jobs = etlService.getAllConfiguredJobs();
@@ -51,7 +56,7 @@ public class PetlScheduledExecutionTask implements Job {
                 for (String jobPath : jobs.keySet()) {
                     log.debug("Checking job: " + jobPath);
                     PetlJobConfig jobConfig = jobs.get(jobPath);
-                    Schedule schedule = jobConfig.getSchedule();
+                    Schedule schedule = jobConfig.getSchedule() != null ? jobConfig.getSchedule() : globalSchedule;  // overview global schedule with any local job-specific schedule
                     boolean isScheduled = schedule != null && StringUtils.isNotBlank(schedule.getCron());
                     if (isScheduled) {
                         JobExecution latestExecution = etlService.getLatestJobExecution(jobPath);
