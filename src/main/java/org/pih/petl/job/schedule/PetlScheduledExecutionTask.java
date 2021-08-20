@@ -56,7 +56,7 @@ public class PetlScheduledExecutionTask implements Job {
                 for (String jobPath : jobs.keySet()) {
                     log.debug("Checking job: " + jobPath);
                     PetlJobConfig jobConfig = jobs.get(jobPath);
-                    Schedule schedule = jobConfig.getSchedule() != null ? jobConfig.getSchedule() : globalSchedule;  // overview global schedule with any local job-specific schedule
+                    Schedule schedule = jobConfig.getSchedule() != null ? jobConfig.getSchedule() : globalSchedule;  // override global schedule with any local job-specific schedule
                     boolean isScheduled = schedule != null && StringUtils.isNotBlank(schedule.getCron());
                     if (isScheduled) {
                         JobExecution latestExecution = etlService.getLatestJobExecution(jobPath);

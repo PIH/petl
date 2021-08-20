@@ -86,7 +86,7 @@ petl:
   jobDir: "${petl.homeDir}/config/jobs"
 ```
 
-* **PETL Schedule**:  Jobs can be scheduled individually (see "Overview of Jobs" below) but a global schedule can also be provided.  All jobs without an individual schedule defined in their job.yml will be run according to this schedule.  See the "Overview of Jobs" section below for more details about the support Cron format.
+* **PETL Schedule**:  Jobs can be scheduled individually (see "Overview of Jobs" below) but a global schedule can also be provided.  All jobs without an individual schedule defined in their job.yml will be run according to this schedule.  See the "Overview of Jobs" section below for more details about the supported Cron format.
 
 ```yaml
 petl:
