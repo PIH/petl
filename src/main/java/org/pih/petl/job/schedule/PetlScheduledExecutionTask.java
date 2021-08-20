@@ -1,8 +1,5 @@
 package org.pih.petl.job.schedule;
 
-import java.util.Date;
-import java.util.Map;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.pih.petl.api.EtlService;
@@ -14,6 +11,9 @@ import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import java.util.Date;
+import java.util.Map;
 
 /**
  * Schedulable task for loading all of the configurations
@@ -34,7 +34,7 @@ public class PetlScheduledExecutionTask implements Job {
      * For each job found:
      *  - Get the job path and query DB for last execution start and end date
      *  - If it has never been executed, then execute it
-     *  - Else if it is currently executing, then skip
+     *  - Else if it is currently executing ("completed" is null), then skip
      *  - Else, if there is a cron expression configured, check if next scheduled date following
      *    last execution date is <= now, and if so, execute it
      */
