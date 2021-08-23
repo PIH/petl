@@ -28,7 +28,7 @@ public class EtlServiceTest {
     @Test
     public void testServiceLoadsAllConfiguredJobs() {
         Map<String, PetlJobConfig> configuredJobs = etlService.getAllConfiguredJobs();
-        Assert.assertEquals(6, configuredJobs.size());
+        Assert.assertEquals(8, configuredJobs.size());
         Assert.assertNotNull(configuredJobs.get("sqlserverimport/job.yml"));
         Assert.assertNotNull(configuredJobs.get("pentaho/job.yml"));
     }
