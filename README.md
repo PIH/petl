@@ -191,8 +191,8 @@ Currently PETL supports 3 types of jobs:
 
 This type of job supports a single extraction query from MySQL which streams into a newly dropped and created SqlServer table.
 
-One of the primary initial use cases of PETL was to facilitate extrating data from an OpenMRS MySQL database and loading it into 
-a SqlServer database, either on-prem or in the cloud, to enable PowerBI DirectQuery to use it as a data source.
+One of the primary initial use cases of PETL was to facilitate extracting data from an OpenMRS MySQL database and loading it into 
+a SqlServer database, either on-prem or in the cloud, to enable DirectQuery to use it as a data source.
 
 One can find many examples of this type of job in our PIH EMR configuration.  In our PIH EMR instances, typically
 we have PETL configured to read jobs from the `.OpenMRS/configuration/pih/petl/jobs` directory, 
@@ -203,6 +203,9 @@ Using one of these as an example:
 ```yaml
 type: "sqlserver-bulk-import"
 configuration:
+
+  conditional: "select is_component_enabled('covid19')"
+  
   extract:
     datasource: "mysql/openmrs.yml"
     query:  "covid19/admission/source.sql"
@@ -219,10 +222,11 @@ schedule:
 This indicates that the following should happen:
 
 1. Every day at 6:30am
-2. Drop and create a table called "covid_admission", in SqlServer datasource defined in `${petl.datasourceDir}/sqlserver/openmrs_extractions.yml`, 
+2. If the source PIHEMR system has the covid19 component enabled (this "conditional" property is optional)
+3. Drop and create a table called "covid_admission", in SqlServer datasource defined in `${petl.datasourceDir}/sqlserver/openmrs_extractions.yml`, 
    using [create table statement](https://github.com/PIH/openmrs-config-pihemr/blob/master/configuration/pih/petl/jobs/covid19/admission/target.sql) 
    defined in `${petl.jobDir}/covid19/admission/target.sql`
-3. Execute the extraction query defined in `${petl.jobDir}/covid19/admission/source.sql` to stream data out of 
+4. Execute the extraction query defined in `${petl.jobDir}/covid19/admission/source.sql` to stream data out of 
    the MySQL datasource defined at `${petl.datasourceDir}/mysql/openmrs.yml`, and into the table created in step 2.
    
 NOTE:
