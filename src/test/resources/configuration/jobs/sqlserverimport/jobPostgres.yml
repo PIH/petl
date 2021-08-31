@@ -1,0 +1,10 @@
+type: "sqlserver-bulk-import"
+configuration:
+  extract:
+    datasource: "postgres-testcontainer.yml"
+    query:  "sqlserverimport/source.sql"
+
+  load:
+    datasource: "sqlserver-testcontainer.yml"
+    table: "encounter_types"
+    schema: "sqlserverimport/target.sql"
