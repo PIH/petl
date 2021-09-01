@@ -1,0 +1,3 @@
+url: "jdbc:tc:postgresql:9.6.8:///test?TC_INITSCRIPT=postgres-testcontainer-init.sql"
+user: "root"
+password: "root"

@@ -11,6 +11,7 @@ import org.pih.petl.job.schedule.PetlScheduledExecutionTask;
 import org.quartz.JobExecutionContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.Date;
@@ -23,6 +24,7 @@ import static org.mockito.Mockito.when;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
+@TestPropertySource(properties = {"petl.jobDir = src/test/resources/configuration/jobs/scheduler"})
 public class PetlScheduledExecutionTaskTest {
 
     @Autowired
@@ -44,8 +46,6 @@ public class PetlScheduledExecutionTaskTest {
     public void setup() {
         jobExecutionContext = mock(JobExecutionContext.class);
         when(jobExecutionContext.getFireTime()).thenReturn(new Date());
-        // override job test directory to only run jobs in test directory for this test
-        System.setProperty(ApplicationConfig.PETL_JOB_DIR, "src/test/resources/configuration/jobs/scheduler");
     }
 
     @Test

@@ -50,6 +50,17 @@ public class SqlServerImportJobTest {
         verifyRowCount("encounter_types", 62);
     }
 
+    @Test
+    public void testLoadingFromPostgres() throws Exception {
+        etlService.executeJob("sqlserverimport/jobPostgres.yml");
+        verifyTableExists("encounter_types");
+        verifyRowCount("encounter_types", 6);
+
+        // by default, table should be dropped and recreated on each run, so consecutive runs should return the same result
+        etlService.executeJob("sqlserverimport/jobPostgres.yml");
+        verifyTableExists("encounter_types");
+        verifyRowCount("encounter_types", 6);
+    }
 
     @Test
     public void testLoadingFromMySQLWithDropAndRecreateTableFalse() throws Exception {
