@@ -19,7 +19,9 @@ import org.springframework.core.env.PropertySource;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -36,6 +38,7 @@ public class ApplicationConfig {
     public static final String PETL_JOB_DIR = "petl.jobDir";
     public static final String PETL_DATASOURCE_DIR = "petl.datasourceDir";
     public static final String PETL_SCHEDULE_CRON = "petl.schedule.cron";
+    public static final String PETL_STARTUP_JOBS = "petl.startup.jobs";
 
     private Map<String, String> env = null;
 
@@ -127,6 +130,21 @@ public class ApplicationConfig {
         }
     }
 
+    public List<String> getStartupJobs() {
+        List<String> l = new ArrayList<>();
+        boolean allFound = false;
+        int index = 0;
+        while (!allFound) {
+            String val = environment.getProperty(PETL_STARTUP_JOBS + "[" + index++ + "]");
+            if (val != null) {
+                l.add(val);
+            }
+            else {
+                allFound = true;
+            }
+        }
+        return l;
+    }
 
     /**
      * Convenience method to retrieve a PETL Job Config with the given path

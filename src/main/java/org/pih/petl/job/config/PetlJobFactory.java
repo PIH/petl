@@ -22,7 +22,7 @@ public class PetlJobFactory {
         jobTypes.put("sqlserver-bulk-import", SqlServerImportJob.class);
         jobTypes.put("pentaho-job", PentahoJob.class);
         jobTypes.put("iterating-job", IteratingJob.class);
-        jobTypes.put("sql", SqlJob.class);
+        jobTypes.put("sql-execution", SqlJob.class);
     }
 
     /**

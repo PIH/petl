@@ -12,6 +12,7 @@ import org.pih.petl.job.datasource.DatabaseUtil;
 import org.pih.petl.job.datasource.EtlDataSource;
 
 import java.sql.Connection;
+import java.sql.Statement;
 
 /**
  * Encapsulates a particular ETL job configuration
@@ -41,9 +42,10 @@ public class SqlJob implements PetlJob {
             ConfigFile sourceSqlFile = appConfig.getConfigFile(sqlFile);
             String sqlToExecute = sourceSqlFile.getContentsWithVariableReplacement(config.getVariables());
             try (Connection targetConnection = DatabaseUtil.openConnection(dataSource)) {
-                QueryRunner qr = new QueryRunner();
-                log.debug("Executing: " + sqlToExecute);
-                qr.update(targetConnection, sqlToExecute);
+                try (Statement statement = targetConnection.createStatement()) {
+                    log.trace("Executing: " + sqlToExecute);
+                    statement.execute(sqlToExecute);
+                }
             }
         }
     }

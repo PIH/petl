@@ -84,11 +84,12 @@ public class SqlServerImportJob implements PetlJob {
         String targetTable = config.getString("load", "table");
 
         // Get target table schema
+        String targetSchema = null;
         String targetSchemaFilename = config.getString("load", "schema");
-        ConfigFile targetSchemaFile = appConfig.getConfigFile(targetSchemaFilename);
-        String targetSchema = targetSchemaFile.getContentsWithVariableReplacement(config.getVariables());
-
-        // TODO: Add validation in
+        if (StringUtils.isNotEmpty(targetSchemaFilename)) {
+            ConfigFile targetSchemaFile = appConfig.getConfigFile(targetSchemaFilename);
+            targetSchema = targetSchemaFile.getContentsWithVariableReplacement(config.getVariables());
+        }
 
         // execute conditional, if present, and skip job if conditional returns false
         if (StringUtils.isNotEmpty(conditional)) {
@@ -113,15 +114,17 @@ public class SqlServerImportJob implements PetlJob {
                 sourceConnection.setAutoCommit(false); // We intend to rollback changes to source after querying DB
                 targetConnection.setAutoCommit(true);  // We want to commit to target as we go, to query status
 
-                if (config.getBoolean(true,"dropAndRecreateTable")) {
-                    // drop existing target table  (we don't use "drop table if exists..." syntax for backwards compatibility with earlier versions of SQL Server
-                    context.setStatus("Dropping existing table");
-                    qr.update(targetConnection, "IF OBJECT_ID('dbo." + targetTable + "') IS NOT NULL DROP TABLE dbo." + targetTable);
-                }
+                if (targetSchema != null) {
+                    if (config.getBoolean(true, "dropAndRecreateTable")) {
+                        // drop existing target table  (we don't use "drop table if exists..." syntax for backwards compatibility with earlier versions of SQL Server
+                        context.setStatus("Dropping existing table");
+                        qr.update(targetConnection, "IF OBJECT_ID('dbo." + targetTable + "') IS NOT NULL DROP TABLE dbo." + targetTable);
+                    }
 
-                // Then, create the target table if necessary
-                context.setStatus("Creating table");
-                qr.update(targetConnection, "IF OBJECT_ID('dbo." + targetTable+ "') IS NULL " + targetSchema);
+                    // Then, create the target table if necessary
+                    context.setStatus("Creating table");
+                    qr.update(targetConnection, "IF OBJECT_ID('dbo." + targetTable + "') IS NULL " + targetSchema);
+                }
 
                 // Now execute a bulk import
                 context.setStatus("Executing import");
