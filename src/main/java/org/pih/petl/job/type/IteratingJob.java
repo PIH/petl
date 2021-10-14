@@ -40,6 +40,8 @@ public class IteratingJob implements PetlJob {
         List<JsonNode> jobTemplates = config.getList("jobTemplates");
         List<JsonNode> iterations = config.getList("iterations");
 
+        // TODO:  Add in threading (run each iteration in a separate thread
+        // TODO:  Add retries on connection failure errorHanding.retryInterval, maxRetries, etc.
         for (JsonNode iteration : iterations) {
             Map<String, String> iterationVars = PetlUtil.getJsonAsMap(iteration);
             context.setStatus("Executing iteration: " + iterationVars);
