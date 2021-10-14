@@ -49,7 +49,7 @@ public class PentahoJob implements PetlJob {
 
         ApplicationConfig appConfig = context.getApplicationConfig();
         PetlJobConfig jobConfig = context.getJobConfig();
-        Properties configuration = jobConfig.getAsProperties();
+        Properties configuration = jobConfig.getConfiguration().getAsProperties();
 
         String jobFilePath = configuration.getProperty(JOB_FILE_PATH);
         log.debug("PetlJob file path: " + jobFilePath);

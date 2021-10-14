@@ -1,8 +1,10 @@
 package org.pih.petl.job.config;
 
 import java.io.File;
+import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang.text.StrSubstitutor;
 import org.pih.petl.PetlException;
 
 /**
@@ -39,6 +41,10 @@ public class ConfigFile {
         catch (Exception e) {
             throw new PetlException("Error reading " + configFile + ", please check that the file is valid", e);
         }
+    }
+
+    public String getContentsWithVariableReplacement(Map<String, String> replacements) {
+        return StrSubstitutor.replace(getContents(), replacements);
     }
 
     public File getFileDir() {

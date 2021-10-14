@@ -7,6 +7,7 @@ import org.apache.commons.logging.LogFactory;
 import org.pih.petl.ApplicationConfig;
 import org.pih.petl.api.ExecutionContext;
 import org.pih.petl.job.PetlJob;
+import org.pih.petl.job.config.JobConfiguration;
 import org.pih.petl.job.config.PetlJobConfig;
 import org.pih.petl.job.config.PetlJobFactory;
 
@@ -29,7 +30,7 @@ public class RunMultipleJob implements PetlJob {
     @Override
     public void execute(final ExecutionContext context) throws Exception {
         ApplicationConfig appConfig = context.getApplicationConfig();
-        PetlJobConfig config = context.getJobConfig();
+        JobConfiguration config = context.getJobConfig().getConfiguration();
         List<String> jobs = config.getStringList("jobs");
         boolean parallelExecution = config.getBoolean("parallelExecution");
         context.setStatus("Executing " + jobs.size() + " in " + (parallelExecution ? "parallel" : "series"));

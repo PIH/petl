@@ -1,14 +1,13 @@
 package org.pih.petl;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.text.StrSubstitutor;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.pih.petl.job.config.ConfigFile;
+import org.pih.petl.job.config.JobConfiguration;
 import org.pih.petl.job.config.PetlJobConfig;
 import org.pih.petl.job.datasource.EtlDataSource;
 import org.pih.petl.job.schedule.Schedule;
@@ -162,31 +161,26 @@ public class ApplicationConfig {
         try {
             String fileContents = FileUtils.readFileToString(configFile.getConfigFile(), "UTF-8");
             String fileWithVariablesReplaced = StrSubstitutor.replace(fileContents, getEnv());
-            JsonNode jsonNode = getYamlMapper().readTree(fileWithVariablesReplaced);
+            JsonNode jsonNode = PetlUtil.getYamlMapper().readTree(fileWithVariablesReplaced);
             if (type == PetlJobConfig.class) {
                 PetlJobConfig jobConfig = new PetlJobConfig();
                 jobConfig.setConfigFile(configFile);
                 jobConfig.setType(jsonNode.get("type").asText());
-                jobConfig.setConfiguration(jsonNode.get("configuration"));
+                JobConfiguration jobConfiguration = new JobConfiguration(jsonNode.get("configuration"));
+                jobConfiguration.setVariables(getEnv());
+                jobConfig.setConfiguration(jobConfiguration);
                 JsonNode scheduleNode = jsonNode.get("schedule");
                 if (scheduleNode != null) {
-                    jobConfig.setSchedule(getYamlMapper().treeToValue(scheduleNode, Schedule.class));
+                    jobConfig.setSchedule(PetlUtil.getYamlMapper().treeToValue(scheduleNode, Schedule.class));
                 }
                 return (T)jobConfig;
             }
             else {
-                return getYamlMapper().treeToValue(jsonNode, type);
+                return PetlUtil.getYamlMapper().treeToValue(jsonNode, type);
             }
         }
         catch (Exception e) {
             throw new PetlException("Error parsing " + configFile + ", please check that the YML is valid", e);
         }
-    }
-
-    /**
-     * @return a standard Yaml mapper that can be used for processing YML files
-     */
-    public static ObjectMapper getYamlMapper() {
-        return new ObjectMapper(new YAMLFactory());
     }
 }

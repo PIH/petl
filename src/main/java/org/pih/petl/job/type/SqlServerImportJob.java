@@ -14,7 +14,7 @@ import org.pih.petl.PetlException;
 import org.pih.petl.api.ExecutionContext;
 import org.pih.petl.job.PetlJob;
 import org.pih.petl.job.config.ConfigFile;
-import org.pih.petl.job.config.PetlJobConfig;
+import org.pih.petl.job.config.JobConfiguration;
 import org.pih.petl.job.datasource.DatabaseUtil;
 import org.pih.petl.job.datasource.EtlDataSource;
 import org.pih.petl.job.datasource.SqlStatementParser;
@@ -52,7 +52,7 @@ public class SqlServerImportJob implements PetlJob {
     public void execute(final ExecutionContext context) throws Exception {
 
         ApplicationConfig appConfig = context.getApplicationConfig();
-        PetlJobConfig config = context.getJobConfig();
+        JobConfiguration config = context.getJobConfig().getConfiguration();
 
         context.setStatus("Loading configuration");
 
@@ -65,13 +65,13 @@ public class SqlServerImportJob implements PetlJob {
         String sourceContextFileName = config.getString("extract", "context");
         if (sourceContextFileName != null) {
             ConfigFile sourceContextFile = appConfig.getConfigFile(sourceContextFileName);
-            sourceContextStatements = sourceContextFile.getContents();
+            sourceContextStatements = sourceContextFile.getContentsWithVariableReplacement(config.getVariables());
         }
 
         // Get source query
         String sourceQueryFileName = config.getString("extract", "query");
         ConfigFile sourceQueryFile = appConfig.getConfigFile(sourceQueryFileName);
-        String sourceQuery = sourceContextStatements + sourceQueryFile.getContents();
+        String sourceQuery = sourceContextStatements + sourceQueryFile.getContentsWithVariableReplacement(config.getVariables());
 
         // Get any conditional
         String conditional = config.getString("conditional");
@@ -86,7 +86,7 @@ public class SqlServerImportJob implements PetlJob {
         // Get target table schema
         String targetSchemaFilename = config.getString("load", "schema");
         ConfigFile targetSchemaFile = appConfig.getConfigFile(targetSchemaFilename);
-        String targetSchema = targetSchemaFile.getContents();
+        String targetSchema = targetSchemaFile.getContentsWithVariableReplacement(config.getVariables());
 
         // TODO: Add validation in
 
