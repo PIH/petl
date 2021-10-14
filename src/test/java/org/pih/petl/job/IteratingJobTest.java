@@ -2,6 +2,7 @@ package org.pih.petl.job;
 
 import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.pih.petl.ApplicationConfig;
@@ -29,7 +30,16 @@ public class IteratingJobTest {
         SpringRunnerTest.setupEnvironment();
     }
 
+    @Before
+    public void runBefore() throws Exception {
+        dropTablesInTargetDB();
+    }
+
     @After
+    public void runAfter() throws Exception {
+        dropTablesInTargetDB();
+    }
+
     public void dropTablesInTargetDB() throws Exception{
         ApplicationConfig appConfig = etlService.getApplicationConfig();
         EtlDataSource sqlServerDataSource = appConfig.getEtlDataSource("sqlserver-testcontainer.yml");
