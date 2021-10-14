@@ -1,0 +1,37 @@
+type: "iterating-job"
+
+configuration:
+
+  jobTemplates:
+
+    - type: "sql-execution"
+      configuration:
+        datasource: "sqlserver-testcontainer.yml"
+        scripts:
+          - "iteratingjob/encounterTypesSchema.sql"
+
+    - type: "sqlserver-bulk-import"
+      configuration:
+        extract:
+          datasource: "${extractDatasource}"
+          query:  "iteratingjob/encounterTypesStartingWithName.sql"
+        load:
+          datasource: "sqlserver-testcontainer.yml"
+          table: "encounter_types"
+
+  iterations:
+
+    - extractDatasource: "mysql-testcontainer.yml"
+      namePrefix: 'Primary Care'
+      category: "PRIMARY_CARE"
+      partition_num: "1"
+
+    - extractDatasource: "mysql-testcontainer.yml"
+      namePrefix: 'ZL VIH'
+      category: "ZL_HIV"
+      partition_num: "2"
+
+    - extractDatasource: "mysql-testcontainer.yml"
+      namePrefix: 'ANC'
+      category: "ANC"
+      partition_num: "3"
