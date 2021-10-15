@@ -50,7 +50,7 @@ public class JobExecutionTask implements Callable<JobExecutionResult> {
                 StringBuilder status = new StringBuilder();
                 status.append("An error occurred executing job: " + t.getMessage());
                 if (currentAttempt < maxRetries) {
-                    status.append(". Will retry in ").append(retryInterval).append(" ").append(retryUnit).append(currentAttempt+1).append("/").append(maxRetries);
+                    status.append(". Will retry in ").append(retryInterval).append(" ").append(retryUnit).append(" (").append(currentAttempt+1).append("/").append(maxRetries).append(")");
                     context.setStatus(status.toString());
                     try {
                         retryUnit.sleep(retryInterval);
