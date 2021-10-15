@@ -50,48 +50,48 @@ public class PetlScheduledExecutionTask implements Job {
                 inProgress = true;
                 Schedule globalSchedule = applicationConfig.getSchedule();  // get the global schedule, if configured
                 Date currentDate = jobExecutionContext.getFireTime();
-                log.debug("Executing Task: " + currentDate);
+                log.trace("Executing Task: " + currentDate);
                 Map<String, PetlJobConfig> jobs = etlService.getAllConfiguredJobs();
-                log.debug("Found " + jobs.size() + " configured Jobs");
+                log.trace("Found " + jobs.size() + " configured Jobs");
                 for (String jobPath : jobs.keySet()) {
-                    log.debug("Checking job: " + jobPath);
+                    log.trace("Checking job: " + jobPath);
                     PetlJobConfig jobConfig = jobs.get(jobPath);
                     Schedule schedule = jobConfig.getSchedule() != null ? jobConfig.getSchedule() : globalSchedule;  // override global schedule with any local job-specific schedule
                     boolean isScheduled = schedule != null && StringUtils.isNotBlank(schedule.getCron());
                     if (isScheduled) {
                         JobExecution latestExecution = etlService.getLatestJobExecution(jobPath);
                         if (latestExecution == null) {
-                            log.info("Job: " + jobPath + " - Executing for the first time.");
+                            log.debug("Job: " + jobPath + " - Executing for the first time.");
                             etlService.executeJob(jobPath);
                         }
                         else {
                             Date lastStartDate = latestExecution.getStarted();
-                            log.debug("Last Execution Start: " + lastStartDate);
+                            log.trace("Last Execution Start: " + lastStartDate);
                             Date lastEndDate = latestExecution.getCompleted();
-                            log.debug("Last Execution End: " + lastEndDate);
+                            log.trace("Last Execution End: " + lastEndDate);
                             if (lastEndDate != null) {
-                                log.debug("Schedule found: " + schedule);
+                                log.trace("Schedule found: " + schedule);
                                 CronExpression cronExpression = new CronExpression(schedule.getCron());
                                 Date nextScheduledDate = cronExpression.getNextValidTimeAfter(lastStartDate);
-                                log.debug("Next scheduled for: " + nextScheduledDate);
+                                log.trace("Next scheduled for: " + nextScheduledDate);
                                 if (nextScheduledDate != null && nextScheduledDate.compareTo(currentDate) <= 0) {
-                                    log.info("Executing scheduled job: " + jobPath);
-                                    log.info("Last run: " + lastStartDate);
+                                    log.debug("Executing scheduled job: " + jobPath);
+                                    log.trace("Last run: " + lastStartDate);
                                     JobExecution execution = etlService.executeJob(jobPath);
                                     nextScheduledDate = cronExpression.getNextValidTimeAfter(execution.getStarted());
-                                    log.info("Scheduled job will run again at: " + nextScheduledDate);
+                                    log.trace("Scheduled job will run again at: " + nextScheduledDate);
                                 }
                                 else {
-                                    log.debug("This is in the future, not executing");
+                                    log.trace("This is in the future, not executing");
                                 }
                             }
                             else {
-                                log.debug("Latest execution is still in progress, not running again in parallel");
+                                log.trace("Latest execution is still in progress, not running again in parallel");
                             }
                         }
                     }
                     else {
-                        log.debug("Job has no scheduled associated with it, not executing.");
+                        log.trace("Job has no scheduled associated with it, not executing.");
                     }
                 }
             }

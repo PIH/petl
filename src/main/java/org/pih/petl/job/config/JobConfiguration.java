@@ -55,6 +55,14 @@ public class JobConfiguration {
         return null;
     }
 
+    public Integer getInt(Integer defaultValue, String...keys) {
+        JsonNode n = get(keys);
+        if (n != null) {
+            return n.asInt();
+        }
+        return defaultValue;
+    }
+
     /**
      * Convenience to get the configuration of a given setting as a String
      */

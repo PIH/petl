@@ -70,7 +70,7 @@ public class ApplicationConfig {
      * @return the File representing the PETL_HOME directory
      */
     public File getDirectoryFromEnvironment(String envName, boolean required) {
-        log.debug("Loading " + envName + " from environment");
+        log.trace("Loading " + envName + " from environment");
         String path = environment.getProperty(envName);
         if (StringUtils.isBlank(path)) {
             if (required) {
@@ -80,7 +80,7 @@ public class ApplicationConfig {
                 return null;
             }
         }
-        log.debug(envName + " configuration found: " + path);
+        log.trace(envName + " configuration found: " + path);
         File dir = new File(path);
         if (!dir.exists() || !dir.isDirectory()) {
             String message = envName + " = " + path + " does not point to a valid directory";

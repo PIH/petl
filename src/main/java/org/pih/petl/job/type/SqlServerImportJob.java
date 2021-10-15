@@ -95,7 +95,6 @@ public class SqlServerImportJob implements PetlJob {
         if (StringUtils.isNotEmpty(conditional)) {
             if (!testConditional(conditional)) {
                 context.setStatus("Conditional returned false, skipping");
-                log.info("Conditional returned false, skipping this job");
                 return;
             }
         }
@@ -131,23 +130,23 @@ public class SqlServerImportJob implements PetlJob {
 
                 // Parse the source query into statements
                 List<String> stmts = SqlStatementParser.parseSqlIntoStatements(sourceQuery, ";");
-                log.debug("Parsed extract query into " + stmts.size() + " statements");
+                log.trace("Parsed extract query into " + stmts.size() + " statements");
 
                 // Iterate over each statement, and execute.  The final statement is expected to select the data out.
                 for (Iterator<String> sqlIterator = stmts.iterator(); sqlIterator.hasNext();) {
                     String sqlStatement = sqlIterator.next();
                     Statement statement = null;
                     try {
-                        log.debug("Executing: " + sqlStatement);
+                        log.trace("Executing: " + sqlStatement);
                         StopWatch sw = new StopWatch();
                         sw.start();
                         if (sqlIterator.hasNext()) {
                             statement = sourceConnection.createStatement();
                             statement.execute(sqlStatement);
-                            log.debug("Statement executed");
+                            log.trace("Statement executed");
                         }
                         else {
-                            log.debug("This is the last statement, treat it as the extraction query");
+                            log.trace("This is the last statement, treat it as the extraction query");
                             statement = sourceConnection.prepareStatement(
                                     sqlStatement, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY
                             );
@@ -183,7 +182,7 @@ public class SqlServerImportJob implements PetlJob {
                             }
                         }
                         sw.stop();
-                        log.debug("Statement executed in: " + sw.toString());
+                        log.trace("Statement executed in: " + sw);
                     }
                     finally {
                         DbUtils.closeQuietly(statement);
