@@ -1,0 +1,7 @@
+type: "sql-execution"
+configuration:
+  datasource: "openmrs_reporting_sqlserver.yml"
+  scripts:
+    - "initialize-partitions.sql"
+    - "function-num-columns-changed.sql"
+    - "function-drop-table-if-exists.sql"

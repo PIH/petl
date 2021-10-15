@@ -90,11 +90,19 @@ petl:
 
 ```yaml
 petl:
-  homeDir: "/home/petl"
-  datasourceDir: "${petl.homeDir}/config/datasources"
-  jobDir: "${petl.homeDir}/config/jobs"
+  ...
   schedule:
     cron: "0 0 5 ? * *"     # Cron-like expression that determines the execution frequency (see below)
+```
+
+* **PETL Startup Jobs**:  Jobs can be configured to run at startup in a deterministic order prior to any other scheduled jobs.
+
+```yaml
+petl:
+  ...
+  startup:
+    jobs:
+      - "job1.yml"
 ```
 
 
@@ -235,7 +243,9 @@ NOTE:
   create temporary tables, etc, but the final statement should be a `select` that extracts the data out of MySQL.
 
 * The "load" YAML file (in the above example, `target.yml`) generally is a single `create table` command used to create
-  the table to load the data into.  Therefore it should match the schema of the `select` at the end of the extract sql
+  the table to load the data into.  Therefore it should match the schema of the `select` at the end of the extract sql.
+
+* The "load.schema" attribute is optional.  If not specified, then no target table creation or deleting is done by the job.
 
 ### pentaho-job
 
@@ -290,8 +300,18 @@ schedule:
 
 # job-pipeline
 
-A pipeline job allows combining multiple jobs together into a single job which can be configured to run
-the jobs in series.  Supporting parallel execution is planned but not yet supported.
+A pipeline job allows combining multiple jobs together into a single job.  The execution of these jobs is configurable by an optional
+"execution" element.  If not specified, the default execution settings are:
+
+```yaml
+execution:
+  maxConcurrentJobs: 1
+  maxRetriesPerJob: 0
+  retryInterval: 5
+  retryIntervalUnit: "MINUTES"
+```
+
+Jobs can either be specified inline or by referencing a separate job.yml file as shown below.
 
 Example configuration:
 
@@ -299,10 +319,49 @@ Example configuration:
 type: "job-pipeline"
 configuration:
   jobs:
-    - "load-upper-neno.yml"
-    - "load-lower-neno.yml"
+    - path: "load-upper-neno.yml"
+    - type: "job-pipeline"
+      configuration:
+        jobs:
+          - "load-lower-neno.yml"
+  execution:
+    maxConcurrentJobs: 1
+    maxRetriesPerJob: 5
+    retryInterval: 30
+    retryIntervalUnit: "MINUTES"
 schedule:
     cron: "0 0 5 ? * *"  
+```
+
+# iterating-job
+
+An iterating job allows a single job template to be executed for multiple iterations, in which each iteration can specify
+different variables that can configure the job template.  Any aspect of the yaml configuration, or any nested configuration files
+can refer to a variable as ${variableName}, and this will be replaced by the specified value for each iteration.
+
+Like the job-pipeline job, an iterating-job also allows specifying an "execution" element to control whether each iteration
+is run in series or in parallel, the max number of concurrent executions to run, and whether and how to retry iterations
+on failure.  See details in the "job-pipeline" job above for specifying the execution within the job configuration.
+
+Also like the job-pipeline, jobs can either be specified inline or by referencing a separate job.yml file.
+
+For an example configuration, please see the [partitioning example here](./docs/examples/partitioning/jobs/load-encounters.yml)
+
+# sql-execution
+
+A SQL Execution job is a job that simply allows for one or more scripts to be executed against the configured datasource.
+This is useful particularly to control exactly how and when target tables and other database objects (functions, procedures, partition schemes, etc)
+are created.
+
+Example configuration:
+
+```yaml
+    - type: "sql-execution"
+      configuration:
+        datasource: "openmrs_reporting_sqlserver.yml"
+        scripts:
+          - "encounters_schema.sql"
+          - "encounters_recreate_schema_if_needed.sql"
 ```
 
 # Developer Reference
