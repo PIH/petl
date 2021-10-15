@@ -2,11 +2,11 @@ type: "sqlserver-bulk-import"
 configuration:
   extract:
     datasource: "mysql-testcontainer.yml"
-    query:  "sqlserverimport/source.sql"
+    query:  "source.sql"
 
   load:
     datasource: "sqlserver-testcontainer.yml"
     table: "encounter_types"
-    schema: "sqlserverimport/target.sql"
+    schema: "target.sql"
 
   dropAndRecreateTable: false

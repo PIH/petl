@@ -2,22 +2,26 @@ type: "iterating-job"
 
 configuration:
 
-  jobTemplates:
+  jobTemplate:
 
-    - type: "sql-execution"
-      configuration:
-        datasource: "sqlserver-testcontainer.yml"
-        scripts:
-          - "iteratingjob/encounterTypesSchema.sql"
+    type: "job-pipeline"
+    configuration:
+      jobs:
 
-    - type: "sqlserver-bulk-import"
-      configuration:
-        extract:
-          datasource: "${extractDatasource}"
-          query:  "iteratingjob/encounterTypesStartingWithName.sql"
-        load:
+      - type: "sql-execution"
+        configuration:
           datasource: "sqlserver-testcontainer.yml"
-          table: "encounter_types"
+          scripts:
+            - "encounterTypesSchema.sql"
+
+      - type: "sqlserver-bulk-import"
+        configuration:
+          extract:
+            datasource: "${extractDatasource}"
+            query:  "encounterTypesStartingWithName.sql"
+          load:
+            datasource: "sqlserver-testcontainer.yml"
+            table: "encounter_types"
 
   iterations:
 

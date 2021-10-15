@@ -12,6 +12,7 @@ import org.pih.petl.job.datasource.DatabaseUtil;
 import org.pih.petl.job.datasource.EtlDataSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.sql.Connection;
@@ -21,6 +22,7 @@ import java.sql.Connection;
  */
 @RunWith(SpringRunner.class)
 @SpringBootTest
+@TestPropertySource(properties = {"petl.jobDir = src/test/resources/configuration/jobs/iteratingjob"})
 public class IteratingJobTest {
 
     @Autowired
@@ -50,7 +52,7 @@ public class IteratingJobTest {
 
     @Test
     public void testJobWithSqlExecution() throws Exception {
-        etlService.executeJob("iteratingjob/jobWithSqlExecution.yml");
+        etlService.executeJob("jobWithSqlExecution.yml");
         verifyTableExists("encounter_types");
         verifyRowCount("encounter_types", 13);
     }

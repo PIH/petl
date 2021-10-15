@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.ValueNode;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.pih.petl.PetlUtil;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -42,6 +43,19 @@ public class JobConfiguration {
             }
         }
         return ret;
+    }
+
+    public <T> T getObject(Class<T> type, String... keys) {
+        JsonNode n = get(keys);
+        if (n != null) {
+            try {
+                return PetlUtil.getYamlMapper().treeToValue(n, type);
+            }
+            catch (Exception e) {
+                throw new IllegalArgumentException("Unable to read json into " + type.getSimpleName());
+            }
+        }
+        return null;
     }
 
     /**
