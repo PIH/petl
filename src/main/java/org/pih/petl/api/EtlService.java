@@ -51,7 +51,7 @@ public class EtlService {
         File jobDir = applicationConfig.getJobDir();
         if (jobDir != null) {
             final Path configPath = jobDir.toPath();
-            log.debug("Loading configured jobs from: " + configPath);
+            log.trace("Loading configured jobs from: " + configPath);
             try {
                 Files.walkFileTree(configPath, new SimpleFileVisitor<Path>() {
 
@@ -77,7 +77,7 @@ public class EtlService {
             }
         }
         else {
-            log.debug("No Job Directory configured, not returning any available jobs");
+            log.warn("No Job Directory configured, not returning any available jobs");
         }
         return m;
     }
