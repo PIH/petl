@@ -5,8 +5,10 @@ import java.util.Map;
 
 import org.pih.petl.PetlException;
 import org.pih.petl.job.PetlJob;
+import org.pih.petl.job.type.IteratingJob;
 import org.pih.petl.job.type.PentahoJob;
 import org.pih.petl.job.type.RunMultipleJob;
+import org.pih.petl.job.type.SqlJob;
 import org.pih.petl.job.type.SqlServerImportJob;
 
 /**
@@ -19,6 +21,8 @@ public class PetlJobFactory {
         jobTypes.put("job-pipeline", RunMultipleJob.class);
         jobTypes.put("sqlserver-bulk-import", SqlServerImportJob.class);
         jobTypes.put("pentaho-job", PentahoJob.class);
+        jobTypes.put("iterating-job", IteratingJob.class);
+        jobTypes.put("sql-execution", SqlJob.class);
     }
 
     /**

@@ -1,0 +1,17 @@
+type: "job-pipeline"
+configuration:
+  jobs:
+    - type: "sql-execution"
+      configuration:
+        datasource: "sqlserver-testcontainer.yml"
+        scripts:
+          - "encounterTypesSchema.sql"
+
+    - type: "sqlserver-bulk-import"
+      configuration:
+        extract:
+          datasource: "mysql-testcontainer.yml"
+          query:  "encounterTypesStartingWithName.sql"
+        load:
+          datasource: "sqlserver-testcontainer.yml"
+          table: "encounter_types"

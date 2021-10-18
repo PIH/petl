@@ -1,0 +1,11 @@
+version: '2'
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2019-CU13-ubuntu-20.04
+    environment:
+      ACCEPT_EULA: "Y"
+      SA_PASSWORD: "<specify>"
+    ports:
+      - "1433:1433"
+

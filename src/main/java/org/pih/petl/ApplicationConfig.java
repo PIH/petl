@@ -1,14 +1,13 @@
 package org.pih.petl;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.text.StrSubstitutor;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.pih.petl.job.config.ConfigFile;
+import org.pih.petl.job.config.JobConfiguration;
 import org.pih.petl.job.config.PetlJobConfig;
 import org.pih.petl.job.datasource.EtlDataSource;
 import org.pih.petl.job.schedule.Schedule;
@@ -20,7 +19,9 @@ import org.springframework.core.env.PropertySource;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -37,6 +38,7 @@ public class ApplicationConfig {
     public static final String PETL_JOB_DIR = "petl.jobDir";
     public static final String PETL_DATASOURCE_DIR = "petl.datasourceDir";
     public static final String PETL_SCHEDULE_CRON = "petl.schedule.cron";
+    public static final String PETL_STARTUP_JOBS = "petl.startup.jobs";
 
     private Map<String, String> env = null;
 
@@ -68,7 +70,7 @@ public class ApplicationConfig {
      * @return the File representing the PETL_HOME directory
      */
     public File getDirectoryFromEnvironment(String envName, boolean required) {
-        log.debug("Loading " + envName + " from environment");
+        log.trace("Loading " + envName + " from environment");
         String path = environment.getProperty(envName);
         if (StringUtils.isBlank(path)) {
             if (required) {
@@ -78,7 +80,7 @@ public class ApplicationConfig {
                 return null;
             }
         }
-        log.debug(envName + " configuration found: " + path);
+        log.trace(envName + " configuration found: " + path);
         File dir = new File(path);
         if (!dir.exists() || !dir.isDirectory()) {
             String message = envName + " = " + path + " does not point to a valid directory";
@@ -128,6 +130,21 @@ public class ApplicationConfig {
         }
     }
 
+    public List<String> getStartupJobs() {
+        List<String> l = new ArrayList<>();
+        boolean allFound = false;
+        int index = 0;
+        while (!allFound) {
+            String val = environment.getProperty(PETL_STARTUP_JOBS + "[" + index++ + "]");
+            if (val != null) {
+                l.add(val);
+            }
+            else {
+                allFound = true;
+            }
+        }
+        return l;
+    }
 
     /**
      * Convenience method to retrieve a PETL Job Config with the given path
@@ -162,31 +179,26 @@ public class ApplicationConfig {
         try {
             String fileContents = FileUtils.readFileToString(configFile.getConfigFile(), "UTF-8");
             String fileWithVariablesReplaced = StrSubstitutor.replace(fileContents, getEnv());
-            JsonNode jsonNode = getYamlMapper().readTree(fileWithVariablesReplaced);
+            JsonNode jsonNode = PetlUtil.getYamlMapper().readTree(fileWithVariablesReplaced);
             if (type == PetlJobConfig.class) {
                 PetlJobConfig jobConfig = new PetlJobConfig();
                 jobConfig.setConfigFile(configFile);
                 jobConfig.setType(jsonNode.get("type").asText());
-                jobConfig.setConfiguration(jsonNode.get("configuration"));
+                JobConfiguration jobConfiguration = new JobConfiguration(jsonNode.get("configuration"));
+                jobConfiguration.setVariables(getEnv());
+                jobConfig.setConfiguration(jobConfiguration);
                 JsonNode scheduleNode = jsonNode.get("schedule");
                 if (scheduleNode != null) {
-                    jobConfig.setSchedule(getYamlMapper().treeToValue(scheduleNode, Schedule.class));
+                    jobConfig.setSchedule(PetlUtil.getYamlMapper().treeToValue(scheduleNode, Schedule.class));
                 }
                 return (T)jobConfig;
             }
             else {
-                return getYamlMapper().treeToValue(jsonNode, type);
+                return PetlUtil.getYamlMapper().treeToValue(jsonNode, type);
             }
         }
         catch (Exception e) {
             throw new PetlException("Error parsing " + configFile + ", please check that the YML is valid", e);
         }
-    }
-
-    /**
-     * @return a standard Yaml mapper that can be used for processing YML files
-     */
-    public static ObjectMapper getYamlMapper() {
-        return new ObjectMapper(new YAMLFactory());
     }
 }

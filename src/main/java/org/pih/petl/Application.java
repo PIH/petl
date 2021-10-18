@@ -13,6 +13,7 @@ import org.springframework.context.ApplicationContext;
 
 import java.lang.management.ManagementFactory;
 import java.lang.management.RuntimeMXBean;
+import java.util.List;
 
 import static org.quartz.SimpleScheduleBuilder.simpleSchedule;
 
@@ -56,6 +57,14 @@ public class Application {
 
         // Reset any hung jobs
         app.getEtlService().markHungJobsAsRun();
+
+        // Get and execute any jobs configured to run at startup
+        List<String> startupJobs = app.getAppConfig().getStartupJobs();
+        log.info("STARTUP JOBS: " + startupJobs);
+        for (String job : startupJobs) {
+            log.info("Executing Startup Job: " + job);
+            app.getEtlService().executeJob(job);
+        }
 
         // Set up the schedule to check if any etl jobs need to execute every minute
         SimpleScheduleBuilder schedule = simpleSchedule().repeatForever().withIntervalInSeconds(60);

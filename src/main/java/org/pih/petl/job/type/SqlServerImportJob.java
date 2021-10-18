@@ -14,7 +14,7 @@ import org.pih.petl.PetlException;
 import org.pih.petl.api.ExecutionContext;
 import org.pih.petl.job.PetlJob;
 import org.pih.petl.job.config.ConfigFile;
-import org.pih.petl.job.config.PetlJobConfig;
+import org.pih.petl.job.config.JobConfiguration;
 import org.pih.petl.job.datasource.DatabaseUtil;
 import org.pih.petl.job.datasource.EtlDataSource;
 import org.pih.petl.job.datasource.SqlStatementParser;
@@ -52,7 +52,7 @@ public class SqlServerImportJob implements PetlJob {
     public void execute(final ExecutionContext context) throws Exception {
 
         ApplicationConfig appConfig = context.getApplicationConfig();
-        PetlJobConfig config = context.getJobConfig();
+        JobConfiguration config = context.getJobConfig().getConfiguration();
 
         context.setStatus("Loading configuration");
 
@@ -65,13 +65,13 @@ public class SqlServerImportJob implements PetlJob {
         String sourceContextFileName = config.getString("extract", "context");
         if (sourceContextFileName != null) {
             ConfigFile sourceContextFile = appConfig.getConfigFile(sourceContextFileName);
-            sourceContextStatements = sourceContextFile.getContents();
+            sourceContextStatements = sourceContextFile.getContentsWithVariableReplacement(config.getVariables());
         }
 
         // Get source query
         String sourceQueryFileName = config.getString("extract", "query");
         ConfigFile sourceQueryFile = appConfig.getConfigFile(sourceQueryFileName);
-        String sourceQuery = sourceContextStatements + sourceQueryFile.getContents();
+        String sourceQuery = sourceContextStatements + sourceQueryFile.getContentsWithVariableReplacement(config.getVariables());
 
         // Get any conditional
         String conditional = config.getString("conditional");
@@ -84,17 +84,17 @@ public class SqlServerImportJob implements PetlJob {
         String targetTable = config.getString("load", "table");
 
         // Get target table schema
+        String targetSchema = null;
         String targetSchemaFilename = config.getString("load", "schema");
-        ConfigFile targetSchemaFile = appConfig.getConfigFile(targetSchemaFilename);
-        String targetSchema = targetSchemaFile.getContents();
-
-        // TODO: Add validation in
+        if (StringUtils.isNotEmpty(targetSchemaFilename)) {
+            ConfigFile targetSchemaFile = appConfig.getConfigFile(targetSchemaFilename);
+            targetSchema = targetSchemaFile.getContentsWithVariableReplacement(config.getVariables());
+        }
 
         // execute conditional, if present, and skip job if conditional returns false
         if (StringUtils.isNotEmpty(conditional)) {
             if (!testConditional(conditional)) {
                 context.setStatus("Conditional returned false, skipping");
-                log.info("Conditional returned false, skipping this job");
                 return;
             }
         }
@@ -113,38 +113,40 @@ public class SqlServerImportJob implements PetlJob {
                 sourceConnection.setAutoCommit(false); // We intend to rollback changes to source after querying DB
                 targetConnection.setAutoCommit(true);  // We want to commit to target as we go, to query status
 
-                if (config.getBoolean(true,"dropAndRecreateTable")) {
-                    // drop existing target table  (we don't use "drop table if exists..." syntax for backwards compatibility with earlier versions of SQL Server
-                    context.setStatus("Dropping existing table");
-                    qr.update(targetConnection, "IF OBJECT_ID('dbo." + targetTable + "') IS NOT NULL DROP TABLE dbo." + targetTable);
-                }
+                if (targetSchema != null) {
+                    if (config.getBoolean(true, "dropAndRecreateTable")) {
+                        // drop existing target table  (we don't use "drop table if exists..." syntax for backwards compatibility with earlier versions of SQL Server
+                        context.setStatus("Dropping existing table");
+                        qr.update(targetConnection, "IF OBJECT_ID('dbo." + targetTable + "') IS NOT NULL DROP TABLE dbo." + targetTable);
+                    }
 
-                // Then, create the target table if necessary
-                context.setStatus("Creating table");
-                qr.update(targetConnection, "IF OBJECT_ID('dbo." + targetTable+ "') IS NULL " + targetSchema);
+                    // Then, create the target table if necessary
+                    context.setStatus("Creating table");
+                    qr.update(targetConnection, "IF OBJECT_ID('dbo." + targetTable + "') IS NULL " + targetSchema);
+                }
 
                 // Now execute a bulk import
                 context.setStatus("Executing import");
 
                 // Parse the source query into statements
                 List<String> stmts = SqlStatementParser.parseSqlIntoStatements(sourceQuery, ";");
-                log.debug("Parsed extract query into " + stmts.size() + " statements");
+                log.trace("Parsed extract query into " + stmts.size() + " statements");
 
                 // Iterate over each statement, and execute.  The final statement is expected to select the data out.
                 for (Iterator<String> sqlIterator = stmts.iterator(); sqlIterator.hasNext();) {
                     String sqlStatement = sqlIterator.next();
                     Statement statement = null;
                     try {
-                        log.debug("Executing: " + sqlStatement);
+                        log.trace("Executing: " + sqlStatement);
                         StopWatch sw = new StopWatch();
                         sw.start();
                         if (sqlIterator.hasNext()) {
                             statement = sourceConnection.createStatement();
                             statement.execute(sqlStatement);
-                            log.debug("Statement executed");
+                            log.trace("Statement executed");
                         }
                         else {
-                            log.debug("This is the last statement, treat it as the extraction query");
+                            log.trace("This is the last statement, treat it as the extraction query");
                             statement = sourceConnection.prepareStatement(
                                     sqlStatement, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY
                             );
@@ -180,7 +182,7 @@ public class SqlServerImportJob implements PetlJob {
                             }
                         }
                         sw.stop();
-                        log.debug("Statement executed in: " + sw.toString());
+                        log.trace("Statement executed in: " + sw);
                     }
                     finally {
                         DbUtils.closeQuietly(statement);

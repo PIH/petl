@@ -1,0 +1,55 @@
+type: "job-pipeline"
+configuration:
+  jobs:
+    - type: "sql-execution"
+      configuration:
+        datasource: "openmrs_reporting_sqlserver.yml"
+        scripts:
+          - "encounters_schema.sql"
+          - "encounters_recreate_schema_if_needed.sql"
+
+    - type: "iterating-job"
+      configuration:
+        execution:
+          maxConcurrentJobs: 10
+          maxRetriesPerJob: 5
+          retryInterval: 1
+        jobTemplate:
+          type: "job-pipeline"
+          configuration:
+            jobs:
+              - type: "sql-execution"
+                configuration:
+                  datasource: "openmrs_reporting_sqlserver.yml"
+                  scripts:
+                    - "encounters_drop_and_create.sql"
+
+              - type: "sqlserver-bulk-import"
+                configuration:
+                  extract:
+                    datasource: "${extractDatasource}"
+                    query:  "encounters_extract_query.sql"
+                  load:
+                    datasource: "openmrs_reporting_sqlserver.yml"
+                    table: "encounters_${partition_num}"
+
+              - type: "sql-execution"
+                configuration:
+                  datasource: "openmrs_reporting_sqlserver.yml"
+                  scripts:
+                    - "encounters_move_partition.sql"
+        iterations:
+          - extractDatasource: "openmrs_mysql.yml"
+            locationName: 'Sal Gason'
+            site: "MENS_WARD"
+            partition_num: "1"
+
+          - extractDatasource: "openmrs_mysql.yml"
+            locationName: 'Sal Fanm'
+            site: "WOMENS_WARD"
+            partition_num: "2"
+
+          - extractDatasource: "openmrs_mysql.yml"
+            locationName: 'Sal Izolman'
+            site: "ISOLATION_WARD"
+            partition_num: "3"

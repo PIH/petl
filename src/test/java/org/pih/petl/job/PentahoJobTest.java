@@ -6,6 +6,7 @@ import org.pih.petl.SpringRunnerTest;
 import org.pih.petl.api.EtlService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
 
 /**
@@ -13,6 +14,7 @@ import org.springframework.test.context.junit4.SpringRunner;
  */
 @RunWith(SpringRunner.class)
 @SpringBootTest
+@TestPropertySource(properties = {"petl.jobDir = src/test/resources/configuration/jobs/pentaho"})
 public class PentahoJobTest {
 
     @Autowired
@@ -24,6 +26,6 @@ public class PentahoJobTest {
 
     @Test
     public void testSimpleJobThatOutputsLoggingMessage() {
-        etlService.executeJob("pentaho/job.yml");
+        etlService.executeJob("job.yml");
     }
 }

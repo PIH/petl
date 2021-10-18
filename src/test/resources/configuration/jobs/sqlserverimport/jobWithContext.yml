@@ -2,12 +2,12 @@ type: "sqlserver-bulk-import"
 configuration:
   extract:
     datasource: "mysql-testcontainer.yml"
-    context: "sqlserverimport/context.sql"
-    query:  "sqlserverimport/encountersOfType.sql"
+    context: "context.sql"
+    query:  "encountersOfType.sql"
 
   load:
     datasource: "sqlserver-testcontainer.yml"
     table: "encounter_types"
-    schema: "sqlserverimport/target.sql"
+    schema: "target.sql"
 
 
