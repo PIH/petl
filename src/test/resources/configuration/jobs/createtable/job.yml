@@ -1,0 +1,8 @@
+type: "create-table"
+configuration:
+  createFromTable:
+    datasource: "mysql-testcontainer.yml"
+    tableName:  "encounter_type"
+  target:
+    datasource: "sqlserver-testcontainer.yml"
+    tableName: "encounter_types"

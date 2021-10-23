@@ -1,0 +1,6 @@
+databaseType: "sqlserver"
+host: ${consolidatedReporting.host}
+port: ${consolidatedReporting.port}
+databaseName: ${consolidatedReporting.databaseName}
+user: ${consolidatedReporting.user}
+password: ${consolidatedReporting.password}

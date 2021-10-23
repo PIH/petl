@@ -1,0 +1,24 @@
+type: "pentaho-job"
+configuration:
+  job:
+    filePath: "pih-pentaho/malawi/jobs/refresh-warehouse.kjb"
+    logLevel: "BASIC"
+  pih:
+    pentahoHome: "${petl.jobDir}/pih-pentaho"
+    country: "malawi"
+
+  openmrs:
+    db:
+      host: "${upperNenoOpenmrs.host}"
+      port: "${upperNenoOpenmrs.port}"
+      name: "${upperNenoOpenmrs.databaseName}"
+      user: "${upperNenoOpenmrs.user}"
+      password: "${upperNenoOpenmrs.password}"
+  warehouse:
+    db:
+      host: "${upperNenoReporting.host}"
+      port: "${upperNenoReporting.port}"
+      name: "${upperNenoReporting.databaseName}"
+      user: "${upperNenoReporting.user}"
+      password: "${upperNenoReporting.password}"
+      key_prefix: "10"

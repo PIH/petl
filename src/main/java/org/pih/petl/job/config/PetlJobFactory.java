@@ -5,6 +5,7 @@ import java.util.Map;
 
 import org.pih.petl.PetlException;
 import org.pih.petl.job.PetlJob;
+import org.pih.petl.job.type.CreateTableJob;
 import org.pih.petl.job.type.IteratingJob;
 import org.pih.petl.job.type.PentahoJob;
 import org.pih.petl.job.type.RunMultipleJob;
@@ -23,6 +24,7 @@ public class PetlJobFactory {
         jobTypes.put("pentaho-job", PentahoJob.class);
         jobTypes.put("iterating-job", IteratingJob.class);
         jobTypes.put("sql-execution", SqlJob.class);
+        jobTypes.put("create-table", CreateTableJob.class);
     }
 
     /**

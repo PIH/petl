@@ -1,0 +1,11 @@
+version: '2'
+
+services:
+
+  sqlserver:
+    build: ./sqlserver
+    environment:
+      DATABASE_NAME: openmrs_reporting
+      SA_PASSWORD: "9%4qP7b2H!%J"
+    ports:
+      - "1433:1433"
