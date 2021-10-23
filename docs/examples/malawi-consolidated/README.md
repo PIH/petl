@@ -14,8 +14,8 @@ This includes:
 1. Create a folder in a location of your choice and make note of this.  This is your "PETL home" directory for this example.
 2. Copy the provided [application.yml](./application.yml) file into this PETL home directory
 3. Copy the provided [jobs](./jobs) directory and [datasources](./datasources) directory into this PETL home directory
-4. Clone or copy or create a symlink to the pih-pentaho repository into the [jobs](./jobs) folder
-5. Build this project and copy the jar file from the target directory into this PETL home directory as petl.jar
+4. Clone or copy the [pih-pentaho](https://github.com/PIH/pih-pentaho) project into the [jobs](./jobs) folder
+5. Ensure you have the latest PETL jar.  ```mvn clean install``` and copy the jar file from the target directory into this PETL home directory as petl.jar
 
 The result should be a folder structure like this:
 
@@ -39,8 +39,8 @@ The result should be a folder structure like this:
 
 ### Prepare source OpenMRS MySQL databases to use
 
-This example assumes that the user is able to set-up two separate MySQL databases, one with data for Upper Neno, 
-and the other with data for Lower Neno.  Update the "upperNenoOpenmrs" and "lowerNenoOpenmrs" properties within
+This example assumes that the user is able to set-up two separate MySQL databases, one a full OpenMRS database for Upper Neno, 
+and the other a full OpenMRS database for Lower Neno.  Update the "upperNenoOpenmrs" and "lowerNenoOpenmrs" properties within
 the [application.yml](./application.yml) file with the relevant server, name, port, user, and password for these databases.
 
 ### Prepare target intermediary MySQL databases to use
@@ -62,9 +62,10 @@ the [application.yml](./application.yml) file with the relevant server, name, po
 ### Prepare a target SqlServer database to use.
 
 See the documention under [SQL Server Docker](../sqlserver-docker) for guidance on how to set up a SQL Server instance 
-up with Docker if you don't otherwise have one available.  You will be able to connect to this using your SQL client 
+with Docker if you don't otherwise have one available.  You will be able to connect to this using your SQL client 
 of choice (Intellij, Toad, etc).  You can also choose to use an existing SQL Server instance (eg. in Azure or otherwise) 
-if you have one available.  
+if you have one available.  If you use the provided SQL Server image, it will create a database for you when you run it.
+If you use an existing SQL Server instance, you need to ensure you have an empty database created to use as the target.
 
 Update the "consolidatedReporting" property within the [application.yml](./application.yml) file with the relevant 
 server, name, port, user, and password for this database.
@@ -74,45 +75,20 @@ server, name, port, user, and password for this database.
 From your PETL home directory, execute:
 ```java -jar petl.jar```
 
-## Features highlighted in this example
+You should see each job execute.  The full execution time should take around 20-30 minutes, depending on server settings.
+Please see comments in the various configuration files in this example for deeper explanations for what each setting means
+and how they can be adjusted.
 
-### Startup Jobs
+## Notes on customizing this example for actual use
 
-Startup jobs provide a mechanism to execute a specific set of jobs at the time of PETL startup and prior to any other
-jobs that are auto-detected and executed in the jobs directory.  This provides two main benefits:
+* The database users and passwords provided in the example are for testing only.  Please choose new, strong passwords for production use.
 
-#### Initialization
-
-Any initialization setup can be done here that is shared by multiple jobs.  In this case, we are executing 
-[initialize.yml](./jobs/initialize.yml), which is a SQL execution job that executes a series of SQL scripts against the
-target database.  This allows us to do things like [create shared functions](./jobs/function-num-columns-changed.sql) and 
-[procedures](./jobs/function-drop-table-if-exists.sql), or setup database-wide objects like 
-[partition functions and schemes](./jobs/initialize-partitions.sql).
-
-#### Testing
-
-If we are testing a particular job or testing changes to the PETL codebase, it may be easiest to add the job that you are 
-testing with to the startupJobs, as this bypasses the scheduling of the job and executes immediately at startup
-
-### Loading from multiple sources into a single table using partitioning
-
-The overall process is this:
-
-Use a [job-pipeline](./jobs/load-encounters.yml) to execute the following in series:
-
-**Job 1:**
-
-Use a **SQL Execution Job** to:
-
-* [Create a table](./jobs/encounters_schema.sql) to contain the unified data using this partition function. 
-* [Recreate this table any time the schema changes](./jobs/encounters_recreate_schema_if_needed.sql).
-
-**Job 2:**
-
-Use an **Iterating Job**
-
-* Iterate across all of our data sources, and execute each (up to 10) concurrently, with up to 5 attempts per iteration
-
-* [Drop and create a table](./jobs/encounters_drop_and_create.sql) to use just to load data for this iteration
-* [Extract data from the datasource](./jobs/encounters_extract_query.sql) into this table (we simulate using different datasources by having different table rows)
-* [Moving data into the unified table](./jobs/encounters_move_partition.sql) by moving the partition over and dropping the iteration-specific table.
+* The application.yml file provided sets the refresh-full.yml job up in the "startup.jobs" property.  This is mainly there 
+  to facilitate development and testing, as this is where one simply wants to fire up the application and execute their job.
+  However, on a typical test or production server, you may want to remove this from the startup.jobs, as keeping it here will
+  mean that anytime the server or application is restarted, the jobs will run and will drop and recreate the warehouse tables.
+  You can adjust the schedule and frequency of the job execution within the "schedule" property of refresh-full.yml
+  In the event you want to simply execute the job and exit the application from an external script, you would want to remove
+  the schedule property from the refresh-full.yml file, and keep this job listed in the startup.jobs property of application.yml.
+  This might be desirable, for example, if one needed to control the exact timing of execution in a shell script or cron job
+  based on external dependencies (eg. the availability of new copies of the source database to execute against).

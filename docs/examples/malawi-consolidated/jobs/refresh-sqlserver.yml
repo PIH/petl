@@ -37,6 +37,7 @@ configuration:
                 load:
                   datasource: "consolidatedReporting.yml"
                   table: "${tableName}"
+  # For any new table created in the Pentaho pipeline that we want to exist in SQL Server, it needs to be added as an "iteration" below
   iterations:
     - tableName: "mw_art_followup"
     - tableName: "mw_art_initial"
