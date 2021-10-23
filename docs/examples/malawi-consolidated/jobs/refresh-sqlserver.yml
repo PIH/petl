@@ -1,0 +1,73 @@
+# This job loads a target (SqlServer) database with each of the specified tables in each of the specified source (MySQL) databases
+
+# We iterate over each specified tableName that we wish to import
+type: "iterating-job"
+configuration:
+  execution:
+    maxConcurrentJobs: 1  # Tweak this setting to import more or fewer tables concurrently, to hone performance
+  jobTemplate:  # For each iteration, we execute a pipeline to import data into a given table
+    type: "job-pipeline"
+    configuration:
+      maxConcurrentJobs: 1 # This needs to be 1, because we need this to run as a serial pipeline (create table before loading table)
+      jobs:
+        # First step is we drop and recreate the schema
+        - type: "create-table"
+          configuration:
+            createFromTable:
+              datasource: "upperNenoReporting.yml" # We assume that the two source databases have the same schema, and choose one here
+              tableName: "${tableName}"
+            target:
+              datasource: "consolidatedReporting.yml"
+              tableName: "${tableName}"
+              dropAndRecreateTable: "true"
+        # Next step is we iterate over sources and import from each
+        - type: "iterating-job"
+          configuration:
+            execution:
+              maxConcurrentJobs: 2  # To run the Upper and Lower Neno imports at the same time, use 2.  Otherwise, use 1.
+            iterations:
+              - extractDatasource: "upperNenoReporting.yml"
+              - extractDatasource: "lowerNenoReporting.yml"
+            jobTemplate:
+              type: "sqlserver-bulk-import"
+              configuration:
+                extract:
+                  datasource: "${extractDatasource}"
+                  query:  "selectAllFromTable.sql"
+                load:
+                  datasource: "consolidatedReporting.yml"
+                  table: "${tableName}"
+  iterations:
+    - tableName: "mw_art_followup"
+    - tableName: "mw_art_initial"
+    - tableName: "mw_art_regimen"
+    - tableName: "mw_art_register"
+    - tableName: "mw_art_viral_load"
+    - tableName: "mw_art_visits"
+    - tableName: "mw_asthma_followup"
+    - tableName: "mw_asthma_initial"
+    - tableName: "mw_chf_followup"
+    - tableName: "mw_chf_initial"
+    - tableName: "mw_ckd_followup"
+    - tableName: "mw_ckd_initial"
+    - tableName: "mw_diabetes_hypertension_followup"
+    - tableName: "mw_diabetes_hypertension_initial"
+    - tableName: "mw_eid_followup"
+    - tableName: "mw_eid_initial"
+    - tableName: "mw_eid_register"
+    - tableName: "mw_eid_visits"
+    - tableName: "mw_epilepsy_followup"
+    - tableName: "mw_epilepsy_initial"
+    - tableName: "mw_lab_tests"
+    - tableName: "mw_lab_tests_recent_period"
+    - tableName: "mw_last_obs_in_period"
+    - tableName: "mw_mental_health_followup"
+    - tableName: "mw_mental_health_initial"
+    - tableName: "mw_ncd_diagnoses"
+    - tableName: "mw_ncd_other_followup"
+    - tableName: "mw_ncd_other_initial"
+    - tableName: "mw_ncd_register"
+    - tableName: "mw_ncd_visits"
+    - tableName: "mw_patient"
+    - tableName: "mw_pre_art_register"
+    - tableName: "mw_pre_art_visits"

@@ -25,13 +25,9 @@ available, update the configuration settings to match in [application.yml](./app
 
 ### Prepare a target SqlServer database to use.
 
-The [Docker Compose](./docker-compose.yml) file included will enable you to get a SQL Server instance up if you don't 
-otherwise have one available.  Simply edit this file to specify the SA password that you wish to use, and run "docker-compose up -d" 
-from the directory containin this file.  You will be able to connect to this using your SQL client of choice (Intellij, Toad, etc).  
+See the documention under [SQL Server Docker](../sqlserver-docker) for guidance on how to set up a SQL Server instance up if you don't 
+otherwise have one available.  You will be able to connect to this using your SQL client of choice (Intellij, Toad, etc).  
 Update the configuration settings to match in [application.yml](./application.yml)
-
-Connect to this as the SA user and create the target database:
-```CREATE DATABASE openmrs_reporting;```
 
 ### Execute the job
 

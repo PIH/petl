@@ -1,0 +1,11 @@
+type: "job-pipeline"
+configuration:
+  jobs:
+    - path: "refresh-upper-neno.yml"
+    - path: "refresh-lower-neno.yml"
+    - path: "refresh-sqlserver.yml"
+  execution:
+    maxConcurrentJobs: 1
+    maxRetriesPerJob: 0
+schedule:
+  cron: "0 0 5 ? * *"
