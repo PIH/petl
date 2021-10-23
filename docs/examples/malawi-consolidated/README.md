@@ -22,9 +22,6 @@ The result should be a folder structure like this:
 ```bash
 ~/environments/malawi-consolidated-example/
   ├── jobs/
-      ├── refresh-consolidated-warehouse.yml
-      ├── refresh-upper-neno.yml
-      ├── refresh-lower-neno.yml
       ├── pih-pentaho/
           ├── jobs/...
           ├── ...
@@ -32,6 +29,11 @@ The result should be a folder structure like this:
               ├── jobs...
               ├── schema...
               ├── transforms...
+      ├── refresh-full.yml
+      ├── refresh-lower-neno.yml
+      ├── refresh-sqlserver.yml
+      ├── refresh-upper-neno.yml
+      ├── selectAllFromTable.sql
   ├── application.yml
   ├── petl.jar
   
