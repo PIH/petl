@@ -61,7 +61,7 @@ Query OK, 1 row affected (0.00 sec)
 Update the "upperNenoReporting" and "lowerNenoReporting" properties within
 the [application.yml](./application.yml) file with the relevant server, name, port, user, and password for these databases.
 
-### Prepare a target SqlServer database to use.
+### Prepare a target Sql Server database to use.
 
 See the documention under [SQL Server Docker](../sqlserver-docker) for guidance on how to set up a SQL Server instance 
 with Docker if you don't otherwise have one available.  You will be able to connect to this using your SQL client 
