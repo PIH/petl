@@ -29,6 +29,8 @@ import java.sql.Statement;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * PetlJob that can load into SQL Server table
@@ -159,6 +161,8 @@ public class SqlServerImportJob implements PetlJob {
                             log.trace("This is the last statement, treat it as the extraction query");
 
                             sqlStatement = addExtraColumnsIfDefined(sqlStatement, extraExtractColumns);
+                            log.warn("Executing SQL extraction");
+                            log.warn(sqlStatement);
 
                             statement = sourceConnection.prepareStatement(
                                     sqlStatement, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY
@@ -271,8 +275,15 @@ public class SqlServerImportJob implements PetlJob {
         if (extraColumnClause.length() == 0) {
             return query;
         }
-        String[] split = StringUtils.splitByWholeSeparator(query.toLowerCase(), "from", 2);
-        return split[0] + extraColumnClause + " from " + split[1];
+        Pattern whitespace = Pattern.compile("\\sfrom\\s");
+        Matcher matcher = whitespace.matcher(query.toLowerCase());
+        if (matcher.find()) {
+            int startIndex = matcher.start();
+            return query.substring(0, startIndex) + extraColumnClause + query.substring(startIndex);
+        }
+        else {
+            throw new IllegalArgumentException("Unable to find the ' from ' key work in query: " + query);
+        }
     }
 
     /**
