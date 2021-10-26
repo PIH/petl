@@ -1,0 +1,48 @@
+petl:
+  homeDir: "/home/mseaton/environments/haiti-consolidated-example"
+  datasourceDir: "${petl.homeDir}/datasources"
+  jobDir: "${petl.homeDir}/jobs"
+  startup:
+    jobs:
+      - "refresh-full.yml"
+
+server:
+  port: 9109
+
+logging:
+  level:
+    root: "WARN"
+    org.pih: "DEBUG"
+
+datasources:
+
+  cange:
+    host: "localhost"
+    port: "3308"
+    databaseName: "cange"
+    user: "root"
+    password: "root"
+    options: "autoReconnect=true&sessionVariables=default_storage_engine%3DInnoDB&useUnicode=true&characterEncoding=UTF-8"
+
+  hinche:
+    host: "localhost"
+    port: "3308"
+    databaseName: "hinche"
+    user: "root"
+    password: "root"
+    options: "autoReconnect=true&sessionVariables=default_storage_engine%3DInnoDB&useUnicode=true&characterEncoding=UTF-8"
+
+  hsn:
+    host: "localhost"
+    port: "3308"
+    databaseName: "hsn"
+    user: "root"
+    password: "root"
+    options: "autoReconnect=true&sessionVariables=default_storage_engine%3DInnoDB&useUnicode=true&characterEncoding=UTF-8"
+
+  warehouse:
+    host: "localhost"
+    port: "1433"
+    databaseName: "openmrs_reporting"
+    user: "sa"
+    password: "9%4qP7b2H!%J"
