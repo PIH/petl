@@ -3,6 +3,8 @@ package org.pih.petl.job.datasource;
 import org.apache.commons.dbutils.DbUtils;
 import org.apache.commons.dbutils.QueryRunner;
 import org.apache.commons.dbutils.handlers.ScalarHandler;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.pih.petl.PetlException;
 
 import java.sql.Connection;
@@ -13,6 +15,8 @@ import java.sql.SQLException;
  * Encapsulates a data source configuration
  */
 public class DatabaseUtil {
+
+    private static Log log = LogFactory.getLog(DatabaseUtil.class);
 
     /**
      * Gets a new Connection to the Data Source represented by this configuration
@@ -25,6 +29,7 @@ public class DatabaseUtil {
             return DriverManager.getConnection(ds.getJdbcUrl(), ds.getUser(), ds.getPassword());
         }
         catch (Exception e) {
+            log.error(e);
             throw new PetlException("An error occured trying to open a connection to the database", e);
         }
     }
