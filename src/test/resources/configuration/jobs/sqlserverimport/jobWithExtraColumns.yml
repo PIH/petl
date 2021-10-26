@@ -1,0 +1,15 @@
+type: "sqlserver-bulk-import"
+configuration:
+  extract:
+    datasource: "mysql-testcontainer.yml"
+    query:  "source.sql"
+    extraColumns:
+      import_date: "now()"
+      import_reason: "'To do some testing'"
+
+  load:
+    datasource: "sqlserver-testcontainer.yml"
+    table: "encounter_types"
+    schema: "targetExtraColumns.sql"
+
+

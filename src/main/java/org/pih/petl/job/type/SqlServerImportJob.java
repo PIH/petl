@@ -1,5 +1,6 @@
 package org.pih.petl.job.type;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.microsoft.sqlserver.jdbc.ISQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopyOptions;
@@ -11,6 +12,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.pih.petl.ApplicationConfig;
 import org.pih.petl.PetlException;
+import org.pih.petl.PetlUtil;
 import org.pih.petl.api.ExecutionContext;
 import org.pih.petl.job.PetlJob;
 import org.pih.petl.job.config.ConfigFile;
@@ -26,6 +28,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 /**
  * PetlJob that can load into SQL Server table
@@ -72,6 +75,13 @@ public class SqlServerImportJob implements PetlJob {
         String sourceQueryFileName = config.getString("extract", "query");
         ConfigFile sourceQueryFile = appConfig.getConfigFile(sourceQueryFileName);
         String sourceQuery = sourceContextStatements + System.lineSeparator() + sourceQueryFile.getContentsWithVariableReplacement(config.getVariables());
+
+        // Get any additional column values to add to the source extraction query
+        Map<String, String> extraExtractColumns = null;
+        JsonNode extraColumnsNode = config.get("extract", "extraColumns");
+        if (extraColumnsNode != null) {
+            extraExtractColumns = PetlUtil.getJsonAsMap(extraColumnsNode);
+        }
 
         // Get any conditional
         String conditional = config.getString("conditional");
@@ -147,6 +157,9 @@ public class SqlServerImportJob implements PetlJob {
                         }
                         else {
                             log.trace("This is the last statement, treat it as the extraction query");
+
+                            sqlStatement = addExtraColumnsIfDefined(sqlStatement, extraExtractColumns);
+
                             statement = sourceConnection.prepareStatement(
                                     sqlStatement, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY
                             );
@@ -245,6 +258,21 @@ public class SqlServerImportJob implements PetlJob {
         }
 
         return result;
+    }
+
+    private String addExtraColumnsIfDefined(String query, Map<String, String> extraColumns) {
+        StringBuilder extraColumnClause = new StringBuilder();
+        if (extraColumns != null) {
+            for (String columnName : extraColumns.keySet()) {
+                String columnVal = extraColumns.get(columnName);
+                extraColumnClause.append(", ").append(columnVal).append(" as ").append(columnName);
+            }
+        }
+        if (extraColumnClause.length() == 0) {
+            return query;
+        }
+        String[] split = StringUtils.splitByWholeSeparator(query.toLowerCase(), "from", 2);
+        return split[0] + extraColumnClause + " from " + split[1];
     }
 
     /**

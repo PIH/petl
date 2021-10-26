@@ -1,5 +1,7 @@
 package org.pih.petl.job;
 
+import org.apache.commons.dbutils.QueryRunner;
+import org.apache.commons.dbutils.handlers.ScalarHandler;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
@@ -77,6 +79,15 @@ public class SqlServerImportJobTest {
     }
 
     @Test
+    public void testLoadingFromMySQLWithExtraColumns() throws Exception {
+        etlService.executeJob("jobWithExtraColumns.yml");
+        verifyTableExists("encounter_types");
+        verifyRowCount("encounter_types", 62);
+        assertSqlServerCount("select count(*) from encounter_types where import_date is not null", 62);
+        assertSqlServerCount("select count(distinct(import_reason)) from encounter_types where import_reason is not null", 1);
+    }
+
+    @Test
     public void testConditionalTrue() throws Exception {
         etlService.executeJob("jobConditionalTrue.yml");
         verifyTableExists("encounter_types");
@@ -97,19 +108,20 @@ public class SqlServerImportJobTest {
     }
 
     public void verifyRowCount(String table, int expectedRows) throws Exception {
-        ApplicationConfig appConfig = etlService.getApplicationConfig();
-        EtlDataSource sqlServerDataSource = appConfig.getEtlDataSource("sqlserver-testcontainer.yml");
-        try (Connection c = DatabaseUtil.openConnection(sqlServerDataSource)) {
-            int rowsFound = DatabaseUtil.rowCount(c, table);
-            Assert.assertEquals(expectedRows, rowsFound);
-        }
+        assertSqlServerCount("select count(*) from " + table, expectedRows);
     }
 
     public void verifyTableExists(String table) throws Exception {
+        assertSqlServerCount("IF OBJECT_ID ('dbo." + table + "') IS NOT NULL SELECT 1 ELSE SELECT 0", 1);
+    }
+
+    public void assertSqlServerCount(String query, Integer expected) throws Exception {
         ApplicationConfig appConfig = etlService.getApplicationConfig();
         EtlDataSource sqlServerDataSource = appConfig.getEtlDataSource("sqlserver-testcontainer.yml");
         try (Connection c = DatabaseUtil.openConnection(sqlServerDataSource)) {
-            Assert.assertTrue(DatabaseUtil.tableExists(c, "encounter_types"));
+            QueryRunner qr = new QueryRunner();
+            Integer result = qr.query(c, query, new ScalarHandler<>());
+            Assert.assertEquals(expected, result);
         }
     }
 
@@ -117,7 +129,7 @@ public class SqlServerImportJobTest {
         ApplicationConfig appConfig = etlService.getApplicationConfig();
         EtlDataSource sqlServerDataSource = appConfig.getEtlDataSource("sqlserver-testcontainer.yml");
         try (Connection c = DatabaseUtil.openConnection(sqlServerDataSource)) {
-            Assert.assertFalse(DatabaseUtil.tableExists(c, "encounter_types"));
+            Assert.assertFalse(DatabaseUtil.tableExists(c, table));
         }
     }
 }
