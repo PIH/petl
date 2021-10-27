@@ -13,3 +13,10 @@ By default this will have a root user of sa/9%4qP7b2H!%J and an initial, empty d
 
 You can change the password of the root user, the name of the database, and the listening port
 via environment variables in the [Docker Compose](./docker-compose.yml) file.
+
+If you don't want to use Docker compose, you can get a comparable Docker container up manually like follows:
+
+```shell
+docker run --name sqlserver -e "ACCEPT_EULA=Y" -e "SA_PASSWORD=9%4qP7b2HJ" -p 1433:1433 -d mcr.microsoft.com/mssql/server:2019-CU13-ubuntu-20.04
+docker exec sqlserver /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P "9%4qP7b2HJ" -d master -Q "CREATE DATABASE openmrs_reporting"
+```

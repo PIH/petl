@@ -90,5 +90,6 @@ public class ExecutionContext {
 
     public void setTotalLoaded(int totalLoaded) {
         this.totalLoaded = totalLoaded;
+        log.trace(jobConfig.getType() + ": " + status + " loaded " + totalLoaded + "/" + totalExpected);
     }
 }

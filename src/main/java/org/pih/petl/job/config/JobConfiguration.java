@@ -29,6 +29,11 @@ public class JobConfiguration {
         this.configuration = configuration;
     }
 
+    @Override
+    public String toString() {
+        return PetlUtil.getJsonAsString(configuration);
+    }
+
     /**
      * @return the configuration setting at the nested level of configuration
      */

@@ -28,6 +28,11 @@ public class PetlJobConfig {
 
     public PetlJobConfig() {}
 
+    @Override
+    public String toString() {
+        return configFile + ": " + configuration;
+    }
+
     public ConfigFile getConfigFile() {
         return configFile;
     }
