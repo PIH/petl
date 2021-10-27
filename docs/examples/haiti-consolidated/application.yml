@@ -15,30 +15,35 @@ logging:
     org.pih: "DEBUG"
 
 datasources:
-
-  cange:
-    host: "localhost"
-    port: "3308"
-    databaseName: "cange"
-    user: "root"
-    password: "root"
-    options: "autoReconnect=true&sessionVariables=default_storage_engine%3DInnoDB&useUnicode=true&characterEncoding=UTF-8"
-
-  hinche:
-    host: "localhost"
-    port: "3308"
-    databaseName: "hinche"
-    user: "root"
-    password: "root"
-    options: "autoReconnect=true&sessionVariables=default_storage_engine%3DInnoDB&useUnicode=true&characterEncoding=UTF-8"
-
-  hsn:
-    host: "localhost"
-    port: "3308"
-    databaseName: "hsn"
-    user: "root"
-    password: "root"
-    options: "autoReconnect=true&sessionVariables=default_storage_engine%3DInnoDB&useUnicode=true&characterEncoding=UTF-8"
+  openmrs:
+    cange:
+      host: "localhost"
+      port: "3308"
+      databaseName: "cange"
+      user: "root"
+      password: "root"
+      options: "autoReconnect=true&sessionVariables=default_storage_engine%3DInnoDB&useUnicode=true&characterEncoding=UTF-8"
+    hinche:
+      host: "localhost"
+      port: "3308"
+      databaseName: "hinche"
+      user: "root"
+      password: "root"
+      options: "autoReconnect=true&sessionVariables=default_storage_engine%3DInnoDB&useUnicode=true&characterEncoding=UTF-8"
+    hsn:
+      host: "localhost"
+      port: "3308"
+      databaseName: "hsn"
+      user: "root"
+      password: "root"
+      options: "autoReconnect=true&sessionVariables=default_storage_engine%3DInnoDB&useUnicode=true&characterEncoding=UTF-8"
+    hiv:
+      host: "localhost"
+      port: "3308"
+      databaseName: "haitihiv"
+      user: "root"
+      password: "root"
+      options: "autoReconnect=true&sessionVariables=default_storage_engine%3DInnoDB&useUnicode=true&characterEncoding=UTF-8"
 
   warehouse:
     host: "localhost"
