@@ -200,42 +200,31 @@ Currently PETL supports 3 types of jobs:
 This type of job supports a single extraction query from MySQL which streams into a newly dropped and created SqlServer table.
 
 One of the primary initial use cases of PETL was to facilitate extracting data from an OpenMRS MySQL database and loading it into 
-a SqlServer database, either on-prem or in the cloud, to enable DirectQuery to use it as a data source.
-
-One can find many examples of this type of job in our PIH EMR configuration.  In our PIH EMR instances, typically
-we have PETL configured to read jobs from the `.OpenMRS/configuration/pih/petl/jobs` directory, 
-[many of which are found here](https://github.com/PIH/openmrs-config-pihemr/tree/master/configuration/pih/petl/jobs).
-
-Using one of these as an example:
+a SqlServer database, either on-prem or in the cloud, to enable DirectQuery to use it as a data source.  Below is a superset
+of the available configuration properties, along with a sample value and a descriptive comment:
 
 ```yaml
 type: "sqlserver-bulk-import"
 configuration:
 
-  conditional: "select is_component_enabled('covid19')"
+  conditional: "select is_component_enabled('covid19')"  # This is a sql statement, executed against the extract datasource, which should return false for cases where this job should be disabled
   
   extract:
-    datasource: "mysql/openmrs.yml"
-    query:  "covid19/admission/source.sql"
+    datasource: "mysql/openmrs.yml"   # This is the datasource that we query to retrieve the data to load
+    context: "extract/context.sql"    # This is an additional set of sql statements added to the source execution.  Often used to set things like locale.
+    query:  "covid19/admission/source.sql"  # This is the actual extract statement
+    extraColumns:
+      column_1: "'static text'"  # This would add, to the extract query, and additional select column named 'column_1' with 'static text' as the value for all rows
+      column_2: "8"  # This would add, to the extract query, and additional select column named "column_2" with static number 8 for all rows
+      column_3: "now()" # This would add, to the extract query, and additional select column named "column_3" with the value from the date function for all rows
 
   load:
-    datasource: "sqlserver/openmrs_extractions.yml"
-    table: "covid_admission"
-    schema: "covid19/admission/target.sql"
+    datasource: "sqlserver/openmrs_extractions.yml"  # This is the datasource that we load the extracted data into
+    table: "covid_admission"  # This is the table that is created to load the data into.  It is dropped and recreated each execution unless the "dropAndRecreateTable" is set to false
+    schema: "covid19/admission/target.sql"  # This is the create table statement that is executed to create the target table.  This is optional.  If null, it is assumed the table exists.
 
-schedule:
-  cron: "0 30 6 ? * *"
+  dropAndRecreateTable: "true"  # If true (the default), and the load.schema exists, then the job will drop and recreate the table from scratch each time this is run
 ```
-
-This indicates that the following should happen:
-
-1. Every day at 6:30am
-2. If the source PIHEMR system has the covid19 component enabled (this "conditional" property is optional)
-3. Drop and create a table called "covid_admission", in SqlServer datasource defined in `${petl.datasourceDir}/sqlserver/openmrs_extractions.yml`, 
-   using [create table statement](https://github.com/PIH/openmrs-config-pihemr/blob/master/configuration/pih/petl/jobs/covid19/admission/target.sql) 
-   defined in `${petl.jobDir}/covid19/admission/target.sql`
-4. Execute the extraction query defined in `${petl.jobDir}/covid19/admission/source.sql` to stream data out of 
-   the MySQL datasource defined at `${petl.datasourceDir}/mysql/openmrs.yml`, and into the table created in step 2.
    
 NOTE:
 
@@ -294,8 +283,6 @@ configuration:
         user: "root"
         password: "rootpw"
         key_prefix: "10"
-schedule:
-    cron: "0 0 5 ? * *"  
 ```
 
 # job-pipeline
@@ -351,19 +338,39 @@ For an example configuration, please see the [partitioning example here](./docs/
 
 A SQL Execution job is a job that simply allows for one or more scripts to be executed against the configured datasource.
 This is useful particularly to control exactly how and when target tables and other database objects (functions, procedures, partition schemes, etc)
-are created.
+are created.  Please see below for a summary of all available configuration options:
 
 Example configuration:
 
 ```yaml
     - type: "sql-execution"
       configuration:
-        datasource: "openmrs_reporting_sqlserver.yml"
+        datasource: "openmrs_reporting_sqlserver.yml"  # This is the datasource that the SQL should be executed against
+        variables:
+          locale: "en"     # Any key/value pairs defined here can be used as string replacement variables in any of the scripts below, by referring to them like ${locale}
+        delimiter: "#"     # If specified, this will split each of the listed scripts up into multiple statements using the given delimiter, and execute each statement sequentially
         scripts:
-          - "encounters_schema.sql"
-          - "encounters_recreate_schema_if_needed.sql"
+          - "encounters_schema.sql"  # The first script to execute
+          - "encounters_recreate_schema_if_needed.sql"  # The second script to execute.  Any number of scripts can be listed
 ```
 
+# create-table
+
+A create-table job simply facilitates creating a table in a given datasource.  It is particularly useful as a means to create one table based on the schema
+from another table.  See below for available options:
+
+Example configuration:
+
+```yaml
+    - type: "create-table"
+      configuration:
+        createFromTable:  # The createFromTable option allows one to indicate that the target table should replicate an existing table schema
+          datasource: "openmrs.yml"  # This is the datasource that should be analyzed to get the schema to create
+          tableName: "encounters"  # This is the table that should be analyzed to get the schema to create
+        target:
+          datasource: "reporting.yml"  # This is the datasource in which the target table should be created
+          ifTableExists: "DROP"  # Valid values are "DROP" and "SKIP".  If the target table already exists, DROP indicates to drop it and recreate, SKIP indicates to keep it and not recreate
+ 
 # Developer Reference
 
 ## Building
