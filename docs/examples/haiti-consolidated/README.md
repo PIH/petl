@@ -11,10 +11,9 @@ This includes executing jobs against 1-N databases and combining the loaded data
 1. Create a folder in a location of your choice and make note of this.  This is your "PETL home" directory for this example.
 2. Copy the provided [application.yml](./application.yml) file into this PETL home directory
 3. Build the [openmrs-config-zl](https://github.com/PIH/openmrs-config-zl) project (`mvn clean install`)
-4. Copy the contents of openmrs-config-zl/target/openmrs-packager-config/configuration to <PETL home>/openmrs-config-zl/configuration
-5. Create a symbolic link from <PETL home>/datasources to configuration/pih/petl/jobs (the symbolic link is necessary, as some jobs reference other configuration SQL files outside of PETL)
-6. Copy the contents of configuration/pih/petl/datasources to <PETL home>/datasources
-7. Ensure you have the latest PETL jar.  ```mvn clean install``` and copy the jar file from the target directory into this PETL home directory as petl.jar
+4. Copy or symlink the generated "jobs" and "datasources" directories at configuration/pih/petl over to <PETL home>
+   (Important note: This should not be the "source" jobs and datasources from github, but the compiled jobs and datasources from the built artifact)
+5. Ensure you have the latest PETL jar.  ```mvn clean install``` and copy the jar file from the target directory into this PETL home directory as petl.jar
 
 The result should be a folder structure like this:
 
