@@ -8,5 +8,4 @@ configuration:
     datasource: "sqlserver-testcontainer.yml"
     table: "encounter_types"
     schema: "target.sql"
-
-  dropAndRecreateTable: false
+    dropAndRecreateTable: false

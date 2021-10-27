@@ -4,7 +4,6 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.pih.petl.ApplicationConfig;
-import org.pih.petl.PetlException;
 import org.pih.petl.api.ExecutionContext;
 import org.pih.petl.job.PetlJob;
 import org.pih.petl.job.config.JobConfiguration;
@@ -58,21 +57,7 @@ public class CreateTableJob implements PetlJob {
         EtlDataSource targetDatasource = appConfig.getEtlDataSource(targetDataFileName);
         String targetTable = config.getString("target", "tableName");
 
-        boolean dropIfExists = false;
-        boolean skipIfExists = false;
-
-        String actionIfExists = config.getString("target", "ifTableExists");
-        if (StringUtils.isNotEmpty(actionIfExists)) {
-            if (actionIfExists.equalsIgnoreCase("DROP")) {
-                dropIfExists = true;
-            }
-            else if (actionIfExists.equalsIgnoreCase("SKIP")) {
-                skipIfExists = true;
-            }
-            else {
-                throw new IllegalArgumentException("Unknown value of " + actionIfExists + " for ifTableExists");
-            }
-        }
+        boolean dropIfExists = config.getBoolean(false, "target", "dropAndRecreateTable");
 
         // Check if table already exists
 
@@ -94,11 +79,8 @@ public class CreateTableJob implements PetlJob {
         }
 
         if (tableAlreadyExists) {
-            if (skipIfExists) {
-                log.debug("Table " + targetTable + " already exists, and configured to skipIfExists, returning");
-                return;
-            }
-            throw new PetlException("Table already exists and not configured to drop existing table");
+            log.warn("Table " + targetTable + " already exists.  Not dropping and recreating.");
+            return;
         }
 
         String schema = null;

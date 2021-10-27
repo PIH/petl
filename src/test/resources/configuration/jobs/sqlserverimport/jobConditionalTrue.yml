@@ -3,10 +3,9 @@ configuration:
   extract:
     datasource: "mysql-testcontainer.yml"
     query:  "source.sql"
+    conditional: "SELECT 1=1;"
 
   load:
     datasource: "sqlserver-testcontainer.yml"
     table: "encounter_types"
     schema: "target.sql"
-
-  conditional: "SELECT 1=1;"

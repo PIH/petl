@@ -205,14 +205,12 @@ of the available configuration properties, along with a sample value and a descr
 
 ```yaml
 type: "sqlserver-bulk-import"
-configuration:
-
-  conditional: "select is_component_enabled('covid19')"  # This is a sql statement, executed against the extract datasource, which should return false for cases where this job should be disabled
-  
+configuration:  
   extract:
     datasource: "mysql/openmrs.yml"   # This is the datasource that we query to retrieve the data to load
+    conditional: "select if(count(*)>0,true,false) from information_schema.tables where table_name = 'hivmigration_data_warnings'"  # An optional sql statement, executed against the extract datasource. If this returns false, the job is not executed.
     context: "extract/context.sql"    # This is an additional set of sql statements added to the source execution.  Often used to set things like locale.
-    query:  "covid19/admission/source.sql"  # This is the actual extract statement
+    query:  "covid19/admission/hivmigration_data_warnings_extraction.sql"  # This is the actual extract statement
     extraColumns:
       column_1: "'static text'"  # This would add, to the extract query, and additional select column named 'column_1' with 'static text' as the value for all rows
       column_2: "8"  # This would add, to the extract query, and additional select column named "column_2" with static number 8 for all rows
@@ -221,14 +219,13 @@ configuration:
   load:
     datasource: "sqlserver/openmrs_extractions.yml"  # This is the datasource that we load the extracted data into
     table: "covid_admission"  # This is the table that is created to load the data into.  It is dropped and recreated each execution unless the "dropAndRecreateTable" is set to false
-    schema: "covid19/admission/target.sql"  # This is the create table statement that is executed to create the target table.  This is optional.  If null, it is assumed the table exists.
-
-  dropAndRecreateTable: "true"  # If true (the default), and the load.schema exists, then the job will drop and recreate the table from scratch each time this is run
+    schema: "covid19/admission/hivmigration_data_warnings_schema.sql"  # This is the create table statement that is executed to create the target table.  This is optional.  If null, it is assumed the table exists.
+    dropAndRecreateTable: "false"  # Optional, default is true, which will drop and recreate the target table (if it exists) each time this is run
 ```
    
 NOTE:
 
-* The "extraction" YAML file (in the above example, `${petl.jobDir}/covid19/admission/source.sql`) may perform multiple queries, 
+* The "extraction" YAML file (in the above example, `${petl.jobDir}/covid19/admission/hivmigration_data_warnings_extraction.sql`) may perform multiple queries, 
   create temporary tables, etc, but the final statement should be a `select` that extracts the data out of MySQL.
 
 * The "load" YAML file (in the above example, `target.yml`) generally is a single `create table` command used to create
@@ -369,7 +366,7 @@ Example configuration:
           tableName: "encounters"  # This is the table that should be analyzed to get the schema to create
         target:
           datasource: "reporting.yml"  # This is the datasource in which the target table should be created
-          ifTableExists: "DROP"  # Valid values are "DROP" and "SKIP".  If the target table already exists, DROP indicates to drop it and recreate, SKIP indicates to keep it and not recreate
+          dropAndRecreateTable: "true"  # Optional, defaults to false.  If the target table already exists, and this is true, it will be dropped and recreated.  Otherwise, table is left unchanged.
  
 # Developer Reference
 

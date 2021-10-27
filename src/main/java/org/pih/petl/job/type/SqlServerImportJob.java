@@ -86,7 +86,7 @@ public class SqlServerImportJob implements PetlJob {
         }
 
         // Get any conditional
-        String conditional = config.getString("conditional");
+        String conditional = config.getString("extract", "conditional");
 
         // Get target datasource
         String targetDataFileName = config.getString("load", "datasource");
@@ -102,6 +102,8 @@ public class SqlServerImportJob implements PetlJob {
             ConfigFile targetSchemaFile = appConfig.getConfigFile(targetSchemaFilename);
             targetSchema = targetSchemaFile.getContentsWithVariableReplacement(config.getVariables());
         }
+
+        boolean dropAndRecreate = (config.getBoolean(true, "load", "dropAndRecreateTable"));
 
         // execute conditional, if present, and skip job if conditional returns false
         if (StringUtils.isNotEmpty(conditional)) {
@@ -126,7 +128,7 @@ public class SqlServerImportJob implements PetlJob {
                 targetConnection.setAutoCommit(true);  // We want to commit to target as we go, to query status
 
                 if (targetSchema != null) {
-                    if (config.getBoolean(true, "dropAndRecreateTable")) {
+                    if (dropAndRecreate) {
                         // drop existing target table  (we don't use "drop table if exists..." syntax for backwards compatibility with earlier versions of SQL Server
                         context.setStatus("Dropping existing table");
                         qr.update(targetConnection, "IF OBJECT_ID('dbo." + targetTable + "') IS NOT NULL DROP TABLE dbo." + targetTable);
