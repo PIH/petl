@@ -1,4 +1,4 @@
-package org.pih.petl.job.schedule;
+package org.pih.petl.api;
 
 import java.util.Date;
 

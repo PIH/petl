@@ -4,7 +4,9 @@ petl:
   jobDir: "${petl.homeDir}/jobs"
   startup:
     jobs:
-      - "refresh-full.yml"
+      - "initialize-multi-site-schema.yml"
+      - "refresh-multi-site-data.yml"
+      - "refresh-hiv-data.yml"
 
 server:
   port: 9109
@@ -12,7 +14,7 @@ server:
 logging:
   level:
     root: "WARN"
-    org.pih: "DEBUG"
+    org.pih: "TRACE"
 
 datasources:
   openmrs:
@@ -30,7 +32,7 @@ datasources:
       user: "root"
       password: "root"
       options: "autoReconnect=true&sessionVariables=default_storage_engine%3DInnoDB&useUnicode=true&characterEncoding=UTF-8"
-    hsn:
+    saint_marc_hsn:
       host: "localhost"
       port: "3308"
       databaseName: "hsn"

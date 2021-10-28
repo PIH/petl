@@ -1,22 +1,17 @@
 package org.pih.petl.job;
 
-import org.apache.commons.dbutils.QueryRunner;
-import org.apache.commons.dbutils.handlers.ScalarHandler;
-import org.junit.After;
-import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.pih.petl.ApplicationConfig;
 import org.pih.petl.SpringRunnerTest;
 import org.pih.petl.api.EtlService;
-import org.pih.petl.job.datasource.DatabaseUtil;
-import org.pih.petl.job.datasource.EtlDataSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import java.sql.Connection;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Tests the SqlServerImportJob
@@ -24,7 +19,7 @@ import java.sql.Connection;
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @TestPropertySource(properties = {"petl.jobDir = src/test/resources/configuration/jobs/sqlserverimport"})
-public class SqlServerImportJobTest {
+public class SqlServerImportJobTest extends BasePetlTest {
 
     @Autowired
     EtlService etlService;
@@ -33,13 +28,9 @@ public class SqlServerImportJobTest {
         SpringRunnerTest.setupEnvironment();
     }
 
-    @After
-    public void dropTablesInTargetDB() throws Exception{
-        ApplicationConfig appConfig = etlService.getApplicationConfig();
-        EtlDataSource sqlServerDataSource = appConfig.getEtlDataSource("sqlserver-testcontainer.yml");
-        try (Connection c = DatabaseUtil.openConnection(sqlServerDataSource)) {
-            DatabaseUtil.dropTable(c, "encounter_types");
-        }
+    @Override
+    List<String> getTablesCreated() {
+        return Collections.singletonList("encounter_types");
     }
 
     @Test
@@ -105,31 +96,5 @@ public class SqlServerImportJobTest {
     public void testConditionalFalse() throws Exception {
         etlService.executeJob("jobConditionalFalse.yml");
         verifyTableDoesNotExist("encounter_types");
-    }
-
-    public void verifyRowCount(String table, int expectedRows) throws Exception {
-        assertSqlServerCount("select count(*) from " + table, expectedRows);
-    }
-
-    public void verifyTableExists(String table) throws Exception {
-        assertSqlServerCount("IF OBJECT_ID ('dbo." + table + "') IS NOT NULL SELECT 1 ELSE SELECT 0", 1);
-    }
-
-    public void assertSqlServerCount(String query, Integer expected) throws Exception {
-        ApplicationConfig appConfig = etlService.getApplicationConfig();
-        EtlDataSource sqlServerDataSource = appConfig.getEtlDataSource("sqlserver-testcontainer.yml");
-        try (Connection c = DatabaseUtil.openConnection(sqlServerDataSource)) {
-            QueryRunner qr = new QueryRunner();
-            Integer result = qr.query(c, query, new ScalarHandler<>());
-            Assert.assertEquals(expected, result);
-        }
-    }
-
-    public void verifyTableDoesNotExist(String table) throws Exception {
-        ApplicationConfig appConfig = etlService.getApplicationConfig();
-        EtlDataSource sqlServerDataSource = appConfig.getEtlDataSource("sqlserver-testcontainer.yml");
-        try (Connection c = DatabaseUtil.openConnection(sqlServerDataSource)) {
-            Assert.assertFalse(DatabaseUtil.tableExists(c, table));
-        }
     }
 }

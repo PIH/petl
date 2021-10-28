@@ -4,7 +4,7 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.pih.petl.SpringRunnerTest;
-import org.pih.petl.job.config.PetlJobConfig;
+import org.pih.petl.job.config.JobConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -27,8 +27,8 @@ public class EtlServiceTest {
 
     @Test
     public void testServiceLoadsAllConfiguredJobs() {
-        Map<String, PetlJobConfig> configuredJobs = etlService.getAllConfiguredJobs();
-        Assert.assertEquals(13, configuredJobs.size());
+        Map<String, JobConfig> configuredJobs = etlService.getAllConfiguredJobs();
+        Assert.assertTrue(configuredJobs.size() > 13);
         Assert.assertNotNull(configuredJobs.get("sqlserverimport/job.yml"));
         Assert.assertNotNull(configuredJobs.get("pentaho/job.yml"));
     }

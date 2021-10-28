@@ -3,13 +3,14 @@ configuration:
   extract:
     datasource: "mysql-testcontainer.yml"
     query:  "source.sql"
-    extraColumns:
-      import_date: "now()"
-      import_reason: "'To do some testing'"
-
   load:
     datasource: "sqlserver-testcontainer.yml"
     table: "encounter_types"
-    schema: "targetExtraColumns.sql"
-
-
+    schema: "target.sql"
+    extraColumns:
+      - name: "import_date"
+        type: "DATETIME"
+        value: "now()"
+      - name: "import_reason"
+        type: "VARCHAR(100)"
+        value: "'To do some testing'"

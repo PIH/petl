@@ -4,8 +4,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.pih.petl.job.PetlJob;
 import org.pih.petl.job.config.ExecutionConfig;
-import org.pih.petl.job.config.PetlJobConfig;
-import org.pih.petl.job.config.PetlJobFactory;
+import org.pih.petl.job.config.JobConfig;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
@@ -17,11 +16,11 @@ public class JobExecutionTask implements Callable<JobExecutionResult> {
 
     private static Log log = LogFactory.getLog(JobExecutionTask.class);
 
-    private final PetlJobConfig jobConfig;
+    private final JobConfig jobConfig;
     private final ExecutionContext context;
     private final ExecutionConfig executionConfig;
 
-    public JobExecutionTask(PetlJobConfig jobConfig, ExecutionContext context, ExecutionConfig executionConfig) {
+    public JobExecutionTask(JobConfig jobConfig, ExecutionContext context, ExecutionConfig executionConfig) {
         this.jobConfig = jobConfig;
         this.context = context;
         this.executionConfig = executionConfig;
@@ -36,7 +35,7 @@ public class JobExecutionTask implements Callable<JobExecutionResult> {
         for (int currentAttempt = 0; !result.isSuccessful() && currentAttempt <= maxRetries; currentAttempt++) {
             context.setStatus("Executing job: " + jobConfig);
             try {
-                PetlJob job = PetlJobFactory.instantiate(jobConfig);
+                PetlJob job = JobFactory.instantiate(jobConfig);
                 ExecutionContext nestedContext = new ExecutionContext(context.getJobExecution(), jobConfig, context.getApplicationConfig());
                 context.setStatus("Executing job: " + job);
                 job.execute(nestedContext);

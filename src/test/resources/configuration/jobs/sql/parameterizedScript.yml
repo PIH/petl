@@ -1,0 +1,7 @@
+type: "sql-execution"
+parameters:
+  tableName: "table3"
+configuration:
+  datasource: "sqlserver-testcontainer.yml"
+  scripts:
+    - "createTableWithParameterizedName.sql"

@@ -361,12 +361,14 @@ Example configuration:
 ```yaml
     - type: "create-table"
       configuration:
-        createFromTable:  # The createFromTable option allows one to indicate that the target table should replicate an existing table schema
+        source:  # The createFromTable option allows one to indicate that the target table should replicate an existing table schema
           datasource: "openmrs.yml"  # This is the datasource that should be analyzed to get the schema to create
           tableName: "encounters"  # This is the table that should be analyzed to get the schema to create
+          sqlFile: "myschema.sql"  # You can specify a sql file with a create table statement as an alternative to the datasource and tableName
         target:
           datasource: "reporting.yml"  # This is the datasource in which the target table should be created
-          dropAndRecreateTable: "true"  # Optional, defaults to false.  If the target table already exists, and this is true, it will be dropped and recreated.  Otherwise, table is left unchanged.
+          tableName: "my_encounters"   # This is the table into which the schema will be created
+          actionIfExists: "drop"  # Optional.  Values you can specify are "drop" and "dropIfChanged".  Default is to leave the table unchanged if it already exists.
  
 # Developer Reference
 

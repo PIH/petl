@@ -1,12 +1,11 @@
-package org.pih.petl.job.schedule;
+package org.pih.petl.api;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.pih.petl.ApplicationConfig;
-import org.pih.petl.api.EtlService;
-import org.pih.petl.api.JobExecution;
-import org.pih.petl.job.config.PetlJobConfig;
+import org.pih.petl.job.config.JobConfig;
+import org.pih.petl.job.config.Schedule;
 import org.quartz.CronExpression;
 import org.quartz.Job;
 import org.quartz.JobExecutionContext;
@@ -21,9 +20,9 @@ import java.util.Map;
  * Schedulable task for loading all of the configurations
  */
 @Component
-public class PetlScheduledExecutionTask implements Job {
+public class ScheduledExecutionTask implements Job {
 
-    private static final Log log = LogFactory.getLog(PetlScheduledExecutionTask.class);
+    private static final Log log = LogFactory.getLog(ScheduledExecutionTask.class);
 
     private static boolean enabled = true;
     private static boolean inProgress = false;
@@ -51,11 +50,11 @@ public class PetlScheduledExecutionTask implements Job {
                 Schedule globalSchedule = applicationConfig.getSchedule();  // get the global schedule, if configured
                 Date currentDate = jobExecutionContext.getFireTime();
                 log.trace("Executing Task: " + currentDate);
-                Map<String, PetlJobConfig> jobs = etlService.getAllConfiguredJobs();
+                Map<String, JobConfig> jobs = etlService.getAllConfiguredJobs();
                 log.trace("Found " + jobs.size() + " configured Jobs");
                 for (String jobPath : jobs.keySet()) {
                     log.trace("Checking job: " + jobPath);
-                    PetlJobConfig jobConfig = jobs.get(jobPath);
+                    JobConfig jobConfig = jobs.get(jobPath);
                     Schedule schedule = jobConfig.getSchedule() != null ? jobConfig.getSchedule() : globalSchedule;  // override global schedule with any local job-specific schedule
                     boolean isScheduled = schedule != null && StringUtils.isNotBlank(schedule.getCron());
                     if (isScheduled) {
@@ -112,6 +111,6 @@ public class PetlScheduledExecutionTask implements Job {
     }
 
     public static void setEnabled(boolean enabled) {
-        PetlScheduledExecutionTask.enabled = enabled;
+        ScheduledExecutionTask.enabled = enabled;
     }
 }

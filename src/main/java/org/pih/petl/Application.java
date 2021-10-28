@@ -3,8 +3,8 @@ package org.pih.petl;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.pih.petl.api.EtlService;
-import org.pih.petl.job.schedule.JobScheduler;
-import org.pih.petl.job.schedule.PetlScheduledExecutionTask;
+import org.pih.petl.api.JobScheduler;
+import org.pih.petl.api.ScheduledExecutionTask;
 import org.quartz.SimpleScheduleBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
@@ -68,7 +68,7 @@ public class Application {
 
         // Set up the schedule to check if any etl jobs need to execute every minute
         SimpleScheduleBuilder schedule = simpleSchedule().repeatForever().withIntervalInSeconds(60);
-        app.getScheduler().schedule(PetlScheduledExecutionTask.class, schedule, 10000);  // Delay 10 seconds
+        app.getScheduler().schedule(ScheduledExecutionTask.class, schedule, 10000);  // Delay 10 seconds
     }
 
     /**

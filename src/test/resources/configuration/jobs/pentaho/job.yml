@@ -1,4 +1,4 @@
 type: "pentaho-job"
 configuration:
   job:
-    filePath: "pentaho/job.kjb"
+    filePath: "job.kjb"

@@ -1,0 +1,6 @@
+type: "sql-execution"
+configuration:
+  datasource: "sqlserver-testcontainer.yml"
+  scripts:
+    - "createTable1.sql"
+    - "createTable2.sql"

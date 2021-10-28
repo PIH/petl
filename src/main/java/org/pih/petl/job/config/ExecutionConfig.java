@@ -1,6 +1,5 @@
 package org.pih.petl.job.config;
 
-import java.sql.Time;
 import java.util.concurrent.TimeUnit;
 
 /**

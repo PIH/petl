@@ -1,25 +1,21 @@
-package org.pih.petl.job.type;
+package org.pih.petl.job;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.microsoft.sqlserver.jdbc.ISQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopyOptions;
 import org.apache.commons.dbutils.DbUtils;
 import org.apache.commons.dbutils.QueryRunner;
+import org.apache.commons.dbutils.handlers.ScalarHandler;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.StopWatch;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.pih.petl.ApplicationConfig;
 import org.pih.petl.PetlException;
-import org.pih.petl.PetlUtil;
+import org.pih.petl.SqlUtils;
 import org.pih.petl.api.ExecutionContext;
-import org.pih.petl.job.PetlJob;
-import org.pih.petl.job.config.ConfigFile;
-import org.pih.petl.job.config.JobConfiguration;
-import org.pih.petl.job.datasource.DatabaseUtil;
-import org.pih.petl.job.datasource.EtlDataSource;
-import org.pih.petl.job.datasource.SqlStatementParser;
+import org.pih.petl.job.config.DataSourceConfig;
+import org.pih.petl.job.config.JobConfigReader;
+import org.pih.petl.job.config.TableColumn;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -28,9 +24,6 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * PetlJob that can load into SQL Server table
@@ -41,8 +34,8 @@ public class SqlServerImportJob implements PetlJob {
 
     private Connection sourceConnection = null;
     private Connection targetConnection = null;
-    private EtlDataSource sourceDatasource = null;
-    private EtlDataSource targetDatasource = null;
+    private DataSourceConfig sourceDatasource = null;
+    private DataSourceConfig targetDatasource = null;
 
     /**
      * Creates a new instance of the job
@@ -56,56 +49,14 @@ public class SqlServerImportJob implements PetlJob {
     @Override
     public void execute(final ExecutionContext context) throws Exception {
 
-        ApplicationConfig appConfig = context.getApplicationConfig();
-        JobConfiguration config = context.getJobConfig().getConfiguration();
-
-        context.setStatus("Loading configuration");
+        context.setStatus("Executing SqlServerImportJob");
+        JobConfigReader configReader = new JobConfigReader(context);
 
         // Get source datasource
-        String sourceDataSourceFilename = config.getString("extract", "datasource");
-        sourceDatasource = appConfig.getEtlDataSource(sourceDataSourceFilename);
+        sourceDatasource = configReader.getDataSource("extract", "datasource");
 
-        // Get source context statements
-        String sourceContextStatements = "";
-        String sourceContextFileName = config.getString("extract", "context");
-        if (sourceContextFileName != null) {
-            ConfigFile sourceContextFile = appConfig.getConfigFile(sourceContextFileName);
-            sourceContextStatements = sourceContextFile.getContentsWithVariableReplacement(config.getVariables());
-        }
-
-        // Get source query
-        String sourceQueryFileName = config.getString("extract", "query");
-        ConfigFile sourceQueryFile = appConfig.getConfigFile(sourceQueryFileName);
-        String sourceQuery = sourceContextStatements + System.lineSeparator() + sourceQueryFile.getContentsWithVariableReplacement(config.getVariables());
-
-        // Get any additional column values to add to the source extraction query
-        Map<String, String> extraExtractColumns = null;
-        JsonNode extraColumnsNode = config.get("extract", "extraColumns");
-        if (extraColumnsNode != null) {
-            extraExtractColumns = PetlUtil.getJsonAsMap(extraColumnsNode);
-        }
-
-        // Get any conditional
-        String conditional = config.getString("extract", "conditional");
-
-        // Get target datasource
-        String targetDataFileName = config.getString("load", "datasource");
-        targetDatasource = appConfig.getEtlDataSource(targetDataFileName);
-
-        // Get target table name
-        String targetTable = config.getString("load", "table");
-
-        // Get target table schema
-        String targetSchema = null;
-        String targetSchemaFilename = config.getString("load", "schema");
-        if (StringUtils.isNotEmpty(targetSchemaFilename)) {
-            ConfigFile targetSchemaFile = appConfig.getConfigFile(targetSchemaFilename);
-            targetSchema = targetSchemaFile.getContentsWithVariableReplacement(config.getVariables());
-        }
-
-        boolean dropAndRecreate = (config.getBoolean(true, "load", "dropAndRecreateTable"));
-
-        // execute conditional, if present, and skip job if conditional returns false
+        // Get any conditional, and execute against the source datasource.  If this returns false, skip execution
+        String conditional = configReader.getString("extract", "conditional");
         if (StringUtils.isNotEmpty(conditional)) {
             if (!testConditional(conditional)) {
                 context.setStatus("Conditional returned false, skipping");
@@ -113,10 +64,84 @@ public class SqlServerImportJob implements PetlJob {
             }
         }
 
+        // Get source query
+        String sourceQuery = configReader.getFileContents("extract", "query");
+        String sourceContextStatements = configReader.getFileContents("extract", "context");
+        if (sourceContextStatements != null) {
+            sourceQuery = sourceContextStatements + System.lineSeparator() + sourceQuery;
+        }
+
+        // Get target datasource
+        targetDatasource = configReader.getDataSource("load", "datasource");
+
+        // Get target table name
+        String targetTable = configReader.getString("load", "table");
+
+        // Get target table schema
+        String targetSchema = configReader.getFileContents("load", "schema");
+
+        // Get extra columns to add to schema and import
+        List<TableColumn> extraColumns = configReader.getList(TableColumn.class, "load", "extraColumns");
+        if (!extraColumns.isEmpty()) {
+            if (targetSchema == null) {
+                throw new PetlException("Extra Columns can only be specified when a specific schema is loaded");
+            }
+            else {
+                targetSchema = SqlUtils.addExtraColumnsToSchema(targetSchema, extraColumns);
+            }
+        }
+
+        boolean dropAndRecreate = configReader.getBoolean(true, "load", "dropAndRecreateTable");
+
+        boolean usePartitioning = false;
+
+        // Get partition information
+        String partitionScheme = configReader.getString("load", "partition", "scheme");
+        String partitionColumn = configReader.getString("load", "partition", "column");
+        String partitionValue = configReader.getString("load", "partition", "value");
+
+        if (StringUtils.isNotEmpty(partitionScheme) || StringUtils.isNotEmpty(partitionColumn)) {
+            if (targetSchema == null) {
+                throw new PetlException("Partition scheme and column can only be specified when a specific schema is loaded");
+            }
+            else if (StringUtils.isNotEmpty(partitionScheme)) {
+                throw new PetlException("You must specify a partition scheme if you specify a partition column");
+            }
+            else if (StringUtils.isNotEmpty(partitionColumn)) {
+                throw new PetlException("You must specify a partition column if you specify a partition scheme");
+            }
+            else {
+                targetSchema = SqlUtils.addPartitionSchemeToSchema(targetSchema, partitionScheme, partitionColumn);
+                usePartitioning = true;
+            }
+        }
+        if (usePartitioning && StringUtils.isEmpty(partitionValue)) {
+            throw new PetlException("You must specify a value for your partition column");
+        }
+
+        String tableToBulkInsertInto = targetTable;
+
+        if (usePartitioning) {
+            tableToBulkInsertInto = targetTable + "_" + partitionValue;
+            targetDatasource.dropTableIfExists(tableToBulkInsertInto);
+            String partitionSchema = SqlUtils.addSuffixToCreatedTablename(targetSchema, "_" + partitionValue);
+            targetDatasource.executeUpdate(partitionSchema);
+            dropAndRecreateIfSchemasDiffer(context, targetDatasource, targetTable, tableToBulkInsertInto, targetSchema);
+        }
+        else {
+            if (StringUtils.isNotEmpty(targetSchema)) {
+                if (dropAndRecreate) {
+                    targetDatasource.dropTableIfExists(tableToBulkInsertInto);
+                }
+                if (!targetDatasource.tableExists(tableToBulkInsertInto)) {
+                    targetDatasource.executeUpdate(targetSchema);
+                }
+            }
+        }
+
         try {
-            QueryRunner qr = new QueryRunner();
-            sourceConnection = DatabaseUtil.openConnection(sourceDatasource);
-            targetConnection = DatabaseUtil.openConnection(targetDatasource);
+            sourceConnection = sourceDatasource.openConnection();
+            targetConnection = targetDatasource.openConnection();
 
             boolean originalSourceAutoCommit = sourceConnection.getAutoCommit();
             boolean originalTargetAutocommit = targetConnection.getAutoCommit();
@@ -127,23 +152,11 @@ public class SqlServerImportJob implements PetlJob {
                 sourceConnection.setAutoCommit(false); // We intend to rollback changes to source after querying DB
                 targetConnection.setAutoCommit(true);  // We want to commit to target as we go, to query status
 
-                if (targetSchema != null) {
-                    if (dropAndRecreate) {
-                        // drop existing target table  (we don't use "drop table if exists..." syntax for backwards compatibility with earlier versions of SQL Server
-                        context.setStatus("Dropping existing table");
-                        qr.update(targetConnection, "IF OBJECT_ID('dbo." + targetTable + "') IS NOT NULL DROP TABLE dbo." + targetTable);
-                    }
-
-                    // Then, create the target table if necessary
-                    context.setStatus("Creating table");
-                    qr.update(targetConnection, "IF OBJECT_ID('dbo." + targetTable + "') IS NULL " + targetSchema);
-                }
-
                 // Now execute a bulk import
                 context.setStatus("Executing import");
 
                 // Parse the source query into statements
-                List<String> stmts = SqlStatementParser.parseSqlIntoStatements(sourceQuery, ";");
+                List<String> stmts = SqlUtils.parseSqlIntoStatements(sourceQuery, ";");
                 log.trace("Parsed extract query into " + stmts.size() + " statements");
 
                 // Iterate over each statement, and execute.  The final statement is expected to select the data out.
@@ -162,7 +175,7 @@ public class SqlServerImportJob implements PetlJob {
                         else {
                             log.trace("This is the last statement, treat it as the extraction query");
 
-                            sqlStatement = addExtraColumnsIfDefined(sqlStatement, extraExtractColumns);
+                            sqlStatement = SqlUtils.addExtraColumnsToSelect(sqlStatement, extraColumns);
                             log.warn("Executing SQL extraction");
                             log.warn(sqlStatement);
 
@@ -189,7 +202,7 @@ public class SqlServerImportJob implements PetlJob {
                                     bco.setBatchSize(100);
                                     bco.setBulkCopyTimeout(3600);
                                     bulkCopy.setBulkCopyOptions(bco);
-                                    bulkCopy.setDestinationTableName(targetTable);
+                                    bulkCopy.setDestinationTableName(tableToBulkInsertInto);
                                     bulkCopy.writeToServer(resultSet);
                                 }
                                 else {
@@ -209,7 +222,7 @@ public class SqlServerImportJob implements PetlJob {
                 }
 
                 // Update the status at the end of the bulk copy
-                Integer rowCount = DatabaseUtil.rowCount(targetConnection, targetTable);
+                Integer rowCount = rowCount(targetConnection, targetTable);
                 context.setTotalLoaded(rowCount);
                 context.setStatus("Import Completed Sucessfully");
             }
@@ -224,6 +237,11 @@ public class SqlServerImportJob implements PetlJob {
             DbUtils.closeQuietly(targetConnection);
             DbUtils.closeQuietly(sourceConnection);
         }
+
+        if (usePartitioning) {
+            targetDatasource.executeUpdate(SqlUtils.createMovePartitionStatement(tableToBulkInsertInto, targetTable, partitionValue));
+            targetDatasource.dropTableIfExists(tableToBulkInsertInto);
+        }
     }
 
     /**
@@ -232,7 +250,7 @@ public class SqlServerImportJob implements PetlJob {
     public Connection getAsSqlServerConnection(Connection connection) throws SQLException {
         if (connection.isWrapperFor(ISQLServerConnection.class)) {
             if (!(connection instanceof ISQLServerConnection)) {
-                log.warn("The passed connection is a wrapper for ISQLServerConnection, unwrapping it.");
+                log.trace("The passed connection is a wrapper for ISQLServerConnection, unwrapping it.");
                 return connection.unwrap(ISQLServerConnection.class);
             }
         }
@@ -240,11 +258,8 @@ public class SqlServerImportJob implements PetlJob {
     }
 
     private Boolean testConditional(String conditional) throws SQLException {
-
-        Boolean result = true;
-
         try {
-            sourceConnection = DatabaseUtil.openConnection(sourceDatasource);
+            sourceConnection = sourceDatasource.openConnection();
             boolean originalSourceAutoCommit = sourceConnection.getAutoCommit();
             try {
                 sourceConnection.setAutoCommit(false); // We intend to rollback changes to source after querying DB
@@ -252,7 +267,7 @@ public class SqlServerImportJob implements PetlJob {
                 statement.execute(conditional);
                 ResultSet resultSet = statement.getResultSet();
                 resultSet.next();
-                result = resultSet.getBoolean(1);
+                return resultSet.getBoolean(1);
             }
             finally {
                 sourceConnection.rollback();
@@ -261,30 +276,6 @@ public class SqlServerImportJob implements PetlJob {
         }
         finally {
             DbUtils.closeQuietly(sourceConnection);
-        }
-
-        return result;
-    }
-
-    private String addExtraColumnsIfDefined(String query, Map<String, String> extraColumns) {
-        StringBuilder extraColumnClause = new StringBuilder();
-        if (extraColumns != null) {
-            for (String columnName : extraColumns.keySet()) {
-                String columnVal = extraColumns.get(columnName);
-                extraColumnClause.append(", ").append(columnVal).append(" as ").append(columnName);
-            }
-        }
-        if (extraColumnClause.length() == 0) {
-            return query;
-        }
-        Pattern whitespace = Pattern.compile("\\sfrom\\s");
-        Matcher matcher = whitespace.matcher(query.toLowerCase());
-        if (matcher.find()) {
-            int startIndex = matcher.start();
-            return query.substring(0, startIndex) + extraColumnClause + query.substring(startIndex);
-        }
-        else {
-            throw new IllegalArgumentException("Unable to find the ' from ' key work in query: " + query);
         }
     }
 
@@ -312,7 +303,7 @@ public class SqlServerImportJob implements PetlJob {
                 long msSinceLast = System.currentTimeMillis() - lastExecutionTime;
                 if (msSinceLast >= msBetweenExecutions) {
                     try {
-                        Integer rowCount = DatabaseUtil.rowCount(connection, table);
+                        Integer rowCount = rowCount(connection, table);
                         context.setTotalLoaded(rowCount);
                     }
                     catch (Exception e) {}
@@ -323,6 +314,35 @@ public class SqlServerImportJob implements PetlJob {
 
         public void cancel() {
             connection = null;
+        }
+    }
+
+    private static int rowCount(Connection c, String table) throws SQLException {
+        QueryRunner qr = new QueryRunner();
+        String query = "select count(*) from " + table;
+        return qr.query(c, query, new ScalarHandler<>());
+    }
+
+    /**
+     * This method is synchronized so that if multiple jobs run in parallel that all check to see if the table needs updating,
+     * that only one thread detects the change and recreates the table, and other threads will not detect a change
+     */
+    private synchronized void dropAndRecreateIfSchemasDiffer(ExecutionContext context, DataSourceConfig targetDatasource, String existingTable, String newSchemaTable, String newSchema) throws SQLException {
+        context.setStatus("Checking for schema changes between " + existingTable + " and " + newSchemaTable);
+        List<TableColumn> existingColumns = targetDatasource.getTableColumns(existingTable);
+        List<TableColumn> newColumns = targetDatasource.getTableColumns(newSchemaTable);
+        boolean schemaChanged = newColumns.size() != existingColumns.size();
+        if (!schemaChanged) {
+            existingColumns.removeAll(newColumns);
+            schemaChanged = !existingColumns.isEmpty();
+        }
+        if (schemaChanged) {
+            context.setStatus("Change detected.  Dropping " + existingTable);
+            log.trace("Existing=" + existingColumns);
+            log.trace("New=" + newColumns);
+            targetDatasource.dropTableIfExists(existingTable);
+            context.setStatus("Creating new table");
+            targetDatasource.executeUpdate(newSchema);
         }
     }
 }

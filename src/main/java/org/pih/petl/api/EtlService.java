@@ -6,8 +6,7 @@ import org.apache.commons.logging.LogFactory;
 import org.pih.petl.ApplicationConfig;
 import org.pih.petl.PetlException;
 import org.pih.petl.job.PetlJob;
-import org.pih.petl.job.config.PetlJobConfig;
-import org.pih.petl.job.config.PetlJobFactory;
+import org.pih.petl.job.config.JobConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -46,8 +45,8 @@ public class EtlService {
      * will be returned in a Map keyed off of the job config path, relative to the configuration directory
      * eg. A job at ${PETL_JOB_DIR}/maternalhealth/deliveries.yml will be keyed at "maternalhealth/deliveries.yml"
      */
-    public Map<String, PetlJobConfig> getAllConfiguredJobs() {
-        Map<String, PetlJobConfig> m = new TreeMap<>();
+    public Map<String, JobConfig> getAllConfiguredJobs() {
+        Map<String, JobConfig> m = new TreeMap<>();
         File jobDir = applicationConfig.getJobDir();
         if (jobDir != null) {
             final Path configPath = jobDir.toPath();
@@ -60,8 +59,8 @@ public class EtlService {
                         if (FilenameUtils.isExtension(path.toString().toLowerCase(), new String[] { "yml", "yaml" })) {
                             String relativePath = configPath.relativize(path).toString();
                             try {
-                                PetlJobConfig jobConfig = applicationConfig.getPetlJobConfig(relativePath);
-                                if (PetlJobFactory.isValid(jobConfig)) {
+                                JobConfig jobConfig = applicationConfig.getPetlJobConfig(relativePath);
+                                if (JobFactory.isValid(jobConfig)) {
                                     m.put(relativePath, jobConfig);
                                 }
                             }
@@ -118,8 +117,8 @@ public class EtlService {
      * Executes the given job, returning the relevant job execution that contains status of the job
      */
     public JobExecution executeJob(String jobPath) {
-        PetlJobConfig jobConfig = applicationConfig.getPetlJobConfig(jobPath);
-        PetlJob job = PetlJobFactory.instantiate(jobConfig);
+        JobConfig jobConfig = applicationConfig.getPetlJobConfig(jobPath);
+        PetlJob job = JobFactory.instantiate(jobConfig);
         String executionUuid = UUID.randomUUID().toString();
         JobExecution execution = new JobExecution(executionUuid, jobPath);
         log.info("Executing Job: " + jobPath + " (" + executionUuid + ")");
@@ -133,7 +132,7 @@ public class EtlService {
         catch (Exception e) {
             execution.setErrorMessage(e.getMessage());
             execution.setStatus("Execution Failed");
-            log.error("Error executing job: " + job, e);
+            throw(new PetlException("Job Execution Failed for " + jobPath, e));
         }
         finally {
             execution.setCompleted(new Date());

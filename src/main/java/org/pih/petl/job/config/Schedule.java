@@ -1,4 +1,4 @@
-package org.pih.petl.job.schedule;
+package org.pih.petl.job.config;
 
 /**
  * Encapsulates a basic schedule configuration for jobs

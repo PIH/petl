@@ -7,7 +7,7 @@ import org.pih.petl.ApplicationConfig;
 import org.pih.petl.SpringRunnerTest;
 import org.pih.petl.api.EtlService;
 import org.pih.petl.api.JobExecutionRepository;
-import org.pih.petl.job.schedule.PetlScheduledExecutionTask;
+import org.pih.petl.api.ScheduledExecutionTask;
 import org.quartz.JobExecutionContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -25,13 +25,13 @@ import static org.mockito.Mockito.when;
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @TestPropertySource(properties = {"petl.jobDir = src/test/resources/configuration/jobs/scheduler"})
-public class PetlScheduledExecutionTaskTest {
+public class ScheduledExecutionTaskTest {
 
     @Autowired
     EtlService etlService;
 
     @Autowired
-    PetlScheduledExecutionTask petlScheduledExecutionTask;
+    ScheduledExecutionTask scheduledExecutionTask;
 
     @Autowired
     JobExecutionRepository jobExecutionRepository;
@@ -52,7 +52,7 @@ public class PetlScheduledExecutionTaskTest {
     public void testRunningScheduledExecutionTaskShouldOnlyRunJobWithSchedule() throws Exception {
         jobExecutionRepository.deleteAll();
         System.clearProperty(ApplicationConfig.PETL_SCHEDULE_CRON);
-        petlScheduledExecutionTask.execute(jobExecutionContext);
+        scheduledExecutionTask.execute(jobExecutionContext);
         assertThat(etlService.getLatestJobExecution("jobWithSchedule.yml").getStatus(), is("Execution Successful"));
         assertNull(etlService.getLatestJobExecution("jobWithoutSchedule.yml"));
     }
@@ -61,7 +61,7 @@ public class PetlScheduledExecutionTaskTest {
     public void testRunningScheduledExecutionTaskShouldBothJobsIfGlobalScheduleProvided() throws Exception {
         jobExecutionRepository.deleteAll();
         System.setProperty(ApplicationConfig.PETL_SCHEDULE_CRON, "0 30 6 ? * *");
-        petlScheduledExecutionTask.execute(jobExecutionContext);
+        scheduledExecutionTask.execute(jobExecutionContext);
         assertThat(etlService.getLatestJobExecution("jobWithSchedule.yml").getStatus(), is("Execution Successful"));
         assertThat(etlService.getLatestJobExecution("jobWithoutSchedule.yml").getStatus(), is("Execution Successful"));
     }

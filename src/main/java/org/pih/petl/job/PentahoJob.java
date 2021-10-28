@@ -1,10 +1,4 @@
-package org.pih.petl.job.type;
-
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.util.Properties;
-import java.util.Set;
+package org.pih.petl.job;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.time.StopWatch;
@@ -16,11 +10,15 @@ import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.logging.LogLevel;
 import org.pentaho.di.job.Job;
 import org.pentaho.di.job.JobMeta;
-import org.pih.petl.ApplicationConfig;
 import org.pih.petl.PetlException;
 import org.pih.petl.api.ExecutionContext;
-import org.pih.petl.job.PetlJob;
-import org.pih.petl.job.config.PetlJobConfig;
+import org.pih.petl.job.config.JobConfigReader;
+
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.Properties;
+import java.util.Set;
 
 /**
  * This class is responsible for running a Pentaho Kettle PetlJob
@@ -47,13 +45,12 @@ public class PentahoJob implements PetlJob {
     @Override
     public void execute(final ExecutionContext context) throws Exception {
 
-        ApplicationConfig appConfig = context.getApplicationConfig();
-        PetlJobConfig jobConfig = context.getJobConfig();
-        Properties configuration = jobConfig.getConfiguration().getAsProperties();
+        JobConfigReader configReader = new JobConfigReader(context);
+        Properties configuration = configReader.getAsProperties();
 
         String jobFilePath = configuration.getProperty(JOB_FILE_PATH);
         log.debug("PetlJob file path: " + jobFilePath);
-        File jobFile = appConfig.getConfigFile(jobFilePath).getConfigFile();
+        File jobFile = context.getApplicationConfig().getJobConfigFile(jobFilePath).getConfigFile();
 
         /*
         First, we want to create an execution environment for this job to set up Kettle with appropriate properties
@@ -61,7 +58,7 @@ public class PentahoJob implements PetlJob {
         This gives us somewhere for this execution, where we can write kettle.properties and pih-kettle.properties,
         so that the pipeline can find and use these as currently designed.
         */
-        File workDir = ensureDir(appConfig.getPetlHomeDir(), "work");
+        File workDir = ensureDir(context.getApplicationConfig().getPetlHomeDir(), "work");
         File jobDir = ensureDir(workDir, context.getJobExecution().getUuid());
         File kettleDir = ensureDir(jobDir, ".kettle");
         System.setProperty("KETTLE_HOME", jobDir.getAbsolutePath());
