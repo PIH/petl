@@ -173,15 +173,17 @@ This directory, as described in the installation section, is configured in the `
 `/home/petl/config/jobs`
 
 Any YAML file that is present in the jobs directory or subdirectory that contains the appropriate job file structure 
-will be interpreted as a job file and PETL will parse it to determine whether or not it should execute.  This allows
+will be interpreted as a job file and PETL will parse it to determine whether it should execute.  This allows
 implementations to maintain their job files in whatever organizational hierarchy makes sense and to name these files 
 however they want.  The structure of a `job.yml` file looks like the following:
 
 ```yaml
 type: 'job-type'            # valid types are sqlserver-bulk-import, pentaho-job, job-pipeline
+configuration:              # Each job type supports different properties within configuration
+path: "some-template.yml"   # As an alternative to specifying type and configuration, one can refer to another job definition by path
 schedule:
     cron: "0 0 5 ? * *"     # Cron-like expression that determines the execution frequency (see below)
-configuration:              # Each job type supports different properties within configuration
+parameters:                 # Each job can be configured with a set of parameters to assist with templating (more below)
 ```
 
 Each `job.yml` file indicates:
@@ -191,9 +193,51 @@ Each `job.yml` file indicates:
   Note that the cron format includes a "seconds" component, so to run at 6:30 AM would be `"0 30 6 ? * *"`, not `"30 6 * ? * *"`
 * How it is configured.  Each type of job will have a different set of supported configuration settings.
 
+### Job Templates and Variables
+
+Job definitions can get complex, particularly if setting up pipelines and iterations that need to perform multiple coordinated steps,
+set up partitioning schemes, etc.  To aid with this, all jobs support templating.  Within a particular jobs yaml definition file,
+or within any files that a job may load in and use (eg. associated job or sql files), variables can be used.  These can refer to
+any variable from the following sources (in order of lowest-to-highest precedence):
+
+a) any environment variable
+b) any variable defined in application.yml
+c) any variable defined in the "parameters" property of a job
+d) any variable defined in a specific job configuration (i.e. in the iterations property of the iterating-job)
+
+This allows for job definitions to be created and then re-used.  For example, I could have a job file that is a reusable
+job template like follows:
+
+import-to-sqlserver.yml
+```yaml
+type: "sqlserver-bulk-import"
+configuration:
+  extract:
+    datasource: "openmrs-${siteName}.yml"
+    query:  "sql/extractions/${tableName}.sql"
+  load:
+    datasource: "warehouse.yml"
+    table: "${tableName}"
+    schema: "sql/schemas/${tableName}.sql"
+    extraColumns:
+      - name: "site"
+        type: "VARCHAR(100)"
+        value: "'${siteName}'"
+```
+
+I could then have jobs that execute this, either on their own or within a job-pipeline or iterating-job.  For example:
+
+import-patient-table-to-hinche.yml
+```yaml
+path: "import-to-sqlserver.yml"
+parameters:
+  siteName: "hinche"
+  tableName: "patient"
+```
+
 ## Supported Job Types
 
-Currently PETL supports 3 types of jobs:
+Currently PETL supports the following types of jobs:
 
 ### sqlserver-bulk-import
 
@@ -233,7 +277,7 @@ NOTE:
   create temporary tables, etc, but the final statement should be a `select` that extracts the data out of MySQL.
 
 * The "load" YAML file (in the above example, `target.yml`) generally is a single `create table` command used to create
-  the table to load the data into.  Therefore it should match the schema of the `select` at the end of the extract sql.
+  the table to load the data into.  Therefore, it should match the schema of the `select` at the end of the extract sql.
 
 * The "load.schema" attribute is optional.  If not specified, then no target table creation or deleting is done by the job.
 
@@ -373,7 +417,8 @@ Example configuration:
           datasource: "reporting.yml"  # This is the datasource in which the target table should be created
           tableName: "my_encounters"   # This is the table into which the schema will be created
           actionIfExists: "drop"  # Optional.  Values you can specify are "drop" and "dropIfChanged".  Default is to leave the table unchanged if it already exists.
- 
+```
+
 # Developer Reference
 
 ## Building

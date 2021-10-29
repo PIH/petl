@@ -65,7 +65,7 @@ public class SqlServerImportJob implements PetlJob {
         }
 
         // Get source query
-        String sourceQuery = configReader.getFileContents("extract", "query");
+        String sourceQuery = configReader.getRequiredFileContents("extract", "query");
         String sourceContextStatements = configReader.getFileContents("extract", "context");
         if (sourceContextStatements != null) {
             sourceQuery = sourceContextStatements + System.lineSeparator() + sourceQuery;
@@ -138,11 +138,19 @@ public class SqlServerImportJob implements PetlJob {
         else {
             if (StringUtils.isNotEmpty(targetSchema)) {
                 if (dropAndRecreate) {
+                    context.setStatus("Dropping existing table: " + tableToBulkInsertInto);
                     targetDatasource.dropTableIfExists(tableToBulkInsertInto);
                 }
                 if (!targetDatasource.tableExists(tableToBulkInsertInto)) {
+                    context.setStatus("Creating target schema for: " + tableToBulkInsertInto);
                     targetDatasource.executeUpdate(targetSchema);
                 }
+                else {
+                    context.setStatus("Target table already exists at: " + tableToBulkInsertInto);
+                }
+            }
+            else {
+                context.setStatus("No target schema specified");
             }
         }
 

@@ -37,7 +37,6 @@ public class JobExecutionTask implements Callable<JobExecutionResult> {
             try {
                 PetlJob job = JobFactory.instantiate(jobConfig);
                 ExecutionContext nestedContext = new ExecutionContext(context.getJobExecution(), jobConfig, context.getApplicationConfig());
-                context.setStatus("Executing job: " + job);
                 job.execute(nestedContext);
                 result.setSuccessful(true);
                 result.setException(null);

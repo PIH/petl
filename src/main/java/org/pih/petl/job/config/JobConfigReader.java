@@ -71,9 +71,21 @@ public class JobConfigReader {
     public String getFileContents(String... keys) {
         String path = getString(keys);
         if (StringUtils.isNotEmpty(path)) {
-            return getFileContentsAtPath(getString(keys));
+            String fileContents = getFileContentsAtPath(getString(keys));
+            if (StringUtils.isEmpty(fileContents)) {
+                throw new PetlException("No file found at: " + arrayToString(keys) + " = " + path);
+            }
+            return fileContents;
         }
         return null;
+    }
+
+    public String getRequiredFileContents(String... keys) {
+        String fileContents = getFileContents(keys);
+        if (StringUtils.isEmpty(fileContents)) {
+            throw new PetlException("Required configuration not found for: " + arrayToString(keys));
+        }
+        return fileContents;
     }
 
     public String getFileContentsAtPath(String filePath) {
