@@ -41,7 +41,6 @@ public class RunMultipleJob implements PetlJob {
 
         List<JsonNode> jobTemplates = configReader.getList("jobs");
         context.setStatus("Executing " + jobTemplates.size() + " jobs using execution config: " + executionConfig);
-        context.setTotalExpected(jobTemplates.size());
 
         List<JobExecutionTask> tasks = new ArrayList<>();
         for (JsonNode jobTemplate : jobTemplates) {

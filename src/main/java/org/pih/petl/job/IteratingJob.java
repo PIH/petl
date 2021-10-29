@@ -39,8 +39,6 @@ public class IteratingJob implements PetlJob {
         }
 
         List<JsonNode> iterations = configReader.getList("iterations");
-
-        context.setTotalExpected(iterations.size());
         List<JobExecutionTask> iterationTasks = new ArrayList<>();
         for (JsonNode iteration : iterations) {
             try {

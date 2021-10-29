@@ -4,8 +4,8 @@ petl:
   jobDir: "${petl.homeDir}/jobs"
   startup:
     jobs:
-      - "initialize-multi-site-schema.yml"
-      - "refresh-multi-site-data.yml"
+      - "create-partitions.yml"
+      - "refresh-openmrs-data.yml"
       - "refresh-hiv-data.yml"
 
 server:

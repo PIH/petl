@@ -211,15 +211,19 @@ configuration:
     conditional: "select if(count(*)>0,true,false) from information_schema.tables where table_name = 'hivmigration_data_warnings'"  # An optional sql statement, executed against the extract datasource. If this returns false, the job is not executed.
     context: "extract/context.sql"    # This is an additional set of sql statements added to the source execution.  Often used to set things like locale.
     query:  "covid19/admission/extract.sql"  # This is the actual extract statement
-    extraColumns:
-      column_1: "'static text'"  # This would add, to the extract query, and additional select column named 'column_1' with 'static text' as the value for all rows
-      column_2: "8"  # This would add, to the extract query, and additional select column named "column_2" with static number 8 for all rows
-      column_3: "now()" # This would add, to the extract query, and additional select column named "column_3" with the value from the date function for all rows
 
   load:
     datasource: "sqlserver/openmrs_extractions.yml"  # This is the datasource that we load the extracted data into
     table: "covid_admission"  # This is the table that is created to load the data into.  It is dropped and recreated each execution unless the "dropAndRecreateTable" is set to false
     schema: "covid19/admission/schema.sql"  # This is the create table statement that is executed to create the target table.  This is optional.  If null, it is assumed the table exists.
+    extraColumns:
+      - name: "column_1"        # This would add, to the extract query, and additional select column named 'column_1'
+        type: "VARCHAR(100)"    # with a datatype of VARCHAR(100)
+        value: "'static text'"  # with 'static text' as the value for all rows
+    partition:
+      scheme: "psSite"  # If specified, this will associate this partition scheme for this table when created
+      column: "partition_num"  # If specified, this will use this column for the partition scheme, when created
+      value: "3"  # If specified, this will use this column value for the partition, when created
     dropAndRecreateTable: "false"  # Optional, default is true, which will drop and recreate the target table (if it exists) each time this is run
 ```
    

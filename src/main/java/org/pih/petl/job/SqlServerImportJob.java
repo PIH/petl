@@ -1,11 +1,10 @@
 package org.pih.petl.job;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.microsoft.sqlserver.jdbc.ISQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopyOptions;
 import org.apache.commons.dbutils.DbUtils;
-import org.apache.commons.dbutils.QueryRunner;
-import org.apache.commons.dbutils.handlers.ScalarHandler;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.StopWatch;
 import org.apache.commons.logging.Log;
@@ -22,6 +21,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
@@ -81,7 +81,14 @@ public class SqlServerImportJob implements PetlJob {
         String targetSchema = configReader.getFileContents("load", "schema");
 
         // Get extra columns to add to schema and import
-        List<TableColumn> extraColumns = configReader.getList(TableColumn.class, "load", "extraColumns");
+        List<TableColumn> extraColumns = new ArrayList<>();
+        for (JsonNode extraColumnNode : configReader.getList("load", "extraColumns")) {
+            TableColumn tableColumn = new TableColumn();
+            tableColumn.setName(configReader.getString(extraColumnNode.get("name")));
+            tableColumn.setType(configReader.getString(extraColumnNode.get("type")));
+            tableColumn.setValue(configReader.getString(extraColumnNode.get("value")));
+            extraColumns.add(tableColumn);
+        }
         if (!extraColumns.isEmpty()) {
             if (targetSchema == null) {
                 throw new PetlException("Extra Columns can only be specified when a specific schema is loaded");
@@ -104,10 +111,10 @@ public class SqlServerImportJob implements PetlJob {
             if (targetSchema == null) {
                 throw new PetlException("Partition scheme and column can only be specified when a specific schema is loaded");
             }
-            else if (StringUtils.isNotEmpty(partitionScheme)) {
+            else if (StringUtils.isEmpty(partitionScheme)) {
                 throw new PetlException("You must specify a partition scheme if you specify a partition column");
             }
-            else if (StringUtils.isNotEmpty(partitionColumn)) {
+            else if (StringUtils.isEmpty(partitionColumn)) {
                 throw new PetlException("You must specify a partition column if you specify a partition scheme");
             }
             else {
@@ -146,9 +153,7 @@ public class SqlServerImportJob implements PetlJob {
             boolean originalSourceAutoCommit = sourceConnection.getAutoCommit();
             boolean originalTargetAutocommit = targetConnection.getAutoCommit();
 
-            RowCountUpdater updater = new RowCountUpdater(targetConnection, context, targetTable);
             try {
-                updater.start();
                 sourceConnection.setAutoCommit(false); // We intend to rollback changes to source after querying DB
                 targetConnection.setAutoCommit(true);  // We want to commit to target as we go, to query status
 
@@ -180,21 +185,12 @@ public class SqlServerImportJob implements PetlJob {
                             log.warn(sqlStatement);
 
                             statement = sourceConnection.prepareStatement(
-                                    sqlStatement, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY
+                                    sqlStatement, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY
                             );
                             ResultSet resultSet = null;
                             try {
                                 resultSet = ((PreparedStatement)statement).executeQuery();
                                 if (resultSet != null) {
-                                    // Skip to the end to get the number of rows that ResultSet contains
-                                    resultSet.last();
-                                    Integer rowCount = resultSet.getRow();
-                                    context.setTotalExpected(rowCount);
-
-                                    // Reset back to the beginning to ensure all rows are extracted
-                                    resultSet.beforeFirst();
-
-                                    // Pass the ResultSet to bulk copy to SQL Server (TODO: Handle other DBs)
                                     Connection sqlServerConnection = getAsSqlServerConnection(targetConnection);
                                     SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(sqlServerConnection);
                                     SQLServerBulkCopyOptions bco = new SQLServerBulkCopyOptions();
@@ -220,14 +216,9 @@ public class SqlServerImportJob implements PetlJob {
                         DbUtils.closeQuietly(statement);
                     }
                 }
-
-                // Update the status at the end of the bulk copy
-                Integer rowCount = rowCount(targetConnection, targetTable);
-                context.setTotalLoaded(rowCount);
                 context.setStatus("Import Completed Sucessfully");
             }
             finally {
-                updater.cancel();
                 sourceConnection.rollback();
                 sourceConnection.setAutoCommit(originalSourceAutoCommit);
                 targetConnection.setAutoCommit(originalTargetAutocommit);
@@ -277,50 +268,6 @@ public class SqlServerImportJob implements PetlJob {
         finally {
             DbUtils.closeQuietly(sourceConnection);
         }
-    }
-
-    /**
-     * Inner class allows for checking the target for the number or rows currently loaded, to update status over time
-     */
-    class RowCountUpdater extends Thread {
-
-        private long lastExecutionTime = System.currentTimeMillis();
-        private long msBetweenExecutions = 1000*5;
-
-        private Connection connection;
-        private ExecutionContext context;
-        private String table;
-
-        public RowCountUpdater(Connection connection, ExecutionContext context, String table) {
-            this.connection = connection;
-            this.context = context;
-            this.table = table;
-        }
-
-        @Override
-        public void run() {
-            while (connection != null) {
-                long msSinceLast = System.currentTimeMillis() - lastExecutionTime;
-                if (msSinceLast >= msBetweenExecutions) {
-                    try {
-                        Integer rowCount = rowCount(connection, table);
-                        context.setTotalLoaded(rowCount);
-                    }
-                    catch (Exception e) {}
-                    lastExecutionTime = System.currentTimeMillis();
-                }
-            }
-        }
-
-        public void cancel() {
-            connection = null;
-        }
-    }
-
-    private static int rowCount(Connection c, String table) throws SQLException {
-        QueryRunner qr = new QueryRunner();
-        String query = "select count(*) from " + table;
-        return qr.query(c, query, new ScalarHandler<>());
     }
 
     /**

@@ -41,7 +41,6 @@ public class JobExecutionTask implements Callable<JobExecutionResult> {
                 job.execute(nestedContext);
                 result.setSuccessful(true);
                 result.setException(null);
-                context.setTotalLoaded(context.getTotalLoaded() + 1);
             }
             catch (Throwable t) {
                 result.setSuccessful(false);

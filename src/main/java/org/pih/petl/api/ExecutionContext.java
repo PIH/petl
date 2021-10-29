@@ -16,8 +16,6 @@ public class ExecutionContext {
     private JobConfig jobConfig;
     private ApplicationConfig applicationConfig;
     private String status;
-    private int totalExpected;
-    private int totalLoaded;
 
     public ExecutionContext(JobExecution jobExecution, JobConfig jobConfig, ApplicationConfig applicationConfig) {
         this.jobExecution = jobExecution;
@@ -44,22 +42,5 @@ public class ExecutionContext {
     public void setStatus(String status) {
         log.debug(jobConfig.getType() + ": " + status);
         this.status = status;
-    }
-
-    public int getTotalExpected() {
-        return totalExpected;
-    }
-
-    public void setTotalExpected(int totalExpected) {
-        this.totalExpected = totalExpected;
-    }
-
-    public int getTotalLoaded() {
-        return totalLoaded;
-    }
-
-    public void setTotalLoaded(int totalLoaded) {
-        this.totalLoaded = totalLoaded;
-        log.trace(jobConfig.getType() + ": " + status + " loaded " + totalLoaded + "/" + totalExpected);
     }
 }
