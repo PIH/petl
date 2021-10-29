@@ -1,16 +1,17 @@
 package org.pih.petl;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.text.StrSubstitutor;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.pih.petl.job.config.ConfigFile;
-import org.pih.petl.job.config.JobConfiguration;
-import org.pih.petl.job.config.PetlJobConfig;
-import org.pih.petl.job.datasource.EtlDataSource;
-import org.pih.petl.job.schedule.Schedule;
+import org.pih.petl.job.config.JobConfig;
+import org.pih.petl.job.config.DataSourceConfig;
+import org.pih.petl.job.config.Schedule;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.AbstractEnvironment;
 import org.springframework.core.env.EnumerablePropertySource;
@@ -21,6 +22,7 @@ import org.springframework.stereotype.Component;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -39,6 +41,10 @@ public class ApplicationConfig {
     public static final String PETL_DATASOURCE_DIR = "petl.datasourceDir";
     public static final String PETL_SCHEDULE_CRON = "petl.schedule.cron";
     public static final String PETL_STARTUP_JOBS = "petl.startup.jobs";
+
+    public static final ObjectMapper getYamlMapper() {
+        return new ObjectMapper(new YAMLFactory());
+    }
 
     private Map<String, String> env = null;
 
@@ -146,59 +152,94 @@ public class ApplicationConfig {
         return l;
     }
 
-    /**
-     * Convenience method to retrieve a PETL Job Config with the given path
-     */
-    public PetlJobConfig getPetlJobConfig(String path) {
-        ConfigFile configFile = new ConfigFile(getJobDir(), path);
-        return loadConfiguration(configFile, PetlJobConfig.class);
+    public ConfigFile getJobConfigFile(String path) {
+        return new ConfigFile(getJobDir(), path);
     }
 
     /**
      * Convenience method to retrieve a PETL Job Config with the given path
      */
-    public ConfigFile getConfigFile(String path) {
-        return new ConfigFile(getJobDir(), path);
+    public JobConfig getPetlJobConfig(String path) {
+        ConfigFile configFile = getJobConfigFile(path);
+        if (!configFile.exists()) {
+            throw new PetlException("Job Configuration file not found: " + configFile);
+        }
+        return getPetlJobConfig(configFile, getEnv());
+    }
+
+    public JobConfig getPetlJobConfig(ConfigFile configFile, Map<String, String> parameters) {
+        try {
+            String fileContents = FileUtils.readFileToString(configFile.getConfigFile(), "UTF-8");
+            JsonNode configNode = readJsonFromString(fileContents);
+            return getPetlJobConfig(configFile, parameters, configNode);
+        }
+        catch (Exception e) {
+            throw new PetlException("Error parsing " + configFile + ", please check that the YML is valid", e);
+        }
+    }
+
+    public JobConfig getPetlJobConfig(ConfigFile configFile, Map<String, String> parameters, JsonNode configNode) {
+        try {
+            JobConfig config = getYamlMapper().treeToValue(configNode, JobConfig.class);
+            config.setConfigFile(configFile);
+            Map<String, String> newParameters = new LinkedHashMap<>(parameters);
+            for (String parameter : config.getParameters().keySet()) {
+                String value = config.getParameters().get(parameter);
+                newParameters.put(parameter, StrSubstitutor.replace(value, parameters));
+            }
+            config.setParameters(newParameters);
+            if (StringUtils.isNotEmpty(config.getPath())) {
+                ConfigFile configFileAtPath = getJobConfigFile(config.getPath());
+                if (!configFileAtPath.exists()) {
+                    throw new PetlException("Job Configuration file not found: " + config.getPath());
+                }
+                JobConfig configAtPath = getPetlJobConfig(configFileAtPath, config.getParameters());
+                configAtPath.setConfigFile(config.getConfigFile());
+                config = configAtPath;
+            }
+            return config;
+        }
+        catch (Exception e) {
+            throw new PetlException("Error reading json configuration as a PetlJobConfig", e);
+        }
     }
 
     /**
      * Convenience method to retrieve an EtlDataSource with the given path
      */
-    public EtlDataSource getEtlDataSource(String path) {
+    public DataSourceConfig getEtlDataSource(String path) {
         ConfigFile configFile = new ConfigFile(getDataSourceDir(), path);
-        return loadConfiguration(configFile, EtlDataSource.class);
-    }
-
-    /**
-     * @return the configuration file specified, loaded into the given type
-     */
-    public <T> T loadConfiguration(ConfigFile configFile, Class<T> type) {
         if (!configFile.exists()) {
-            throw new PetlException("Configuration file not found: " + configFile);
+            throw new PetlException("ETL Datasource file not found: " + configFile);
         }
         try {
             String fileContents = FileUtils.readFileToString(configFile.getConfigFile(), "UTF-8");
             String fileWithVariablesReplaced = StrSubstitutor.replace(fileContents, getEnv());
-            JsonNode jsonNode = PetlUtil.getYamlMapper().readTree(fileWithVariablesReplaced);
-            if (type == PetlJobConfig.class) {
-                PetlJobConfig jobConfig = new PetlJobConfig();
-                jobConfig.setConfigFile(configFile);
-                jobConfig.setType(jsonNode.get("type").asText());
-                JobConfiguration jobConfiguration = new JobConfiguration(jsonNode.get("configuration"));
-                jobConfiguration.setVariables(getEnv());
-                jobConfig.setConfiguration(jobConfiguration);
-                JsonNode scheduleNode = jsonNode.get("schedule");
-                if (scheduleNode != null) {
-                    jobConfig.setSchedule(PetlUtil.getYamlMapper().treeToValue(scheduleNode, Schedule.class));
-                }
-                return (T)jobConfig;
-            }
-            else {
-                return PetlUtil.getYamlMapper().treeToValue(jsonNode, type);
-            }
+            return getYamlMapper().readValue(fileWithVariablesReplaced, DataSourceConfig.class);
         }
         catch (Exception e) {
-            throw new PetlException("Error parsing " + configFile + ", please check that the YML is valid", e);
+            throw new PetlException("Error reading " + path + " as an ETLDataSource", e);
+        }
+    }
+
+    public String getJsonAsString(JsonNode jsonNode) {
+        if (jsonNode != null) {
+            try {
+                return getYamlMapper().writeValueAsString(jsonNode);
+            }
+            catch (Exception e) {
+                throw new IllegalStateException("Unable to write Object as string");
+            }
+        }
+        return null;
+    }
+
+    public JsonNode readJsonFromString(String jsonString) {
+        try {
+            return getYamlMapper().readTree(jsonString);
+        }
+        catch (Exception e) {
+            throw new IllegalStateException("Unable to read Object from string");
         }
     }
 }

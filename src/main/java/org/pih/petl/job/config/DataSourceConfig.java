@@ -1,12 +1,23 @@
-package org.pih.petl.job.datasource;
+package org.pih.petl.job.config;
 
+import org.apache.commons.dbutils.QueryRunner;
+import org.apache.commons.dbutils.handlers.ScalarHandler;
 import org.apache.commons.lang.StringUtils;
 import org.pih.petl.PetlException;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * Encapsulates a data source configuration
  */
-public class EtlDataSource {
+public class DataSourceConfig {
 
     private String databaseType;
     private String host;
@@ -19,9 +30,77 @@ public class EtlDataSource {
 
     //***** CONSTRUCTORS *****
 
-    public EtlDataSource() {}
+    public DataSourceConfig() {}
 
     //***** INSTANCE METHODS *****
+
+    /**
+     * Gets a new Connection to the Data Source represented by this configuration
+     */
+    public Connection openConnection() {
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
+            Class.forName("org.h2.Driver");
+            return DriverManager.getConnection(getJdbcUrl(), getUser(), getPassword());
+        }
+        catch (Exception e) {
+            throw new PetlException("An error occured trying to open a connection to the database", e);
+        }
+    }
+
+    public void executeUpdate(String sql) throws SQLException {
+        try (Connection connection = openConnection()) {
+            try (Statement statement = connection.createStatement()) {
+                statement.execute(sql);
+            }
+        }
+    }
+
+    public boolean tableExists(String tableName) throws SQLException {
+        try (Connection targetConnection = openConnection()) {
+            return targetConnection.getMetaData().getTables(getDatabaseName(), null, tableName, new String[] {"TABLE"}).next();
+        }
+    }
+
+    public void dropTableIfExists(String tableName) throws SQLException {
+        if (tableExists(tableName)) {
+            executeUpdate("drop table " + tableName);
+        }
+    }
+
+    public int rowCount(String table) throws SQLException {
+        try (Connection connection = openConnection()) {
+            QueryRunner qr = new QueryRunner();
+            String query = "select count(*) from " + table;
+            return qr.query(connection, query, new ScalarHandler<>());
+        }
+    }
+
+    public List<TableColumn> getTableColumns(String tableName) throws SQLException {
+        List<TableColumn> ret = new ArrayList<>();
+        List<String> sizedTypes = Arrays.asList("VARCHAR", "CHAR", "DECIMAL");
+        try (Connection targetConnection = openConnection()) {
+            ResultSet rs = targetConnection.getMetaData().getColumns(getDatabaseName(), null, tableName, null);
+            while (rs.next()) {
+                String name = rs.getString("COLUMN_NAME");
+                String type = rs.getString("TYPE_NAME");
+                if (sizedTypes.contains(type)) {
+                    String size = rs.getString("COLUMN_SIZE");
+                    if (StringUtils.isNotEmpty(size)) {
+                        type += " (" + size;
+                        String decimalDigits = rs.getString("DECIMAL_DIGITS");
+                        if (StringUtils.isNotEmpty(decimalDigits)) {
+                            type += "," + decimalDigits;
+                        }
+                        type += ")";
+                    }
+                }
+                ret.add(new TableColumn(name, type, null));
+            }
+        }
+        return ret;
+    }
 
     public String getJdbcUrl() {
         if (StringUtils.isNotBlank(url)) {

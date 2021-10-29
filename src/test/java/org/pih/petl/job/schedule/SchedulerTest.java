@@ -7,6 +7,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.pih.petl.SpringRunnerTest;
 import org.pih.petl.api.EtlService;
+import org.pih.petl.api.JobScheduler;
 import org.quartz.SimpleScheduleBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -31,9 +32,9 @@ public class SchedulerTest {
 
     @Test
     public void testSimpleJobThatOutputsLoggingMessage() throws Exception {
-        SimpleScheduleBuilder schedule = simpleSchedule().withIntervalInMilliseconds(1).withRepeatCount(9); // Run 10 times
+        SimpleScheduleBuilder schedule = simpleSchedule().withIntervalInMilliseconds(1).withRepeatCount(4); // Run 5 times
         scheduler.schedule(SchedulerTestTask.class, schedule, 0);
         Thread.sleep(2000);
-        Assert.assertEquals(10, SchedulerTestTask.numExecutions);
+        Assert.assertEquals(5, SchedulerTestTask.numExecutions);
     }
 }

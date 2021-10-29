@@ -1,0 +1,6 @@
+type: "sql-execution"
+configuration:
+  datasource: "mysql-testcontainer.yml"
+  delimiter: "#"
+  scripts:
+    - "multipleStatementsWithDelimiter.sql"

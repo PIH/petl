@@ -173,15 +173,17 @@ This directory, as described in the installation section, is configured in the `
 `/home/petl/config/jobs`
 
 Any YAML file that is present in the jobs directory or subdirectory that contains the appropriate job file structure 
-will be interpreted as a job file and PETL will parse it to determine whether or not it should execute.  This allows
+will be interpreted as a job file and PETL will parse it to determine whether it should execute.  This allows
 implementations to maintain their job files in whatever organizational hierarchy makes sense and to name these files 
 however they want.  The structure of a `job.yml` file looks like the following:
 
 ```yaml
 type: 'job-type'            # valid types are sqlserver-bulk-import, pentaho-job, job-pipeline
+configuration:              # Each job type supports different properties within configuration
+path: "some-template.yml"   # As an alternative to specifying type and configuration, one can refer to another job definition by path
 schedule:
     cron: "0 0 5 ? * *"     # Cron-like expression that determines the execution frequency (see below)
-configuration:              # Each job type supports different properties within configuration
+parameters:                 # Each job can be configured with a set of parameters to assist with templating (more below)
 ```
 
 Each `job.yml` file indicates:
@@ -191,9 +193,51 @@ Each `job.yml` file indicates:
   Note that the cron format includes a "seconds" component, so to run at 6:30 AM would be `"0 30 6 ? * *"`, not `"30 6 * ? * *"`
 * How it is configured.  Each type of job will have a different set of supported configuration settings.
 
+### Job Templates and Variables
+
+Job definitions can get complex, particularly if setting up pipelines and iterations that need to perform multiple coordinated steps,
+set up partitioning schemes, etc.  To aid with this, all jobs support templating.  Within a particular jobs yaml definition file,
+or within any files that a job may load in and use (eg. associated job or sql files), variables can be used.  These can refer to
+any variable from the following sources (in order of lowest-to-highest precedence):
+
+a) any environment variable
+b) any variable defined in application.yml
+c) any variable defined in the "parameters" property of a job
+d) any variable defined in a specific job configuration (i.e. in the iterations property of the iterating-job)
+
+This allows for job definitions to be created and then re-used.  For example, I could have a job file that is a reusable
+job template like follows:
+
+import-to-sqlserver.yml
+```yaml
+type: "sqlserver-bulk-import"
+configuration:
+  extract:
+    datasource: "openmrs-${siteName}.yml"
+    query:  "sql/extractions/${tableName}.sql"
+  load:
+    datasource: "warehouse.yml"
+    table: "${tableName}"
+    schema: "sql/schemas/${tableName}.sql"
+    extraColumns:
+      - name: "site"
+        type: "VARCHAR(100)"
+        value: "'${siteName}'"
+```
+
+I could then have jobs that execute this, either on their own or within a job-pipeline or iterating-job.  For example:
+
+import-patient-table-to-hinche.yml
+```yaml
+path: "import-to-sqlserver.yml"
+parameters:
+  siteName: "hinche"
+  tableName: "patient"
+```
+
 ## Supported Job Types
 
-Currently PETL supports 3 types of jobs:
+Currently PETL supports the following types of jobs:
 
 ### sqlserver-bulk-import
 
@@ -211,15 +255,19 @@ configuration:
     conditional: "select if(count(*)>0,true,false) from information_schema.tables where table_name = 'hivmigration_data_warnings'"  # An optional sql statement, executed against the extract datasource. If this returns false, the job is not executed.
     context: "extract/context.sql"    # This is an additional set of sql statements added to the source execution.  Often used to set things like locale.
     query:  "covid19/admission/extract.sql"  # This is the actual extract statement
-    extraColumns:
-      column_1: "'static text'"  # This would add, to the extract query, and additional select column named 'column_1' with 'static text' as the value for all rows
-      column_2: "8"  # This would add, to the extract query, and additional select column named "column_2" with static number 8 for all rows
-      column_3: "now()" # This would add, to the extract query, and additional select column named "column_3" with the value from the date function for all rows
 
   load:
     datasource: "sqlserver/openmrs_extractions.yml"  # This is the datasource that we load the extracted data into
     table: "covid_admission"  # This is the table that is created to load the data into.  It is dropped and recreated each execution unless the "dropAndRecreateTable" is set to false
     schema: "covid19/admission/schema.sql"  # This is the create table statement that is executed to create the target table.  This is optional.  If null, it is assumed the table exists.
+    extraColumns:
+      - name: "column_1"        # This would add, to the extract query, and additional select column named 'column_1'
+        type: "VARCHAR(100)"    # with a datatype of VARCHAR(100)
+        value: "'static text'"  # with 'static text' as the value for all rows
+    partition:
+      scheme: "psSite"  # If specified, this will associate this partition scheme for this table when created
+      column: "partition_num"  # If specified, this will use this column for the partition scheme, when created
+      value: "3"  # If specified, this will use this column value for the partition, when created
     dropAndRecreateTable: "false"  # Optional, default is true, which will drop and recreate the target table (if it exists) each time this is run
 ```
    
@@ -229,7 +277,7 @@ NOTE:
   create temporary tables, etc, but the final statement should be a `select` that extracts the data out of MySQL.
 
 * The "load" YAML file (in the above example, `target.yml`) generally is a single `create table` command used to create
-  the table to load the data into.  Therefore it should match the schema of the `select` at the end of the extract sql.
+  the table to load the data into.  Therefore, it should match the schema of the `select` at the end of the extract sql.
 
 * The "load.schema" attribute is optional.  If not specified, then no target table creation or deleting is done by the job.
 
@@ -361,13 +409,16 @@ Example configuration:
 ```yaml
     - type: "create-table"
       configuration:
-        createFromTable:  # The createFromTable option allows one to indicate that the target table should replicate an existing table schema
+        source:  # The createFromTable option allows one to indicate that the target table should replicate an existing table schema
           datasource: "openmrs.yml"  # This is the datasource that should be analyzed to get the schema to create
           tableName: "encounters"  # This is the table that should be analyzed to get the schema to create
+          sqlFile: "myschema.sql"  # You can specify a sql file with a create table statement as an alternative to the datasource and tableName
         target:
           datasource: "reporting.yml"  # This is the datasource in which the target table should be created
-          dropAndRecreateTable: "true"  # Optional, defaults to false.  If the target table already exists, and this is true, it will be dropped and recreated.  Otherwise, table is left unchanged.
- 
+          tableName: "my_encounters"   # This is the table into which the schema will be created
+          actionIfExists: "drop"  # Optional.  Values you can specify are "drop" and "dropIfChanged".  Default is to leave the table unchanged if it already exists.
+```
+
 # Developer Reference
 
 ## Building

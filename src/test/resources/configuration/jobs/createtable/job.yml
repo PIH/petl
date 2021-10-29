@@ -1,6 +1,6 @@
 type: "create-table"
 configuration:
-  createFromTable:
+  source:
     datasource: "mysql-testcontainer.yml"
     tableName:  "encounter_type"
   target:

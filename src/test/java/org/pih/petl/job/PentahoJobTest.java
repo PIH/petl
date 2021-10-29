@@ -1,9 +1,11 @@
 package org.pih.petl.job;
 
+import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.pih.petl.SpringRunnerTest;
 import org.pih.petl.api.EtlService;
+import org.pih.petl.api.JobExecution;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.TestPropertySource;
@@ -26,6 +28,7 @@ public class PentahoJobTest {
 
     @Test
     public void testSimpleJobThatOutputsLoggingMessage() {
-        etlService.executeJob("job.yml");
+        JobExecution execution = etlService.executeJob("job.yml");
+        Assert.assertNull(execution.getErrorMessage());
     }
 }
