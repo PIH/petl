@@ -409,7 +409,7 @@ Example configuration:
 ```yaml
     - type: "create-table"
       configuration:
-        source:  # The createFromTable option allows one to indicate that the target table should replicate an existing table schema
+        source:  # Indicates the source of the schema.  This can either be an existing table (datasource+tableName) or create table statement (sqlFile)
           datasource: "openmrs.yml"  # This is the datasource that should be analyzed to get the schema to create
           tableName: "encounters"  # This is the table that should be analyzed to get the schema to create
           sqlFile: "myschema.sql"  # You can specify a sql file with a create table statement as an alternative to the datasource and tableName
