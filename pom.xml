@@ -194,7 +194,7 @@
         <repository>
             <id>pentaho.resolve.repo</id>
             <name>Pentaho Omni</name>
-            <url>http://nexus.pentaho.org/content/groups/omni</url>
+            <url>https://nexus.pentaho.org/content/groups/omni</url>
             <releases>
                 <enabled>true</enabled>
                 <updatePolicy>always</updatePolicy>
@@ -209,7 +209,7 @@
         <pluginRepository>
             <id>plugins</id>
             <name>Maven Central</name>
-            <url>http://nexus.pentaho.org/content/groups/omni</url>
+            <url>https://nexus.pentaho.org/content/groups/omni</url>
             <releases>
                 <enabled>true</enabled>
                 <updatePolicy>daily</updatePolicy>
