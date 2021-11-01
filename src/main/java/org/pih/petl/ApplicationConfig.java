@@ -10,7 +10,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.pih.petl.job.config.ConfigFile;
 import org.pih.petl.job.config.JobConfig;
-import org.pih.petl.job.config.DataSourceConfig;
+import org.pih.petl.job.config.DataSource;
 import org.pih.petl.job.config.Schedule;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.AbstractEnvironment;
@@ -207,7 +207,7 @@ public class ApplicationConfig {
     /**
      * Convenience method to retrieve an EtlDataSource with the given path
      */
-    public DataSourceConfig getEtlDataSource(String path) {
+    public DataSource getEtlDataSource(String path) {
         ConfigFile configFile = new ConfigFile(getDataSourceDir(), path);
         if (!configFile.exists()) {
             throw new PetlException("ETL Datasource file not found: " + configFile);
@@ -215,7 +215,7 @@ public class ApplicationConfig {
         try {
             String fileContents = FileUtils.readFileToString(configFile.getConfigFile(), "UTF-8");
             String fileWithVariablesReplaced = StrSubstitutor.replace(fileContents, getEnv());
-            return getYamlMapper().readValue(fileWithVariablesReplaced, DataSourceConfig.class);
+            return getYamlMapper().readValue(fileWithVariablesReplaced, DataSource.class);
         }
         catch (Exception e) {
             throw new PetlException("Error reading " + path + " as an ETLDataSource", e);

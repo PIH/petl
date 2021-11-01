@@ -7,7 +7,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.pih.petl.ApplicationConfig;
 import org.pih.petl.api.EtlService;
-import org.pih.petl.job.config.DataSourceConfig;
+import org.pih.petl.job.config.DataSource;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.sql.Connection;
@@ -30,7 +30,7 @@ public abstract class BasePetlTest {
         dropTablesInTargetDB();
     }
 
-    public DataSourceConfig getSqlServerDatasource() {
+    public DataSource getSqlServerDatasource() {
         return etlService.getApplicationConfig().getEtlDataSource("sqlserver-testcontainer.yml");
     }
 
@@ -66,7 +66,7 @@ public abstract class BasePetlTest {
 
     public void assertSqlServerCount(String query, Integer expected) throws Exception {
         ApplicationConfig appConfig = etlService.getApplicationConfig();
-        DataSourceConfig sqlServerDataSource = appConfig.getEtlDataSource("sqlserver-testcontainer.yml");
+        DataSource sqlServerDataSource = appConfig.getEtlDataSource("sqlserver-testcontainer.yml");
         try (Connection c = sqlServerDataSource.openConnection()) {
             QueryRunner qr = new QueryRunner();
             Integer result = qr.query(c, query, new ScalarHandler<>());

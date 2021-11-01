@@ -101,7 +101,7 @@ public class JobConfigReader {
         }
     }
 
-    public DataSourceConfig getDataSource(String... keys) {
+    public DataSource getDataSource(String... keys) {
         String path = getString(keys);
         if (StringUtils.isEmpty(path)) {
             return null;

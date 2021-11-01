@@ -6,7 +6,7 @@ import org.apache.commons.logging.LogFactory;
 import org.pih.petl.PetlException;
 import org.pih.petl.api.ExecutionContext;
 import org.pih.petl.job.config.JobConfigReader;
-import org.pih.petl.job.config.DataSourceConfig;
+import org.pih.petl.job.config.DataSource;
 import org.pih.petl.SqlUtils;
 
 import java.sql.Connection;
@@ -36,7 +36,7 @@ public class SqlJob implements PetlJob {
 
         String delimiter = configReader.getString("delimiter");
 
-        DataSourceConfig dataSource = configReader.getDataSource("datasource");
+        DataSource dataSource = configReader.getDataSource("datasource");
         for (String sqlFile : configReader.getStringList("scripts")) {
             context.setStatus("Executing Sql Script: " + sqlFile);
             try (Connection targetConnection = dataSource.openConnection()) {
