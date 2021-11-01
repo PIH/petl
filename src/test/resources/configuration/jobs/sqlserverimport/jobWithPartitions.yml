@@ -1,0 +1,34 @@
+type: "job-pipeline"
+configuration:
+  jobs:
+    - type: "sql-execution"
+      configuration:
+        datasource: "sqlserver-testcontainer.yml"
+        scripts:
+          - "partitionScheme.sql"
+
+    - type: "iterating-job"
+      configuration:
+        jobTemplate:
+          type: "sqlserver-bulk-import"
+          configuration:
+            extract:
+              datasource: "mysql-testcontainer.yml"
+              query:  "encountersOfTypeUsingParameter.sql"
+            load:
+              datasource: "sqlserver-testcontainer.yml"
+              table: "encounter_types"
+              schema: "target.sql"
+              extraColumns:
+                - name: "partition_num"
+                  type: "INT"
+                  value: "${partitionNum}"
+              partition:
+                scheme: "psSite"
+                column: "partition_num"
+                value: "${partitionNum}"
+        iterations:
+          - partitionNum: "1"
+            encounterType: "Primary Care"
+          - partitionNum: "2"
+            encounterType: "ZL VIH"

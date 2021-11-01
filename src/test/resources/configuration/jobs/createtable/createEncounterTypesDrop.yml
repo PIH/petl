@@ -1,0 +1,20 @@
+type: "job-pipeline"
+configuration:
+  jobs:
+    - type: "create-table"
+      configuration:
+        source:
+          datasource: "mysql-testcontainer.yml"
+          tableName: "encounter_type"
+        target:
+          datasource: "sqlserver-testcontainer.yml"
+          tableName: "encounter_types"
+    - type: "create-table"
+      configuration:
+        source:
+          datasource: "mysql-testcontainer.yml"
+          tableName: "encounter_type"
+        target:
+          datasource: "sqlserver-testcontainer.yml"
+          tableName: "encounter_types"
+          actionIfExists: "DROP"

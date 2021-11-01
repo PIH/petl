@@ -103,6 +103,9 @@ public class JobConfigReader {
 
     public DataSourceConfig getDataSource(String... keys) {
         String path = getString(keys);
+        if (StringUtils.isEmpty(path)) {
+            return null;
+        }
         return appConfig.getEtlDataSource(path);
     }
 

@@ -79,6 +79,24 @@ public class SqlServerImportJobTest extends BasePetlTest {
     }
 
     @Test
+    public void testLoadingFromMySQLWithPartitions() throws Exception {
+        etlService.executeJob("jobWithPartitions.yml");
+        verifyTableExists("encounter_types");
+        verifyRowCount("encounter_types", 11);
+        assertSqlServerCount("select count(*) from encounter_types where partition_num = 1", 7);
+        assertSqlServerCount("select count(*) from encounter_types where partition_num = 2", 4);
+    }
+
+    @Test
+    public void testLoadingFromMySQLWithPartitionsAndSchemaChange() throws Exception {
+        etlService.executeJob("jobWithPartitionsAndSchemaChange.yml");
+        verifyTableExists("encounter_types");
+        verifyRowCount("encounter_types", 4);
+        assertSqlServerCount("select count(*) from encounter_types where partition_num = 1", 0);
+        assertSqlServerCount("select count(*) from encounter_types where partition_num = 2", 4);
+    }
+
+    @Test
     public void testConditionalTrue() throws Exception {
         etlService.executeJob("jobConditionalTrue.yml");
         verifyTableExists("encounter_types");

@@ -156,6 +156,7 @@ public class SqlUtils {
             if (ret.toString().trim().toLowerCase().endsWith("create table")) {
                 return word;
             }
+            ret.append(word).append(" ");
         }
         throw new PetlException("No table name found in the given schema sql: " + schemaSql);
     }
