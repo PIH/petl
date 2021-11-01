@@ -54,6 +54,12 @@ public class SqlServerImportJob implements PetlJob {
 
         // Get source datasource
         sourceDatasource = configReader.getDataSource("extract", "datasource");
+        if (!sourceDatasource.testConnection()) {
+            String msg = "Unable to connect to datasource: " + configReader.getString("extract", "datasource");
+            context.setStatus(msg);
+            throw new PetlException(msg);
+        }
+
 
         // Get any conditional, and execute against the source datasource.  If this returns false, skip execution
         String conditional = configReader.getString("extract", "conditional");
@@ -73,6 +79,11 @@ public class SqlServerImportJob implements PetlJob {
 
         // Get target datasource
         targetDatasource = configReader.getDataSource("load", "datasource");
+        if (!targetDatasource.testConnection()) {
+            String msg = "Unable to connect to datasource: " + configReader.getString("load", "datasource");
+            context.setStatus(msg);
+            throw new PetlException(msg);
+        }
 
         // Get target table name
         String targetTable = configReader.getString("load", "table");

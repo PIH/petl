@@ -1,5 +1,6 @@
 package org.pih.petl.job;
 
+import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.pih.petl.SpringRunnerTest;
@@ -114,5 +115,31 @@ public class SqlServerImportJobTest extends BasePetlTest {
     public void testConditionalFalse() throws Exception {
         etlService.executeJob("jobConditionalFalse.yml");
         verifyTableDoesNotExist("encounter_types");
+    }
+
+    @Test
+    public void testInaccessibleSource() throws Exception {
+        Exception foundException = null;
+        try {
+            etlService.executeJob("jobWithInaccessibleSource.yml");
+            verifyTableDoesNotExist("encounter_types");
+        }
+        catch (Exception e) {
+            foundException = e;
+        }
+        Assert.assertNotNull(foundException);
+    }
+
+    @Test
+    public void testInaccessibleTarget() throws Exception {
+        Exception foundException = null;
+        try {
+            etlService.executeJob("jobWithInaccessibleTarget.yml");
+            verifyTableDoesNotExist("encounter_types");
+        }
+        catch (Exception e) {
+            foundException = e;
+        }
+        Assert.assertNotNull(foundException);
     }
 }
