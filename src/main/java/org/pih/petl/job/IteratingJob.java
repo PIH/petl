@@ -25,18 +25,23 @@ public class IteratingJob implements PetlJob {
         context.setStatus("Executing IteratingJob");
         JobConfigReader configReader = new JobConfigReader(context);
         JobExecutor jobExecutor = new JobExecutor(configReader.getInt(1, "maxConcurrentJobs"));
-        List<JsonNode> iterations = configReader.getList("iterations");
-        List<JobExecutionTask> iterationTasks = new ArrayList<>();
-        for (JsonNode iteration : iterations) {
-            Map<String, String> iterationVars = configReader.getMap(iteration);
-            for (String paramName : iterationVars.keySet()) {
-                String paramValue = iterationVars.get(paramName);
-                iterationVars.put(paramName, StrSubstitutor.replace(paramValue, context.getJobConfig().getParameters()));
+        try {
+            List<JsonNode> iterations = configReader.getList("iterations");
+            List<JobExecutionTask> iterationTasks = new ArrayList<>();
+            for (JsonNode iteration : iterations) {
+                Map<String, String> iterationVars = configReader.getMap(iteration);
+                for (String paramName : iterationVars.keySet()) {
+                    String paramValue = iterationVars.get(paramName);
+                    iterationVars.put(paramName, StrSubstitutor.replace(paramValue, context.getJobConfig().getParameters()));
+                }
+                JobConfig childConfig = configReader.getJobConfig(iterationVars, "jobTemplate");
+                iterationTasks.add(new JobExecutionTask(new ExecutionContext(context, childConfig)));
+                context.setStatus("Adding iteration task: " + iterationVars);
             }
-            JobConfig childConfig = configReader.getJobConfig(iterationVars, "jobTemplate");
-            iterationTasks.add(new JobExecutionTask(new ExecutionContext(context, childConfig)));
-            context.setStatus("Adding iteration task: " + iterationVars);
+            jobExecutor.execute(iterationTasks);
         }
-        jobExecutor.execute(iterationTasks);
+        finally {
+            jobExecutor.shutdown();
+        }
     }
 }

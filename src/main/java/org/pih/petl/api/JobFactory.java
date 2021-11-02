@@ -20,12 +20,16 @@ public class JobFactory {
 
     private static Map<String, Class<? extends PetlJob>> jobTypes = new LinkedHashMap<>();
     static {
-        jobTypes.put("job-pipeline", RunMultipleJob.class);
-        jobTypes.put("sqlserver-bulk-import", SqlServerImportJob.class);
-        jobTypes.put("pentaho-job", PentahoJob.class);
-        jobTypes.put("iterating-job", IteratingJob.class);
-        jobTypes.put("sql-execution", SqlJob.class);
-        jobTypes.put("create-table", CreateTableJob.class);
+        registerJobType("job-pipeline", RunMultipleJob.class);
+        registerJobType("sqlserver-bulk-import", SqlServerImportJob.class);
+        registerJobType("pentaho-job", PentahoJob.class);
+        registerJobType("iterating-job", IteratingJob.class);
+        registerJobType("sql-execution", SqlJob.class);
+        registerJobType("create-table", CreateTableJob.class);
+    }
+
+    public static void registerJobType(String name, Class<? extends PetlJob> jobType) {
+        jobTypes.put(name, jobType);
     }
 
     /**

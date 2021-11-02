@@ -1,0 +1,30 @@
+type: "job-pipeline"
+configuration:
+  maxConcurrentJobs: 1
+  jobs:
+    - type: "test-job"
+      errorHandling:
+        maxAttempts: 10
+        retryInterval: 100
+        retryIntervalUnit: "MILLISECONDS"
+      configuration:
+        testId: "serialJob1"
+        simulateSuccessOnAttempt: 8
+    - type: "test-job"
+      errorHandling:
+        maxAttempts: 10
+        retryInterval: 100
+        retryIntervalUnit: "MILLISECONDS"
+      configuration:
+        testId: "serialJob2"
+        simulateSuccessOnAttempt: 1
+    - type: "test-job"
+      errorHandling:
+        maxAttempts: 10
+        retryInterval: 100
+        retryIntervalUnit: "MILLISECONDS"
+      configuration:
+        testId: "serialJob3"
+        simulateSuccessOnAttempt: 4
+
+

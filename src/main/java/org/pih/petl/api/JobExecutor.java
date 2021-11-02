@@ -48,6 +48,12 @@ public class JobExecutor {
         executeInSeries(Collections.singletonList(task));
     }
 
+    public void shutdown() {
+        if (!executorService.isShutdown()) {
+            executorService.shutdownNow();
+        }
+    }
+
     /**
      * Execute a List of jobs in parallel.
      */

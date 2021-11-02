@@ -70,6 +70,7 @@ public class EtlService {
                                 }
                             }
                             catch (Exception e) {
+                                log.debug("Unable to load job config from file: " + relativePath, e);
                             }
                         }
                         return FileVisitResult.CONTINUE;

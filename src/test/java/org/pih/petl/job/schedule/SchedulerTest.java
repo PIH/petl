@@ -34,7 +34,10 @@ public class SchedulerTest {
     public void testSimpleJobThatOutputsLoggingMessage() throws Exception {
         SimpleScheduleBuilder schedule = simpleSchedule().withIntervalInMilliseconds(1).withRepeatCount(4); // Run 5 times
         scheduler.schedule(SchedulerTestTask.class, schedule, 0);
-        Thread.sleep(2000);
+        long maxTimeToWait = System.currentTimeMillis() + 1000*60; // 1 minute from now
+        while (SchedulerTestTask.numExecutions < 5 && System.currentTimeMillis() < maxTimeToWait) {
+            // Wait
+        }
         Assert.assertEquals(5, SchedulerTestTask.numExecutions);
     }
 }

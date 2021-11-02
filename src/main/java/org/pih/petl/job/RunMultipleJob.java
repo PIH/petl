@@ -22,13 +22,18 @@ public class RunMultipleJob implements PetlJob {
     public void execute(final ExecutionContext context) throws Exception {
         JobConfigReader configReader = new JobConfigReader(context);
         JobExecutor jobExecutor = new JobExecutor(configReader.getInt(1, "maxConcurrentJobs"));
-        List<JsonNode> jobTemplates = configReader.getList("jobs");
-        context.setStatus("Executing " + jobTemplates.size() + " jobs");
-        List<JobExecutionTask> tasks = new ArrayList<>();
-        for (JsonNode jobTemplate : jobTemplates) {
-            JobConfig childJobConfig = configReader.getJobConfig(jobTemplate);
-            tasks.add(new JobExecutionTask(new ExecutionContext(context, childJobConfig)));
+        try {
+            List<JsonNode> jobTemplates = configReader.getList("jobs");
+            context.setStatus("Executing " + jobTemplates.size() + " jobs");
+            List<JobExecutionTask> tasks = new ArrayList<>();
+            for (JsonNode jobTemplate : jobTemplates) {
+                JobConfig childJobConfig = configReader.getJobConfig(jobTemplate);
+                tasks.add(new JobExecutionTask(new ExecutionContext(context, childJobConfig)));
+            }
+            jobExecutor.execute(tasks);
         }
-        jobExecutor.execute(tasks);
+        finally {
+            jobExecutor.shutdown();
+        }
     }
 }
