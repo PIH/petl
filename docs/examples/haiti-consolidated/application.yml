@@ -5,8 +5,6 @@ petl:
   startup:
     jobs:
       - "create-partitions.yml"
-      - "refresh-openmrs-data.yml"
-      - "refresh-hiv-data.yml"
 
 server:
   port: 9109
