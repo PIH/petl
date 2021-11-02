@@ -20,12 +20,6 @@ public class CreateTableJob implements PetlJob {
     private static final Log log = LogFactory.getLog(CreateTableJob.class);
 
     /**
-     * Creates a new instance of the job
-     */
-    public CreateTableJob() {
-    }
-
-    /**
      * @see PetlJob
      */
     @Override

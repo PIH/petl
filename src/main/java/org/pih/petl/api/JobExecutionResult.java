@@ -5,10 +5,26 @@ package org.pih.petl.api;
  */
 public class JobExecutionResult {
 
+    private JobExecutionTask jobExecutionTask;
     private boolean successful;
     private Throwable exception;
 
-    public JobExecutionResult() {
+    public JobExecutionResult(JobExecutionTask jobExecutionTask) {
+        this.jobExecutionTask = jobExecutionTask;
+    }
+
+    public JobExecutionTask getJobExecutionTask() {
+        return jobExecutionTask;
+    }
+
+    public void setJobExecutionTask(JobExecutionTask jobExecutionTask) {
+        this.jobExecutionTask = jobExecutionTask;
+    }
+
+    public boolean shouldRetry() {
+        int numAttempts = jobExecutionTask.getAttemptNum();;
+        int maxAttempts = jobExecutionTask.getJobConfig().getErrorHandling().getMaxAttempts();
+        return numAttempts < maxAttempts;
     }
 
     public boolean isSuccessful() {

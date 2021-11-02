@@ -33,12 +33,6 @@ public class SqlServerImportJob implements PetlJob {
     private static Log log = LogFactory.getLog(SqlServerImportJob.class);
 
     /**
-     * Creates a new instance of the job
-     */
-    public SqlServerImportJob() {
-    }
-
-    /**
      * @see PetlJob
      */
     @Override

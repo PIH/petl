@@ -4,10 +4,10 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.pih.petl.PetlException;
-import org.pih.petl.api.ExecutionContext;
-import org.pih.petl.job.config.JobConfigReader;
-import org.pih.petl.job.config.DataSource;
 import org.pih.petl.SqlUtils;
+import org.pih.petl.api.ExecutionContext;
+import org.pih.petl.job.config.DataSource;
+import org.pih.petl.job.config.JobConfigReader;
 
 import java.sql.Connection;
 import java.sql.Statement;
@@ -19,12 +19,6 @@ import java.util.List;
 public class SqlJob implements PetlJob {
 
     private static Log log = LogFactory.getLog(SqlJob.class);
-
-    /**
-     * Creates a new instance of the job
-     */
-    public SqlJob() {
-    }
 
     /**
      * @see PetlJob

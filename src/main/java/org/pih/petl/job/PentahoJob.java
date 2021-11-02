@@ -34,12 +34,6 @@ public class PentahoJob implements PetlJob {
     public static final String PIH_PENTAHO_HOME = "pih.pentahoHome";
 
     /**
-     * Creates a new instance of the job
-     */
-    public PentahoJob() {
-    }
-
-    /**
      * @see PetlJob
      */
     @Override

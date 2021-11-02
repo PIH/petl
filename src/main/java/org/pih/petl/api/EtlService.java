@@ -5,7 +5,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.pih.petl.ApplicationConfig;
 import org.pih.petl.PetlException;
-import org.pih.petl.job.PetlJob;
 import org.pih.petl.job.config.JobConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -23,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
 
 /**
  * Core service methods for loading jobs, executing jobs, and tracking the status of job executions
@@ -30,17 +30,17 @@ import java.util.UUID;
 @Service
 public class EtlService {
 
-    private static Log log = LogFactory.getLog(EtlService.class);
+    private static final Log log = LogFactory.getLog(EtlService.class);
 
     final ApplicationConfig applicationConfig;
     final JobExecutionRepository jobExecutionRepository;
     final JobExecutor jobExecutor;
 
     @Autowired
-    public EtlService(ApplicationConfig applicationConfig, JobExecutionRepository jobExecutionRepository, JobExecutor jobExecutor) {
+    public EtlService(ApplicationConfig applicationConfig, JobExecutionRepository jobExecutionRepository) throws ExecutionException, InterruptedException {
         this.applicationConfig = applicationConfig;
         this.jobExecutionRepository = jobExecutionRepository;
-        this.jobExecutor = jobExecutor;
+        this.jobExecutor = new JobExecutor(applicationConfig.getPetlConfig().getMaxConcurrentJobs());
     }
 
     /**
@@ -60,7 +60,7 @@ public class EtlService {
                 Files.walkFileTree(configPath, new SimpleFileVisitor<Path>() {
 
                     @Override
-                    public FileVisitResult visitFile(Path path, BasicFileAttributes basicFileAttributes) throws IOException {
+                    public FileVisitResult visitFile(Path path, BasicFileAttributes basicFileAttributes) {
                         if (FilenameUtils.isExtension(path.toString().toLowerCase(), new String[] { "yml", "yaml" })) {
                             String relativePath = configPath.relativize(path).toString();
                             try {
@@ -123,14 +123,12 @@ public class EtlService {
      */
     public JobExecution executeJob(String jobPath) {
         JobConfig jobConfig = applicationConfig.getPetlJobConfig(jobPath);
-        PetlJob job = JobFactory.instantiate(jobConfig);
         String executionUuid = UUID.randomUUID().toString();
         JobExecution execution = new JobExecution(executionUuid, jobPath);
         log.info("Executing Job: " + jobPath + " (" + executionUuid + ")");
         try {
             saveJobExecution(execution);
-            ExecutionContext context = new ExecutionContext(execution, jobConfig, applicationConfig);
-            job.execute(context);
+            jobExecutor.execute(new JobExecutionTask(new ExecutionContext(execution, jobConfig, applicationConfig)));
             execution.setStatus("Execution Successful");
             log.info("Job Successful: " + jobPath + " (" + executionUuid + ")");
         }

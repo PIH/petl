@@ -18,7 +18,7 @@ public class PetlConfig {
     private String jobDir;
     private Schedule schedule;
     private StartupConfig startup;
-    private ExecutionConfig execution;
+    private Integer maxConcurrentJobs = 1;
 
     public PetlConfig() {
     }
@@ -56,6 +56,9 @@ public class PetlConfig {
     }
 
     public StartupConfig getStartup() {
+        if (startup == null) {
+            startup = new StartupConfig();
+        }
         return startup;
     }
 
@@ -63,11 +66,11 @@ public class PetlConfig {
         this.startup = startup;
     }
 
-    public ExecutionConfig getExecution() {
-        return execution;
+    public Integer getMaxConcurrentJobs() {
+        return maxConcurrentJobs;
     }
 
-    public void setExecution(ExecutionConfig execution) {
-        this.execution = execution;
+    public void setMaxConcurrentJobs(Integer maxConcurrentJobs) {
+        this.maxConcurrentJobs = maxConcurrentJobs;
     }
 }
