@@ -47,7 +47,7 @@ public class ScheduledExecutionTask implements Job {
         if (enabled && !inProgress) {
             try {
                 inProgress = true;
-                Schedule globalSchedule = applicationConfig.getSchedule();  // get the global schedule, if configured
+                Schedule globalSchedule = applicationConfig.getPetlConfig().getSchedule();  // get the global schedule, if configured
                 Date currentDate = jobExecutionContext.getFireTime();
                 log.trace("Executing Task: " + currentDate);
                 Map<String, JobConfig> jobs = etlService.getAllConfiguredJobs();

@@ -59,7 +59,7 @@ public class Application {
         app.getEtlService().markHungJobsAsRun();
 
         // Get and execute any jobs configured to run at startup
-        List<String> startupJobs = app.getAppConfig().getStartupJobs();
+        List<String> startupJobs = app.getAppConfig().getPetlConfig().getStartup().getJobs();
         log.info("STARTUP JOBS: " + startupJobs);
         for (String job : startupJobs) {
             log.info("Executing Startup Job: " + job);
