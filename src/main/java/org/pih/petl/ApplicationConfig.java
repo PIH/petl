@@ -34,17 +34,20 @@ public class ApplicationConfig {
 
     private static final Log log = LogFactory.getLog(ApplicationConfig.class);
 
+    final Environment environment;
+    final PetlConfig petlConfig;
+
+    @Autowired
+    public ApplicationConfig(Environment environment, PetlConfig petlConfig) {
+        this.environment = environment;
+        this.petlConfig = petlConfig;
+    }
+
     public static final ObjectMapper getYamlMapper() {
         return new ObjectMapper(new YAMLFactory());
     }
 
     private Map<String, String> env = null;
-
-    @Autowired
-    Environment environment;
-
-    @Autowired
-    PetlConfig petlConfig;
 
     /**
      * @return a Map of the environment that PETL is running in (Environment variables and system properties, etc)
