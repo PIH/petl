@@ -16,7 +16,6 @@ public class PetlConfig {
     private String homeDir;
     private String datasourceDir;
     private String jobDir;
-    private Schedule schedule;
     private StartupConfig startup;
     private Integer maxConcurrentJobs = 1;
 
@@ -45,14 +44,6 @@ public class PetlConfig {
 
     public void setJobDir(String jobDir) {
         this.jobDir = jobDir;
-    }
-
-    public Schedule getSchedule() {
-        return schedule;
-    }
-
-    public void setSchedule(Schedule schedule) {
-        this.schedule = schedule;
     }
 
     public StartupConfig getStartup() {

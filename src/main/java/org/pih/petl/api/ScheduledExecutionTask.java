@@ -47,7 +47,6 @@ public class ScheduledExecutionTask implements Job {
         if (enabled && !inProgress) {
             try {
                 inProgress = true;
-                Schedule globalSchedule = applicationConfig.getPetlConfig().getSchedule();  // get the global schedule, if configured
                 Date currentDate = jobExecutionContext.getFireTime();
                 log.trace("Executing Task: " + currentDate);
                 Map<String, JobConfig> jobs = etlService.getAllConfiguredJobs();
@@ -55,7 +54,7 @@ public class ScheduledExecutionTask implements Job {
                 for (String jobPath : jobs.keySet()) {
                     log.trace("Checking job: " + jobPath);
                     JobConfig jobConfig = jobs.get(jobPath);
-                    Schedule schedule = jobConfig.getSchedule() != null ? jobConfig.getSchedule() : globalSchedule;  // override global schedule with any local job-specific schedule
+                    Schedule schedule = jobConfig.getSchedule();
                     boolean isScheduled = schedule != null && StringUtils.isNotBlank(schedule.getCron());
                     if (isScheduled) {
                         JobExecution latestExecution = etlService.getLatestJobExecution(jobPath);

@@ -3,12 +3,10 @@ package org.pih.petl.job;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.pih.petl.ApplicationConfig;
 import org.pih.petl.SpringRunnerTest;
 import org.pih.petl.api.EtlService;
 import org.pih.petl.api.JobExecutionRepository;
 import org.pih.petl.api.ScheduledExecutionTask;
-import org.pih.petl.job.config.Schedule;
 import org.quartz.JobExecutionContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -52,21 +50,8 @@ public class ScheduledExecutionTaskTest {
     @Test
     public void testRunningScheduledExecutionTaskShouldOnlyRunJobWithSchedule() throws Exception {
         jobExecutionRepository.deleteAll();
-        etlService.getApplicationConfig().getPetlConfig().setSchedule(null);
         scheduledExecutionTask.execute(jobExecutionContext);
         assertThat(etlService.getLatestJobExecution("jobWithSchedule.yml").getStatus(), is("Execution Successful"));
         assertNull(etlService.getLatestJobExecution("jobWithoutSchedule.yml"));
     }
-
-    @Test
-    public void testRunningScheduledExecutionTaskShouldBothJobsIfGlobalScheduleProvided() throws Exception {
-        jobExecutionRepository.deleteAll();
-        Schedule globalSchedule = new Schedule();
-        globalSchedule.setCron("0 30 6 ? * *");
-        etlService.getApplicationConfig().getPetlConfig().setSchedule(globalSchedule);
-        scheduledExecutionTask.execute(jobExecutionContext);
-        assertThat(etlService.getLatestJobExecution("jobWithSchedule.yml").getStatus(), is("Execution Successful"));
-        assertThat(etlService.getLatestJobExecution("jobWithoutSchedule.yml").getStatus(), is("Execution Successful"));
-    }
-
 }

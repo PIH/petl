@@ -192,18 +192,6 @@ public class ApplicationConfig {
         }
     }
 
-    public String getJsonAsString(JsonNode jsonNode) {
-        if (jsonNode != null) {
-            try {
-                return getYamlMapper().writeValueAsString(jsonNode);
-            }
-            catch (Exception e) {
-                throw new IllegalStateException("Unable to write Object as string");
-            }
-        }
-        return null;
-    }
-
     public JsonNode readJsonFromString(String jsonString) {
         try {
             return getYamlMapper().readTree(jsonString);

@@ -86,15 +86,6 @@ petl:
   jobDir: "${petl.homeDir}/config/jobs"
 ```
 
-* **PETL Schedule**:  Jobs can be scheduled individually (see "Overview of Jobs" below) but a global schedule can also be provided.  All jobs without an individual schedule defined in their job.yml will be run according to this schedule.  See the "Overview of Jobs" section below for more details about the supported Cron format.
-
-```yaml
-petl:
-  ...
-  schedule:
-    cron: "0 0 5 ? * *"     # Cron-like expression that determines the execution frequency (see below)
-```
-
 * **PETL Startup Jobs**:  Jobs can be configured to run at startup in a deterministic order prior to any other scheduled jobs.
 
 ```yaml
@@ -105,8 +96,7 @@ petl:
       - "job1.yml"
 ```
 
-
-* Other server configuration:
+* **Other server configuration**:
 
 ```yaml
 server:
