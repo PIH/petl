@@ -24,6 +24,8 @@ public class JobConfig {
 
     private Schedule schedule;
 
+    private ErrorHandling errorHandling;
+
     public JobConfig() {}
 
     @Override
@@ -90,5 +92,16 @@ public class JobConfig {
 
     public void setSchedule(Schedule schedule) {
         this.schedule = schedule;
+    }
+
+    public ErrorHandling getErrorHandling() {
+        if (errorHandling == null) {
+            errorHandling = new ErrorHandling();
+        }
+        return errorHandling;
+    }
+
+    public void setErrorHandling(ErrorHandling errorHandling) {
+        this.errorHandling = errorHandling;
     }
 }
