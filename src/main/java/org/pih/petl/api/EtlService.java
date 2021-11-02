@@ -32,11 +32,16 @@ public class EtlService {
 
     private static Log log = LogFactory.getLog(EtlService.class);
 
-    @Autowired
-    ApplicationConfig applicationConfig;
+    final ApplicationConfig applicationConfig;
+    final JobExecutionRepository jobExecutionRepository;
+    final JobExecutor jobExecutor;
 
     @Autowired
-    JobExecutionRepository jobExecutionRepository;
+    public EtlService(ApplicationConfig applicationConfig, JobExecutionRepository jobExecutionRepository, JobExecutor jobExecutor) {
+        this.applicationConfig = applicationConfig;
+        this.jobExecutionRepository = jobExecutionRepository;
+        this.jobExecutor = jobExecutor;
+    }
 
     /**
      * This method will attempt to auto-detect and load all job configurations from the job directory
