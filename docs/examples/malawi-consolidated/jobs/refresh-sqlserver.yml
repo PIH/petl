@@ -3,8 +3,7 @@
 # We iterate over each specified tableName that we wish to import
 type: "iterating-job"
 configuration:
-  execution:
-    maxConcurrentJobs: 1  # Tweak this setting to import more or fewer tables concurrently, to hone performance
+  maxConcurrentJobs: 1  # Tweak this setting to import more or fewer tables concurrently, to hone performance
   jobTemplate:  # For each iteration, we execute a pipeline to import data into a given table
     type: "job-pipeline"
     configuration:
@@ -23,8 +22,7 @@ configuration:
         # Next step is we iterate over sources and import from each
         - type: "iterating-job"
           configuration:
-            execution:
-              maxConcurrentJobs: 2  # To run the Upper and Lower Neno imports at the same time, use 2.  Otherwise, use 1.
+            maxConcurrentJobs: 2  # To run the Upper and Lower Neno imports at the same time, use 2.  Otherwise, use 1.
             iterations:
               - extractDatasource: "upperNenoReporting.yml"
               - extractDatasource: "lowerNenoReporting.yml"

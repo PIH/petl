@@ -7,9 +7,7 @@ configuration:
     - path: "refresh-upper-neno.yml"
     - path: "refresh-lower-neno.yml"
     - path: "refresh-sqlserver.yml"
-  execution:
-    # This must be set to 1, as we need this pipeline to ensure that the first 2 jobs execute before the final job
-    maxConcurrentJobs: 1
+
 # If you never want this to execute on a schedule, but rather plan to execute it only from startup.jobs, you can remove this schedule property
 # If you wish to execute the job on a different schedule, you can adjust that here
 schedule:
