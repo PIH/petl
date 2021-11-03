@@ -12,7 +12,7 @@ configuration:
         # First step is we drop and recreate the schema
         - type: "create-table"
           configuration:
-            createFromTable:
+            source:
               datasource: "upperNenoReporting.yml" # We assume that the two source databases have the same schema, and choose one here
               tableName: "${tableName}"
             target:
