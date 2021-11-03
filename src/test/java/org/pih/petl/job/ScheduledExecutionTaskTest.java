@@ -3,7 +3,6 @@ package org.pih.petl.job;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.pih.petl.ApplicationConfig;
 import org.pih.petl.SpringRunnerTest;
 import org.pih.petl.api.EtlService;
 import org.pih.petl.api.JobExecutionRepository;
@@ -51,19 +50,8 @@ public class ScheduledExecutionTaskTest {
     @Test
     public void testRunningScheduledExecutionTaskShouldOnlyRunJobWithSchedule() throws Exception {
         jobExecutionRepository.deleteAll();
-        System.clearProperty(ApplicationConfig.PETL_SCHEDULE_CRON);
         scheduledExecutionTask.execute(jobExecutionContext);
         assertThat(etlService.getLatestJobExecution("jobWithSchedule.yml").getStatus(), is("Execution Successful"));
         assertNull(etlService.getLatestJobExecution("jobWithoutSchedule.yml"));
     }
-
-    @Test
-    public void testRunningScheduledExecutionTaskShouldBothJobsIfGlobalScheduleProvided() throws Exception {
-        jobExecutionRepository.deleteAll();
-        System.setProperty(ApplicationConfig.PETL_SCHEDULE_CRON, "0 30 6 ? * *");
-        scheduledExecutionTask.execute(jobExecutionContext);
-        assertThat(etlService.getLatestJobExecution("jobWithSchedule.yml").getStatus(), is("Execution Successful"));
-        assertThat(etlService.getLatestJobExecution("jobWithoutSchedule.yml").getStatus(), is("Execution Successful"));
-    }
-
 }

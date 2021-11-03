@@ -10,9 +10,9 @@ configuration:
 
     - type: "iterating-job"
       configuration:
-        execution:
-          maxConcurrentJobs: 10
-          maxRetriesPerJob: 5
+        maxConcurrentJobs: 10
+        errorHandling:
+          maxAttempts: 5
           retryInterval: 1
         jobTemplate:
           type: "job-pipeline"

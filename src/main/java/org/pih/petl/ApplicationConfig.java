@@ -9,9 +9,9 @@ import org.apache.commons.lang.text.StrSubstitutor;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.pih.petl.job.config.ConfigFile;
+import org.pih.petl.job.config.DataSource;
 import org.pih.petl.job.config.JobConfig;
-import org.pih.petl.job.config.DataSourceConfig;
-import org.pih.petl.job.config.Schedule;
+import org.pih.petl.job.config.PetlConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.AbstractEnvironment;
 import org.springframework.core.env.EnumerablePropertySource;
@@ -20,10 +20,8 @@ import org.springframework.core.env.PropertySource;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -36,20 +34,20 @@ public class ApplicationConfig {
 
     private static final Log log = LogFactory.getLog(ApplicationConfig.class);
 
-    public static final String PETL_HOME_DIR = "petl.homeDir";
-    public static final String PETL_JOB_DIR = "petl.jobDir";
-    public static final String PETL_DATASOURCE_DIR = "petl.datasourceDir";
-    public static final String PETL_SCHEDULE_CRON = "petl.schedule.cron";
-    public static final String PETL_STARTUP_JOBS = "petl.startup.jobs";
+    final Environment environment;
+    final PetlConfig petlConfig;
+
+    @Autowired
+    public ApplicationConfig(Environment environment, PetlConfig petlConfig) {
+        this.environment = environment;
+        this.petlConfig = petlConfig;
+    }
 
     public static final ObjectMapper getYamlMapper() {
         return new ObjectMapper(new YAMLFactory());
     }
 
     private Map<String, String> env = null;
-
-    @Autowired
-    Environment environment;
 
     /**
      * @return a Map of the environment that PETL is running in (Environment variables and system properties, etc)
@@ -75,21 +73,19 @@ public class ApplicationConfig {
     /**
      * @return the File representing the PETL_HOME directory
      */
-    public File getDirectoryFromEnvironment(String envName, boolean required) {
-        log.trace("Loading " + envName + " from environment");
-        String path = environment.getProperty(envName);
+    public File getRequiredDirectory(String propertyName, String path, boolean required) {
         if (StringUtils.isBlank(path)) {
             if (required) {
-                throw new PetlException("The " + envName + " environment variable is required.");
+                throw new PetlException("The " + propertyName + " environment variable is required.");
             }
             else {
                 return null;
             }
         }
-        log.trace(envName + " configuration found: " + path);
+        log.trace(propertyName + " configuration found: " + path);
         File dir = new File(path);
         if (!dir.exists() || !dir.isDirectory()) {
-            String message = envName + " = " + path + " does not point to a valid directory";
+            String message = propertyName + " = " + path + " does not point to a valid directory";
             if (required) {
                 throw new PetlException(message);
             }
@@ -101,55 +97,29 @@ public class ApplicationConfig {
         return dir;
     }
 
+    public PetlConfig getPetlConfig() {
+        return petlConfig;
+    }
+
     /**
      * @return the File representing the PETL_HOME directory
      */
     public File getPetlHomeDir() {
-        return getDirectoryFromEnvironment(PETL_HOME_DIR, true);
+        return getRequiredDirectory("petl.home", petlConfig.getHomeDir(), true);
     }
 
     /**
      * @return the directory in which job configurations are found for this PETL instance
      */
     public File getJobDir() {
-        return getDirectoryFromEnvironment(PETL_JOB_DIR, true);
+        return getRequiredDirectory("petl.jobDir", petlConfig.getJobDir(), true);
     }
 
     /**
      * @return the directory in which data source configurations are found for this PETL instance
      */
     public File getDataSourceDir() {
-        return getDirectoryFromEnvironment(PETL_DATASOURCE_DIR, true);
-    }
-
-    /**
-     * @return get any schedule set globally for this PETL instance
-     */
-    public Schedule getSchedule() {
-        if (environment.getProperty(PETL_SCHEDULE_CRON) != null) {
-            Schedule schedule = new Schedule();
-            schedule.setCron(environment.getProperty(PETL_SCHEDULE_CRON));
-            return schedule;
-        }
-        else {
-            return null;
-        }
-    }
-
-    public List<String> getStartupJobs() {
-        List<String> l = new ArrayList<>();
-        boolean allFound = false;
-        int index = 0;
-        while (!allFound) {
-            String val = environment.getProperty(PETL_STARTUP_JOBS + "[" + index++ + "]");
-            if (val != null) {
-                l.add(val);
-            }
-            else {
-                allFound = true;
-            }
-        }
-        return l;
+        return getRequiredDirectory("petl.datasourceDir", petlConfig.getDatasourceDir(), true);
     }
 
     public ConfigFile getJobConfigFile(String path) {
@@ -207,7 +177,7 @@ public class ApplicationConfig {
     /**
      * Convenience method to retrieve an EtlDataSource with the given path
      */
-    public DataSourceConfig getEtlDataSource(String path) {
+    public DataSource getEtlDataSource(String path) {
         ConfigFile configFile = new ConfigFile(getDataSourceDir(), path);
         if (!configFile.exists()) {
             throw new PetlException("ETL Datasource file not found: " + configFile);
@@ -215,23 +185,11 @@ public class ApplicationConfig {
         try {
             String fileContents = FileUtils.readFileToString(configFile.getConfigFile(), "UTF-8");
             String fileWithVariablesReplaced = StrSubstitutor.replace(fileContents, getEnv());
-            return getYamlMapper().readValue(fileWithVariablesReplaced, DataSourceConfig.class);
+            return getYamlMapper().readValue(fileWithVariablesReplaced, DataSource.class);
         }
         catch (Exception e) {
             throw new PetlException("Error reading " + path + " as an ETLDataSource", e);
         }
-    }
-
-    public String getJsonAsString(JsonNode jsonNode) {
-        if (jsonNode != null) {
-            try {
-                return getYamlMapper().writeValueAsString(jsonNode);
-            }
-            catch (Exception e) {
-                throw new IllegalStateException("Unable to write Object as string");
-            }
-        }
-        return null;
     }
 
     public JsonNode readJsonFromString(String jsonString) {

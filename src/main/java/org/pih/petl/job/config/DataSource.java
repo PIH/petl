@@ -20,9 +20,9 @@ import java.util.List;
 /**
  * Encapsulates a data source configuration
  */
-public class DataSourceConfig {
+public class DataSource {
 
-    private static Log log = LogFactory.getLog(DataSourceConfig.class);
+    private static Log log = LogFactory.getLog(DataSource.class);
 
     private String databaseType;
     private String host;
@@ -35,7 +35,7 @@ public class DataSourceConfig {
 
     //***** CONSTRUCTORS *****
 
-    public DataSourceConfig() {}
+    public DataSource() {}
 
     //***** INSTANCE METHODS *****
 
@@ -82,6 +82,23 @@ public class DataSourceConfig {
     public void dropTableIfExists(String tableName) throws SQLException {
         if (tableExists(tableName)) {
             executeUpdate("drop table " + tableName);
+        }
+    }
+
+    public boolean getBooleanResult(String query) throws SQLException {
+        try (Connection sourceConnection = openConnection()) {
+            boolean originalSourceAutoCommit = sourceConnection.getAutoCommit();
+            sourceConnection.setAutoCommit(false);
+            try (Statement statement = sourceConnection.createStatement()) {
+                statement.execute(query);
+                ResultSet resultSet = statement.getResultSet();
+                resultSet.next();
+                return resultSet.getBoolean(1);
+            }
+            finally {
+                sourceConnection.rollback();
+                sourceConnection.setAutoCommit(originalSourceAutoCommit);
+            }
         }
     }
 

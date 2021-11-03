@@ -1,57 +1,121 @@
 package org.pih.petl.api;
 
-import org.hibernate.query.criteria.internal.expression.function.AggregationFunction;
-import org.pih.petl.job.config.ExecutionConfig;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.pih.petl.PetlException;
+import org.pih.petl.job.config.ErrorHandling;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
 
 /**
  * Responsible for executing jobs using ExecutorService
  */
 public class JobExecutor {
 
-    public static final Integer MAX_ALLOWED_THREADS = 10;
+    private static Log log = LogFactory.getLog(JobExecutor.class);
 
-    public static void execute(List<JobExecutionTask> tasks, ExecutionContext context, ExecutionConfig config) throws InterruptedException, ExecutionException {
-        context.setStatus("Executing tasks");
+    private final Integer maxConcurrentJobs;
+    private final ScheduledExecutorService executorService;
 
-        int maxJobs = config.getMaxConcurrentJobs() == null ? 1 : (config.getMaxConcurrentJobs() < 0 ? MAX_ALLOWED_THREADS : config.getMaxConcurrentJobs());
+    public JobExecutor(Integer maxConcurrentJobs) {
+        this.maxConcurrentJobs = maxConcurrentJobs;
+        this.executorService = Executors.newScheduledThreadPool(maxConcurrentJobs);
+    }
 
-        if (maxJobs != 0) {
-            if (maxJobs == 1) {
-                // If only one job should be executed at a time, then this means we want to process in serial, not parallel,
-                // and we want to process each task and block on executing others unless tasks before execute successfully without exception
-                for (JobExecutionTask task : tasks) {
-                    Future<JobExecutionResult> resultFuture = Executors.newSingleThreadExecutor().submit(task);
-                    JobExecutionResult result = resultFuture.get(); // This will throw an exception if one thrown in the executed task
-                    if (!result.isSuccessful()) {
-                        throw new RuntimeException("An error occurred executing a job", result.getException());
-                    }
-                }
-            } else {
-                // Otherwise, if more than one job is configured to execute at a time, assume this means we want to execute in parallel
-                // And continue processing other jobs even if one or more of the jobs fail
-                ExecutorService executorService = Executors.newFixedThreadPool(config.getMaxConcurrentJobs());
-                List<Future<JobExecutionResult>> results = executorService.invokeAll(tasks);
-                executorService.shutdown();
 
-                // We only arrive here once all Tasks have been completed
-
-                for (Future<JobExecutionResult> resultFutures : results) {
-                    JobExecutionResult result = resultFutures.get();
-                    if (!result.isSuccessful()) {
-                        throw new RuntimeException("Error in one of the jobs", result.getException());
-                    }
-                }
-            }
+    /**
+     * Execute a single task
+     */
+    public void execute(List<JobExecutionTask> tasks) throws InterruptedException, ExecutionException {
+        if (maxConcurrentJobs == 1) {
+            executeInSeries(tasks);
         }
         else {
-            context.setStatus("Not executing job since it is configured with maxConcurrentJobs=0");
+            executeInParallel(tasks);
         }
     }
 
+    /**
+     * Execute a single task
+     */
+    public void execute(JobExecutionTask task) throws InterruptedException, ExecutionException {
+        executeInSeries(Collections.singletonList(task));
+    }
+
+    public void shutdown() {
+        if (!executorService.isShutdown()) {
+            executorService.shutdownNow();
+        }
+    }
+
+    /**
+     * Execute a List of jobs in parallel.
+     */
+    public void executeInParallel(List<JobExecutionTask> tasks) throws InterruptedException, ExecutionException {
+        List<JobExecutionResult> finalResults = new ArrayList<>();
+        List<JobExecutionTask> tasksToSchedule = new ArrayList<>(tasks);
+        while (tasksToSchedule.size() > 0) {
+            List<Future<JobExecutionResult>> futures = new ArrayList<>();
+            for (JobExecutionTask task : tasksToSchedule) {
+                if (task.getAttemptNum() == 1) {
+                    futures.add(executorService.submit(task));
+                    log.warn("Job " + task.getJobConfig() + " initial execution submitted");
+                }
+                else {
+                    ErrorHandling errorHandling = task.getJobConfig().getErrorHandling();
+                    futures.add(executorService.schedule(task, errorHandling.getRetryInterval(), errorHandling.getRetryIntervalUnit()));
+                    log.warn("Job " + task.getJobConfig() + " retry execution scheduled: " + errorHandling);
+                }
+            }
+            for (Future<JobExecutionResult> future : futures) {
+                JobExecutionResult result = future.get();
+                JobExecutionTask task = result.getJobExecutionTask();
+                if (result.isSuccessful() || task.getAttemptNum() >= task.getJobConfig().getErrorHandling().getMaxAttempts()) {
+                    finalResults.add(result);
+                    tasksToSchedule.remove(task);
+                }
+                else {
+                    task.incrementAttemptNum();
+                }
+            }
+        }
+        for (JobExecutionResult finalResult : finalResults) {
+            List<Throwable> errors = new ArrayList<>();
+            if (!finalResult.isSuccessful()) {
+                errors.add(finalResult.getException());
+            }
+            if (errors.size() > 0) {
+                log.error("There were errors in " + errors.size() + " / " + tasks);
+                for (Throwable t : errors) {
+                    log.error(t);
+                }
+                throw new PetlException("Error executing job");
+            }
+        }
+    }
+
+    /**
+     * Execute a List of jobs in series.  There is no retrying of failed jobs with this method.
+     * This is typically used by jobs that contain other jobs to run in parallel.  Retrying of failed jobs is done at the parent level.
+     */
+    public void executeInSeries(List<JobExecutionTask> tasks) throws InterruptedException, ExecutionException {
+        for (JobExecutionTask task : tasks) {
+            ErrorHandling errorHandling = task.getJobConfig().getErrorHandling();
+            JobExecutionResult result = executorService.submit(task).get(); // This blocks until result is available
+            while (!result.isSuccessful() && task.getAttemptNum() < errorHandling.getMaxAttempts()) {
+                task.incrementAttemptNum();
+                log.warn("Job " + task.getJobConfig() + " failed.  Reattempting with error handling: " + errorHandling);
+                result = executorService.schedule(task, errorHandling.getRetryInterval(), errorHandling.getRetryIntervalUnit()).get();
+            }
+            if (!result.isSuccessful()) {
+                throw new PetlException("Error executing job: " + task.getJobConfig(), result.getException());
+            }
+        }
+    }
 }

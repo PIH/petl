@@ -25,14 +25,16 @@ public class Application {
 
     private static final Log log = LogFactory.getLog(Application.class);
 
-    @Autowired
-    ApplicationConfig appConfig;
+    final ApplicationConfig appConfig;
+    final JobScheduler scheduler;
+    final EtlService etlService;
 
     @Autowired
-    JobScheduler scheduler;
-
-    @Autowired
-    EtlService etlService;
+    public Application(ApplicationConfig appConfig, JobScheduler scheduler, EtlService etlService) {
+        this.appConfig = appConfig;
+        this.scheduler = scheduler;
+        this.etlService = etlService;
+    }
 
     /**
      * Run the application
@@ -59,7 +61,7 @@ public class Application {
         app.getEtlService().markHungJobsAsRun();
 
         // Get and execute any jobs configured to run at startup
-        List<String> startupJobs = app.getAppConfig().getStartupJobs();
+        List<String> startupJobs = app.getAppConfig().getPetlConfig().getStartup().getJobs();
         log.info("STARTUP JOBS: " + startupJobs);
         for (String job : startupJobs) {
             log.info("Executing Startup Job: " + job);

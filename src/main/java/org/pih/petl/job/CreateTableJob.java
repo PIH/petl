@@ -6,7 +6,7 @@ import org.apache.commons.logging.LogFactory;
 import org.pih.petl.PetlException;
 import org.pih.petl.SqlUtils;
 import org.pih.petl.api.ExecutionContext;
-import org.pih.petl.job.config.DataSourceConfig;
+import org.pih.petl.job.config.DataSource;
 import org.pih.petl.job.config.JobConfigReader;
 import org.pih.petl.job.config.TableColumn;
 
@@ -20,12 +20,6 @@ public class CreateTableJob implements PetlJob {
     private static final Log log = LogFactory.getLog(CreateTableJob.class);
 
     /**
-     * Creates a new instance of the job
-     */
-    public CreateTableJob() {
-    }
-
-    /**
      * @see PetlJob
      */
     @Override
@@ -34,12 +28,12 @@ public class CreateTableJob implements PetlJob {
         JobConfigReader configReader = new JobConfigReader(context);
 
         // Get source datasource
-        DataSourceConfig sourceDatasource = configReader.getDataSource("source", "datasource");
+        DataSource sourceDatasource = configReader.getDataSource("source", "datasource");
         String sourceTable = configReader.getString("source", "tableName");
         String sourceSql = configReader.getFileContents("source", "sqlFile");
 
         // Get target datasource
-        DataSourceConfig targetDatasource = configReader.getDataSource("target", "datasource");
+        DataSource targetDatasource = configReader.getDataSource("target", "datasource");
         String targetTable = configReader.getString("target", "tableName");
         String actionIfExists = configReader.getString("target", "actionIfExists");
 

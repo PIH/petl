@@ -1,67 +1,56 @@
 package org.pih.petl.api;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.pih.petl.PetlException;
 import org.pih.petl.job.PetlJob;
-import org.pih.petl.job.config.ExecutionConfig;
 import org.pih.petl.job.config.JobConfig;
 
 import java.util.concurrent.Callable;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Represents an ETL job execution and the status of this
  */
 public class JobExecutionTask implements Callable<JobExecutionResult> {
 
-    private static Log log = LogFactory.getLog(JobExecutionTask.class);
+    private final ExecutionContext executionContext;
+    private int attemptNum = 1;
 
-    private final JobConfig jobConfig;
-    private final ExecutionContext context;
-    private final ExecutionConfig executionConfig;
+    public JobExecutionTask(ExecutionContext executionContext) {
+        this.executionContext = executionContext;
+    }
 
-    public JobExecutionTask(JobConfig jobConfig, ExecutionContext context, ExecutionConfig executionConfig) {
-        this.jobConfig = jobConfig;
-        this.context = context;
-        this.executionConfig = executionConfig;
+    @Override
+    public String toString() {
+        return getJobConfig() + " (#" + attemptNum + ")";
     }
 
     @Override
     public JobExecutionResult call() {
-        JobExecutionResult result = new JobExecutionResult();
-        int maxRetries = executionConfig.getMaxRetriesPerJob() == null ? 0 : executionConfig.getMaxRetriesPerJob();
-        int retryInterval = executionConfig.getRetryInterval() == null ? 5 : executionConfig.getRetryInterval();
-        TimeUnit retryUnit = executionConfig.getRetryIntervalUnit() == null ? TimeUnit.MINUTES : executionConfig.getRetryIntervalUnit();
-        for (int currentAttempt = 0; !result.isSuccessful() && currentAttempt <= maxRetries; currentAttempt++) {
-            context.setStatus("Executing job: " + jobConfig);
-            try {
-                PetlJob job = JobFactory.instantiate(jobConfig);
-                ExecutionContext nestedContext = new ExecutionContext(context.getJobExecution(), jobConfig, context.getApplicationConfig());
-                job.execute(nestedContext);
-                result.setSuccessful(true);
-                result.setException(null);
-            }
-            catch (Throwable t) {
-                result.setSuccessful(false);
-                result.setException(t);
-                StringBuilder status = new StringBuilder();
-                status.append("An error occurred executing job: " + t.getMessage());
-                if (currentAttempt < maxRetries) {
-                    status.append(". Will retry in ").append(retryInterval).append(" ").append(retryUnit).append(" (").append(currentAttempt+1).append("/").append(maxRetries).append(")");
-                    context.setStatus(status.toString());
-                    try {
-                        retryUnit.sleep(retryInterval);
-                    }
-                    catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                }
-                else {
-                    context.setStatus(status.toString());
-                    log.error(t);
-                }
-            }
+        JobExecutionResult result = new JobExecutionResult(this);
+         try {
+             PetlJob job = JobFactory.instantiate(executionContext.getJobConfig());
+             if (job == null) {
+                 throw new PetlException("Unable to find job of type: " + executionContext.getJobConfig().getType());
+             }
+             job.execute(executionContext);
+             result.setSuccessful(true);
+             result.setException(null);
+        }
+        catch (Throwable t) {
+            result.setSuccessful(false);
+            result.setException(t);
         }
         return result;
+    }
+
+    public JobConfig getJobConfig() {
+        return executionContext.getJobConfig();
+    }
+
+    public int getAttemptNum() {
+        return attemptNum;
+    }
+
+    public void incrementAttemptNum() {
+        this.attemptNum++;
     }
 }

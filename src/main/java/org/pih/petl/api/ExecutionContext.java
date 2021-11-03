@@ -23,6 +23,12 @@ public class ExecutionContext {
         this.applicationConfig = applicationConfig;
     }
 
+    public ExecutionContext(ExecutionContext parentContext, JobConfig childConfig) {
+        this.jobExecution = parentContext.getJobExecution();
+        this.applicationConfig = parentContext.getApplicationConfig();
+        this.jobConfig = childConfig;
+    }
+
     public JobExecution getJobExecution() {
         return jobExecution;
     }

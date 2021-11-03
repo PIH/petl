@@ -1,0 +1,8 @@
+type: "test-job"
+errorHandling:
+  maxAttempts: 10
+  retryInterval: 100
+  retryIntervalUnit: "MILLISECONDS"
+configuration:
+  testId: "testFailAfterMaxAttempts"
+  simulateFailure: "true"

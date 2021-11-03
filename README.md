@@ -86,15 +86,6 @@ petl:
   jobDir: "${petl.homeDir}/config/jobs"
 ```
 
-* **PETL Schedule**:  Jobs can be scheduled individually (see "Overview of Jobs" below) but a global schedule can also be provided.  All jobs without an individual schedule defined in their job.yml will be run according to this schedule.  See the "Overview of Jobs" section below for more details about the supported Cron format.
-
-```yaml
-petl:
-  ...
-  schedule:
-    cron: "0 0 5 ? * *"     # Cron-like expression that determines the execution frequency (see below)
-```
-
 * **PETL Startup Jobs**:  Jobs can be configured to run at startup in a deterministic order prior to any other scheduled jobs.
 
 ```yaml
@@ -105,8 +96,7 @@ petl:
       - "job1.yml"
 ```
 
-
-* Other server configuration:
+* **Other server configuration**:
 
 ```yaml
 server:
@@ -332,15 +322,23 @@ configuration:
 
 # job-pipeline
 
-A pipeline job allows combining multiple jobs together into a single job.  The execution of these jobs is configurable by an optional
-"execution" element.  If not specified, the default execution settings are:
+A pipeline job allows combining multiple jobs together into a single job.  By default, this will run each defined 
+job in series, and will only execute jobs if those defined before it in the list execute successfully.  One can
+modify this behavior to run the listed jobs in parallel and independently of the success of prior jobs by setting 
+the ```maxConcurrentJobs``` property to a value greater than 1.
 
 ```yaml
-execution:
-  maxConcurrentJobs: 1
-  maxRetriesPerJob: 0
+maxConcurrentJobs: 5
+```
+
+One can also control how errors are handled if encountered by nested jobs.  This is done via the ```errorHandling```
+configuration element as follows:
+
+```yaml
+errorHandling:
+  maxAttempts: 10
   retryInterval: 5
-  retryIntervalUnit: "MINUTES"
+  retryIntervalUnit: "MINUTES" # options are NANOSECONDS, MICROSECONDS, MILLISECONDS, SECONDS, MINUTES, HOURS, DAYS
 ```
 
 Jobs can either be specified inline or by referencing a separate job.yml file as shown below.
@@ -371,9 +369,24 @@ An iterating job allows a single job template to be executed for multiple iterat
 different variables that can configure the job template.  Any aspect of the yaml configuration, or any nested configuration files
 can refer to a variable as ${variableName}, and this will be replaced by the specified value for each iteration.
 
-Like the job-pipeline job, an iterating-job also allows specifying an "execution" element to control whether each iteration
-is run in series or in parallel, the max number of concurrent executions to run, and whether and how to retry iterations
-on failure.  See details in the "job-pipeline" job above for specifying the execution within the job configuration.
+Like the job-pipeline job, an iterating-job also defaults to executing on job at a time, in series, in the order each iteration
+is listed in the configuration file, and will only execute jobs if those defined before it in the list execute successfully.  One can
+modify this behavior to run the listed jobs in parallel and independently of the success of prior jobs by setting
+the ```maxConcurrentJobs``` property to a value greater than 1.
+
+```yaml
+maxConcurrentJobs: 5
+```
+
+One can also control how errors are handled if encountered by nested jobs.  This is done via the ```errorHandling```
+configuration element as follows:
+
+```yaml
+errorHandling:
+  maxAttempts: 10
+  retryInterval: 5
+  retryIntervalUnit: "MINUTES" # options are NANOSECONDS, MICROSECONDS, MILLISECONDS, SECONDS, MINUTES, HOURS, DAYS
+```
 
 Also like the job-pipeline, jobs can either be specified inline or by referencing a separate job.yml file.
 
