@@ -15,3 +15,5 @@ petl:
   homeDir: "/home/petl"
   datasourceDir: ""
   jobDir: ""
+
+testCronSchedule: "0 15 9 ? * *"

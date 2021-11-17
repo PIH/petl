@@ -12,6 +12,7 @@ import org.pih.petl.job.config.ConfigFile;
 import org.pih.petl.job.config.DataSource;
 import org.pih.petl.job.config.JobConfig;
 import org.pih.petl.job.config.PetlConfig;
+import org.pih.petl.job.config.Schedule;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.AbstractEnvironment;
 import org.springframework.core.env.EnumerablePropertySource;
@@ -152,6 +153,10 @@ public class ApplicationConfig {
         try {
             JobConfig config = getYamlMapper().treeToValue(configNode, JobConfig.class);
             config.setConfigFile(configFile);
+            if (config.getSchedule() != null && config.getSchedule().getCron() != null) {
+                Schedule schedule = config.getSchedule();
+                schedule.setCron(StrSubstitutor.replace(schedule.getCron(), parameters));
+            }
             Map<String, String> newParameters = new LinkedHashMap<>(parameters);
             for (String parameter : config.getParameters().keySet()) {
                 String value = config.getParameters().get(parameter);

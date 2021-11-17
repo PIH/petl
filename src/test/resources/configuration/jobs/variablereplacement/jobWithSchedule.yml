@@ -1,0 +1,13 @@
+type: "sqlserver-bulk-import"
+configuration:
+  extract:
+    datasource: "mysql-testcontainer.yml"
+    query:  "source.sql"
+
+  load:
+    datasource: "sqlserver-testcontainer.yml"
+    table: "encounter_types"
+    schema: "target.sql"
+
+schedule:
+  cron: "${testCronSchedule}"
