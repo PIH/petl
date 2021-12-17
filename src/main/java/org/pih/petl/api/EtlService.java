@@ -135,6 +135,7 @@ public class EtlService {
         catch (Exception e) {
             execution.setErrorMessage(e.getMessage().substring(0,1000));
             execution.setStatus("Execution Failed");
+			log.error("Job Execution Failed for " + jobPath, e);
             throw(new PetlException("Job Execution Failed for " + jobPath, e));
         }
         finally {
