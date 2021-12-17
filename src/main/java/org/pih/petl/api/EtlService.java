@@ -11,7 +11,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -134,7 +133,7 @@ public class EtlService {
             log.info("Job Successful: " + jobPath + " (" + executionUuid + ")");
         }
         catch (Exception e) {
-            execution.setErrorMessage(e.getMessage());
+            execution.setErrorMessage(e.getMessage().substring(1000));
             execution.setStatus("Execution Failed");
             throw(new PetlException("Job Execution Failed for " + jobPath, e));
         }
