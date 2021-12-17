@@ -133,7 +133,7 @@ public class EtlService {
             log.info("Job Successful: " + jobPath + " (" + executionUuid + ")");
         }
         catch (Exception e) {
-            execution.setErrorMessage(e.getMessage().substring(1000));
+            execution.setErrorMessage(e.getMessage().substring(0,1000));
             execution.setStatus("Execution Failed");
             throw(new PetlException("Job Execution Failed for " + jobPath, e));
         }
