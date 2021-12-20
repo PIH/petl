@@ -110,7 +110,7 @@ public class JobExecutor {
             JobExecutionResult result = executorService.submit(task).get(); // This blocks until result is available
             while (!result.isSuccessful() && task.getAttemptNum() < errorHandling.getMaxAttempts()) {
                 task.incrementAttemptNum();
-                log.warn("Job " + task.getJobConfig() + " failed.  Reattempting with error handling: " + errorHandling);
+                log.warn("Job " + task.getJobConfig() + " failed.  Reattempting with error handling: " + errorHandling, result.getException());
                 result = executorService.schedule(task, errorHandling.getRetryInterval(), errorHandling.getRetryIntervalUnit()).get();
             }
             if (!result.isSuccessful()) {
