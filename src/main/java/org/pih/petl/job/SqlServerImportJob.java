@@ -187,7 +187,7 @@ public class SqlServerImportJob implements PetlJob {
 
                                 sqlStatement = SqlUtils.addExtraColumnsToSelect(sqlStatement, extraColumns);
                                 log.warn("Executing SQL extraction");
-                                log.warn(sqlStatement);
+                                log.trace(sqlStatement);
 
                                 statement = sourceConnection.prepareStatement(
                                         sqlStatement, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY
