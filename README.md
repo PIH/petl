@@ -322,14 +322,9 @@ configuration:
 
 # job-pipeline
 
-A pipeline job allows combining multiple jobs together into a single job.  By default, this will run each defined 
-job in series, and will only execute jobs if those defined before it in the list execute successfully.  One can
-modify this behavior to run the listed jobs in parallel and independently of the success of prior jobs by setting 
-the ```maxConcurrentJobs``` property to a value greater than 1.
-
-```yaml
-maxConcurrentJobs: 5
-```
+A pipeline job allows combining multiple jobs together into a single job.  This will run each defined job in the order
+in which it is defined, in series, and will halt execution upon error, only executing subsequent jobs if 
+those defined before it in the list execute successfully.
 
 One can also control how errors are handled if encountered by nested jobs.  This is done via the ```errorHandling```
 configuration element as follows:
@@ -355,7 +350,6 @@ configuration:
         jobs:
           - "load-lower-neno.yml"
   execution:
-    maxConcurrentJobs: 1
     maxRetriesPerJob: 5
     retryInterval: 30
     retryIntervalUnit: "MINUTES"
@@ -369,10 +363,9 @@ An iterating job allows a single job template to be executed for multiple iterat
 different variables that can configure the job template.  Any aspect of the yaml configuration, or any nested configuration files
 can refer to a variable as ${variableName}, and this will be replaced by the specified value for each iteration.
 
-Like the job-pipeline job, an iterating-job also defaults to executing on job at a time, in series, in the order each iteration
-is listed in the configuration file, and will only execute jobs if those defined before it in the list execute successfully.  One can
-modify this behavior to run the listed jobs in parallel and independently of the success of prior jobs by setting
-the ```maxConcurrentJobs``` property to a value greater than 1.
+Unlike the job-pipeline job, an iterating-job will attempt to execute each job iteration, regardless of whether other
+iterations have failed.  By default, only one job is executed at at time, but this can be modified to allow more than one
+iteration to execute in parallel by adding a ```maxConcurrentJobs``` configuration property to a value greater than 1.
 
 ```yaml
 maxConcurrentJobs: 5

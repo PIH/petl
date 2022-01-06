@@ -38,7 +38,7 @@ public class IteratingJob implements PetlJob {
                 iterationTasks.add(new JobExecutionTask(new ExecutionContext(context, childConfig)));
                 context.setStatus("Adding iteration task: " + iterationVars);
             }
-            jobExecutor.execute(iterationTasks);
+            jobExecutor.executeInParallel(iterationTasks);
         }
         finally {
             jobExecutor.shutdown();

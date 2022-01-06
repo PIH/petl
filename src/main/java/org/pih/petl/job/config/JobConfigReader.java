@@ -129,7 +129,15 @@ public class JobConfigReader {
     public Integer getInt(Integer defaultValue, String...keys) {
         JsonNode n = get(keys);
         if (n != null) {
-            return n.asInt();
+            if (n.isInt()) {
+                return n.asInt();
+            }
+            else {
+                String stringVal = getString(n);
+                if (StringUtils.isNotEmpty(stringVal)) {
+                    return Integer.parseInt(stringVal);
+                }
+            }
         }
         return defaultValue;
     }
