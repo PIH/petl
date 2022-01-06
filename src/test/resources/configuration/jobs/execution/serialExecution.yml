@@ -1,6 +1,5 @@
 type: "job-pipeline"
 configuration:
-  maxConcurrentJobs: 1
   jobs:
     - type: "test-job"
       errorHandling:

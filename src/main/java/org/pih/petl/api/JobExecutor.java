@@ -28,19 +28,6 @@ public class JobExecutor {
         this.executorService = Executors.newScheduledThreadPool(maxConcurrentJobs);
     }
 
-
-    /**
-     * Execute a single task
-     */
-    public void execute(List<JobExecutionTask> tasks) throws InterruptedException, ExecutionException {
-        if (maxConcurrentJobs == 1) {
-            executeInSeries(tasks);
-        }
-        else {
-            executeInParallel(tasks);
-        }
-    }
-
     /**
      * Execute a single task
      */
