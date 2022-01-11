@@ -1,6 +1,7 @@
 package org.pih.petl.api;
 
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.pih.petl.ApplicationConfig;
@@ -129,14 +130,15 @@ public class EtlService {
         try {
             saveJobExecution(execution);
             jobExecutor.execute(new JobExecutionTask(new ExecutionContext(execution, jobConfig, applicationConfig)));
-            execution.setStatus("Execution Successful");
+            execution.setStatus(JobExecutionStatus.SUCCESS);
             log.info("Job Successful: " + jobPath + " (" + executionUuid + ")");
         }
-        catch (Exception e) {
-            execution.setErrorMessage(e.getMessage().substring(0,1000));
-            execution.setStatus("Execution Failed");
-			log.error("Job Execution Failed for " + jobPath, e);
-            throw(new PetlException("Job Execution Failed for " + jobPath, e));
+        catch (Throwable t) {
+            String exception = ExceptionUtils.getMessage(t);
+            execution.setErrorMessage(exception.substring(0,1000));
+            execution.setStatus(JobExecutionStatus.FAILED);
+			log.error("Job Execution Failed for " + jobPath, t);
+            throw(new PetlException("Job Execution Failed for " + jobPath, t));
         }
         finally {
             execution.setCompleted(new Date());

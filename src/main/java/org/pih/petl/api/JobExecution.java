@@ -5,16 +5,11 @@ import javax.persistence.Entity;
 import javax.persistence.Id;
 import java.util.Date;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 /**
  * Represents an ETL job execution and the status of this
  */
 @Entity(name = "petl_job_execution")
 public class JobExecution {
-
-    private static Log log = LogFactory.getLog(JobExecution.class);
 
     @Id
     private String uuid;
@@ -22,20 +17,14 @@ public class JobExecution {
     @Column(name = "job_path", nullable = false, length = 100)
     private String jobPath;
 
-    @Column(name = "total_expected")
-    private Integer totalExpected;
-
-    @Column(name = "total_loaded")
-    private Integer totalLoaded;
-
     @Column(name = "started", nullable = false)
     private Date started;
 
     @Column(name = "completed")
     private Date completed;
 
-    @Column(name = "status", nullable = false, length = 1000)
-    private String status;
+    @Column(name = "status", nullable = false, length = 50)
+    private JobExecutionStatus status;
 
     @Column(name = "error_message", length = 1000)
     private String errorMessage;
@@ -46,7 +35,7 @@ public class JobExecution {
         this.uuid = uuid;
         this.jobPath = jobPath;
         this.started = new Date();
-        this.status = "Execution Initiated";
+        this.status = JobExecutionStatus.IN_PROGRESS;
     }
 
     public int getDurationSeconds() {
@@ -60,11 +49,11 @@ public class JobExecution {
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("Job " + jobPath + " (" + uuid + "): " + status);
-        if (totalLoaded != null && totalExpected != null) {
-            sb.append(" ").append(totalLoaded + "/" + totalExpected);
-        }
-        if (started != null && completed != null) {
-            sb.append(" in " + getDurationSeconds() + " seconds");
+        if (started != null) {
+            sb.append(", started: " + started);
+            if (completed != null) {
+                sb.append(", completed: " + completed);
+            }
         }
         if (errorMessage != null) {
             sb.append(" ERROR: " + errorMessage);
@@ -88,27 +77,11 @@ public class JobExecution {
         this.jobPath = jobPath;
     }
 
-    public Integer getTotalExpected() {
-        return totalExpected;
-    }
-
-    public void setTotalExpected(Integer totalExpected) {
-        this.totalExpected = totalExpected;
-    }
-
-    public Integer getTotalLoaded() {
-        return totalLoaded;
-    }
-
-    public void setTotalLoaded(Integer totalLoaded) {
-        this.totalLoaded = totalLoaded;
-    }
-
-    public String getStatus() {
+    public JobExecutionStatus getStatus() {
         return status;
     }
 
-    public void setStatus(String status) {
+    public void setStatus(JobExecutionStatus status) {
         this.status = status;
     }
 
