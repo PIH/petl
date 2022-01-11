@@ -15,6 +15,7 @@ import java.util.List;
 public class StartupConfig {
 
     private List<String> jobs;
+    private boolean exitAutomatically;
 
     public StartupConfig() {
     }
@@ -28,5 +29,13 @@ public class StartupConfig {
 
     public void setJobs(List<String> jobs) {
         this.jobs = jobs;
+    }
+
+    public boolean isExitAutomatically() {
+        return exitAutomatically;
+    }
+
+    public void setExitAutomatically(boolean exitAutomatically) {
+        this.exitAutomatically = exitAutomatically;
     }
 }
