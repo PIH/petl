@@ -61,11 +61,28 @@ public class Application {
         app.getEtlService().markHungJobsAsRun();
 
         // Get and execute any jobs configured to run at startup
-        List<String> startupJobs = app.getAppConfig().getPetlConfig().getStartup().getJobs();
-        log.info("STARTUP JOBS: " + startupJobs);
-        for (String job : startupJobs) {
-            log.info("Executing Startup Job: " + job);
-            app.getEtlService().executeJob(job);
+        PetlExitCodeGenerator exitCodeGenerator = new PetlExitCodeGenerator();
+        try {
+            List<String> startupJobs = app.getAppConfig().getPetlConfig().getStartup().getJobs();
+            log.info("STARTUP JOBS: " + startupJobs);
+            for (String job : startupJobs) {
+                log.info("Executing Startup Job: " + job);
+                app.getEtlService().executeJob(job);
+            }
+        }
+        catch (Exception e) {
+            exitCodeGenerator.addException(e);
+            throw e;
+        }
+        finally {
+            // If configured to exist after startup jobs, exit application
+            if (app.getAppConfig().getPetlConfig().getStartup().isExitAutomatically()) {
+                int exitCode = SpringApplication.exit(context, exitCodeGenerator);
+                for (Throwable exception : exitCodeGenerator.getExceptions()) {
+                    log.error(exception);
+                }
+                System.exit(exitCode);
+            }
         }
 
         // Set up the schedule to check if any etl jobs need to execute every minute
