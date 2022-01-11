@@ -96,6 +96,19 @@ petl:
       - "job1.yml"
 ```
 
+* **PETL Startup Exit Automatically**:  PETL can be configured to startup, execute start jobs, and then exit.  To do so,
+    you configure this per below.  When executed in this way, successful execution will yield an exit code of 0, whereas 
+    an execution that results in errors will yield an exit code of 1.
+
+```yaml
+petl:
+  ...
+  startup:
+    jobs:
+      - "job1.yml"
+    exitAutomatically: true
+```
+
 * **Other server configuration**:
 
 ```yaml
