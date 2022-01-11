@@ -52,7 +52,7 @@ public class ScheduledExecutionTaskTest {
     public void testRunningScheduledExecutionTaskShouldOnlyRunJobWithSchedule() throws Exception {
         jobExecutionRepository.deleteAll();
         scheduledExecutionTask.execute(jobExecutionContext);
-        assertThat(etlService.getLatestJobExecution("jobWithSchedule.yml").getStatus(), is(JobExecutionStatus.SUCCESS));
+        assertThat(etlService.getLatestJobExecution("jobWithSchedule.yml").getStatus(), is(JobExecutionStatus.SUCCEEDED));
         assertNull(etlService.getLatestJobExecution("jobWithoutSchedule.yml"));
     }
 }

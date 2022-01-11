@@ -115,6 +115,7 @@ public class EtlService {
     public void markHungJobsAsRun() {
         for (JobExecution jobExecution : jobExecutionRepository.findJobExecutionsByCompletedIsNullAndStartedIsNotNull()) {
             jobExecution.setCompleted(new Date());
+            jobExecution.setStatus(JobExecutionStatus.ABORTED);
             jobExecutionRepository.save(jobExecution);
         }
     }
@@ -130,7 +131,7 @@ public class EtlService {
         try {
             saveJobExecution(execution);
             jobExecutor.execute(new JobExecutionTask(new ExecutionContext(execution, jobConfig, applicationConfig)));
-            execution.setStatus(JobExecutionStatus.SUCCESS);
+            execution.setStatus(JobExecutionStatus.SUCCEEDED);
             log.info("Job Successful: " + jobPath + " (" + executionUuid + ")");
         }
         catch (Throwable t) {
