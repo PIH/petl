@@ -4,6 +4,7 @@ import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import java.util.Date;
+import java.util.UUID;
 
 /**
  * Represents an ETL job execution and the status of this
@@ -14,8 +15,14 @@ public class JobExecution {
     @Id
     private String uuid;
 
-    @Column(name = "job_path", nullable = false, length = 100)
+    @Column(name = "job_path", length = 1000)
     private String jobPath;
+
+    @Column(name ="parent_execution_uuid", length = 36)
+    private String parentExecutionUuid;
+
+    @Column(name = "description", length = 1000)
+    private String description;
 
     @Column(name = "started", nullable = false)
     private Date started;
@@ -31,9 +38,15 @@ public class JobExecution {
 
     public JobExecution() {}
 
-    public JobExecution(String uuid, String jobPath) {
-        this.uuid = uuid;
+    public JobExecution(String jobPath) {
+        this(jobPath, null, null);
+    }
+
+    public JobExecution(String jobPath, String parentExecutionUuid, String description) {
+        this.uuid = UUID.randomUUID().toString();
         this.jobPath = jobPath;
+        this.parentExecutionUuid = parentExecutionUuid;
+        this.description = description;
         this.started = new Date();
         this.status = JobExecutionStatus.IN_PROGRESS;
     }
@@ -48,7 +61,13 @@ public class JobExecution {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append("Job " + jobPath + " (" + uuid + "): " + status);
+        sb.append("Job " + " (" + uuid + "): " + status);
+        if (jobPath != null) {
+            sb.append(", path: " + jobPath);
+        }
+        if (description != null) {
+            sb.append(", description: " + description);
+        }
         if (started != null) {
             sb.append(", started: " + started);
             if (completed != null) {
@@ -75,6 +94,22 @@ public class JobExecution {
 
     public void setJobPath(String jobPath) {
         this.jobPath = jobPath;
+    }
+
+    public String getParentExecutionUuid() {
+        return parentExecutionUuid;
+    }
+
+    public void setParentExecutionUuid(String parentExecutionUuid) {
+        this.parentExecutionUuid = parentExecutionUuid;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 
     public JobExecutionStatus getStatus() {

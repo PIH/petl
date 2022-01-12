@@ -23,7 +23,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.UUID;
 
 /**
  * Core service methods for loading jobs, executing jobs, and tracking the status of job executions
@@ -144,16 +143,15 @@ public class EtlService {
      */
     public JobExecution executeJob(String jobPath) {
         JobConfig jobConfig = applicationConfig.getPetlJobConfig(jobPath);
-        String executionUuid = UUID.randomUUID().toString();
-        JobExecution execution = new JobExecution(executionUuid, jobPath);
-        log.info("Executing Job: " + jobPath + " (" + executionUuid + ")");
+        JobExecution execution = new JobExecution(jobPath);
+        log.info("Executing Job: " + execution);
         try {
             saveJobExecution(execution);
             PetlJob petlJob = getPetlJob(jobConfig);
             ExecutionContext context = new ExecutionContext(execution, jobConfig, applicationConfig);
             jobExecutor.execute(new JobExecutionTask(petlJob, context));
             execution.setStatus(JobExecutionStatus.SUCCEEDED);
-            log.info("Job Successful: " + jobPath + " (" + executionUuid + ")");
+            log.info("Job Successful: " + execution);
         }
         catch (Throwable t) {
             String exception = ExceptionUtils.getMessage(t);

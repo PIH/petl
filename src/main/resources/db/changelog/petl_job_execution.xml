@@ -71,4 +71,30 @@
 		<modifyDataType tableName="petl_job_execution" columnName="status" newDataType="varchar(50)" />
 	</changeSet>
 
+	<changeSet id="PETL-117-7" author="PIH">
+		<modifyDataType tableName="petl_job_execution" columnName="job_path" newDataType="varchar(1000)" />
+	</changeSet>
+
+	<changeSet id="PETL-117-8" author="PIH">
+		<preConditions onFail="MARK_RAN">
+			<not><columnExists tableName="petl_job_execution" columnName="parent_execution_uuid" /></not>
+		</preConditions>
+		<addColumn tableName="petl_job_execution">
+			<column name="parent_execution_uuid" type="char(36)" />
+		</addColumn>
+	</changeSet>
+
+	<changeSet id="PETL-117-9" author="PIH">
+		<preConditions onFail="MARK_RAN">
+			<not><columnExists tableName="petl_job_execution" columnName="description" /></not>
+		</preConditions>
+		<addColumn tableName="petl_job_execution">
+			<column name="description" type="varchar(1000)" />
+		</addColumn>
+	</changeSet>
+
+	<changeSet id="PETL-117-10" author="PIH">
+		<dropNotNullConstraint tableName="petl_job_execution" columnName="job_path" />
+	</changeSet>
+
 </databaseChangeLog>
