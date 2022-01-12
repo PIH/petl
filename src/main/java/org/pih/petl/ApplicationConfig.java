@@ -153,16 +153,21 @@ public class ApplicationConfig {
         try {
             JobConfig config = getYamlMapper().treeToValue(configNode, JobConfig.class);
             config.setConfigFile(configFile);
-            if (config.getSchedule() != null && config.getSchedule().getCron() != null) {
-                Schedule schedule = config.getSchedule();
-                schedule.setCron(StrSubstitutor.replace(schedule.getCron(), parameters));
-            }
             Map<String, String> newParameters = new LinkedHashMap<>(parameters);
             for (String parameter : config.getParameters().keySet()) {
                 String value = config.getParameters().get(parameter);
                 newParameters.put(parameter, StrSubstitutor.replace(value, parameters));
             }
             config.setParameters(newParameters);
+
+            if (config.getSchedule() != null && config.getSchedule().getCron() != null) {
+                Schedule schedule = config.getSchedule();
+                schedule.setCron(StrSubstitutor.replace(schedule.getCron(), config.getParameters()));
+            }
+            if (config.getDescription() != null) {
+                config.setDescription(StrSubstitutor.replace(config.getDescription(), config.getParameters()));
+            }
+
             if (StringUtils.isNotEmpty(config.getPath())) {
                 ConfigFile configFileAtPath = getJobConfigFile(config.getPath());
                 if (!configFileAtPath.exists()) {

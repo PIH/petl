@@ -2,6 +2,7 @@ package org.pih.petl.job.config;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.JsonNode;
+import org.apache.commons.lang.StringUtils;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -15,6 +16,8 @@ public class JobConfig {
     private ConfigFile configFile; // This is the file in which this job is configured.  This may be nested in another config.
 
     private String path;
+
+    private String description;
 
     private String type;
 
@@ -30,6 +33,9 @@ public class JobConfig {
 
     @Override
     public String toString() {
+        if (StringUtils.isNotEmpty(description)) {
+            return description;
+        }
         Map<String, String> ret = new LinkedHashMap<>();
         if (path != null) {
             ret.put("path", path);
@@ -57,6 +63,14 @@ public class JobConfig {
 
     public void setPath(String path) {
         this.path = path;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 
     public String getType() {
