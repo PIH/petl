@@ -3,6 +3,7 @@ package org.pih.petl;
 import org.pih.petl.api.ExecutionContext;
 import org.pih.petl.job.PetlJob;
 import org.pih.petl.job.config.JobConfigReader;
+import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -10,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+@Component("test-job")
 public class TestJob implements PetlJob {
 
     public static final Map<String, Integer> attemptNum = new HashMap<>();

@@ -5,7 +5,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.pih.petl.SpringRunnerTest;
 import org.pih.petl.TestJob;
-import org.pih.petl.api.JobFactory;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -23,7 +22,6 @@ public class ExecutionTest extends BasePetlTest {
 
     static {
         SpringRunnerTest.setupEnvironment();
-        JobFactory.registerJobType("test-job", TestJob.class);
     }
 
     @Override

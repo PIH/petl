@@ -13,6 +13,7 @@ import org.pentaho.di.job.JobMeta;
 import org.pih.petl.PetlException;
 import org.pih.petl.api.ExecutionContext;
 import org.pih.petl.job.config.JobConfigReader;
+import org.springframework.stereotype.Component;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -23,6 +24,7 @@ import java.util.Set;
 /**
  * This class is responsible for running a Pentaho Kettle PetlJob
  */
+@Component("pentaho-job")
 public class PentahoJob implements PetlJob {
 
     private static final Log log = LogFactory.getLog(PentahoJob.class);

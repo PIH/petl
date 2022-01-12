@@ -9,12 +9,14 @@ import org.pih.petl.api.ExecutionContext;
 import org.pih.petl.job.config.DataSource;
 import org.pih.petl.job.config.JobConfigReader;
 import org.pih.petl.job.config.TableColumn;
+import org.springframework.stereotype.Component;
 
 import java.util.List;
 
 /**
  * PetlJob that can create a table
  */
+@Component("create-table")
 public class CreateTableJob implements PetlJob {
 
     private static final Log log = LogFactory.getLog(CreateTableJob.class);

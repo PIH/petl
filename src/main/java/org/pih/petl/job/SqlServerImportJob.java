@@ -15,6 +15,7 @@ import org.pih.petl.api.ExecutionContext;
 import org.pih.petl.job.config.DataSource;
 import org.pih.petl.job.config.JobConfigReader;
 import org.pih.petl.job.config.TableColumn;
+import org.springframework.stereotype.Component;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -28,6 +29,7 @@ import java.util.List;
 /**
  * PetlJob that can load into SQL Server table
  */
+@Component("sqlserver-bulk-import")
 public class SqlServerImportJob implements PetlJob {
 
     private static Log log = LogFactory.getLog(SqlServerImportJob.class);

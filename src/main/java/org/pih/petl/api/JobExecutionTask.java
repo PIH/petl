@@ -11,10 +11,12 @@ import java.util.concurrent.Callable;
  */
 public class JobExecutionTask implements Callable<JobExecutionResult> {
 
+    private final PetlJob petlJob;
     private final ExecutionContext executionContext;
     private int attemptNum = 1;
 
-    public JobExecutionTask(ExecutionContext executionContext) {
+    public JobExecutionTask(PetlJob petlJob, ExecutionContext executionContext) {
+        this.petlJob = petlJob;
         this.executionContext = executionContext;
     }
 
@@ -27,11 +29,7 @@ public class JobExecutionTask implements Callable<JobExecutionResult> {
     public JobExecutionResult call() {
         JobExecutionResult result = new JobExecutionResult(this);
          try {
-             PetlJob job = JobFactory.instantiate(executionContext.getJobConfig());
-             if (job == null) {
-                 throw new PetlException("Unable to find job of type: " + executionContext.getJobConfig().getType());
-             }
-             job.execute(executionContext);
+             petlJob.execute(executionContext);
              result.setSuccessful(true);
              result.setException(null);
         }

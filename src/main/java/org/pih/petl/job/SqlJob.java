@@ -8,6 +8,7 @@ import org.pih.petl.SqlUtils;
 import org.pih.petl.api.ExecutionContext;
 import org.pih.petl.job.config.DataSource;
 import org.pih.petl.job.config.JobConfigReader;
+import org.springframework.stereotype.Component;
 
 import java.sql.Connection;
 import java.sql.Statement;
@@ -16,6 +17,7 @@ import java.util.List;
 /**
  * Encapsulates a particular ETL job configuration
  */
+@Component("sql-execution")
 public class SqlJob implements PetlJob {
 
     private static Log log = LogFactory.getLog(SqlJob.class);
