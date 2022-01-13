@@ -1,7 +1,5 @@
 package org.pih.petl.api;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.pih.petl.job.config.JobConfig;
 
 /**
@@ -9,11 +7,8 @@ import org.pih.petl.job.config.JobConfig;
  */
 public class ExecutionContext {
 
-    private static Log log = LogFactory.getLog(ExecutionContext.class);
-
     private JobExecution jobExecution;
     private JobConfig jobConfig;
-    private String status;
 
     public ExecutionContext(JobExecution jobExecution, JobConfig jobConfig) {
         this.jobExecution = jobExecution;
@@ -26,14 +21,5 @@ public class ExecutionContext {
 
     public JobConfig getJobConfig() {
         return jobConfig;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        log.debug(jobConfig.getType() + ": " + status);
-        this.status = status;
     }
 }

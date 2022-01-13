@@ -1,6 +1,8 @@
 package org.pih.petl.job;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.pih.petl.api.EtlService;
 import org.pih.petl.api.ExecutionContext;
 import org.pih.petl.api.JobExecution;
@@ -20,6 +22,8 @@ import java.util.List;
 @Component("job-pipeline")
 public class RunMultipleJob implements PetlJob {
 
+    private final Log log = LogFactory.getLog(getClass());
+
     @Autowired
     EtlService etlService;
 
@@ -32,7 +36,7 @@ public class RunMultipleJob implements PetlJob {
         JobExecutor jobExecutor = new JobExecutor(etlService, 1);
         try {
             List<JsonNode> jobTemplates = configReader.getList("jobs");
-            context.setStatus("Executing " + jobTemplates.size() + " jobs");
+            log.debug("Executing " + jobTemplates.size() + " jobs");
             List<JobExecutionTask> tasks = new ArrayList<>();
             for (JsonNode jobTemplate : jobTemplates) {
                 JobConfig childConfig = configReader.getJobConfig(jobTemplate);

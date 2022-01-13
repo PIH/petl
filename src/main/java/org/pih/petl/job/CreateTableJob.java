@@ -21,7 +21,7 @@ import java.util.List;
 @Component("create-table")
 public class CreateTableJob implements PetlJob {
 
-    private static final Log log = LogFactory.getLog(CreateTableJob.class);
+    private final Log log = LogFactory.getLog(getClass());
 
     @Autowired
     ApplicationConfig applicationConfig;
@@ -31,7 +31,7 @@ public class CreateTableJob implements PetlJob {
      */
     @Override
     public void execute(final ExecutionContext context) throws Exception {
-        context.setStatus("Executing CreateTableJob");
+        log.debug("Executing CreateTableJob");
         JobConfigReader configReader = new JobConfigReader(applicationConfig, context.getJobConfig());
 
         // Get source datasource
@@ -48,22 +48,22 @@ public class CreateTableJob implements PetlJob {
 
         boolean tableExists = targetDatasource.tableExists(targetTable);
         if (tableExists) {
-            context.setStatus("Table " + targetTable + " already exists.");
+            log.debug("Table " + targetTable + " already exists.");
             if ("drop".equalsIgnoreCase(actionIfExists)) {
-                context.setStatus("Dropping existing table");
+                log.debug("Dropping existing table");
                 targetDatasource.dropTableIfExists(targetTable);
                 tableExists = false;
             }
             else if ("dropIfChanged".equalsIgnoreCase(actionIfExists)) {
-                context.setStatus("Checking whether target table schema has changed");
+                log.debug("Checking whether target table schema has changed");
                 List<TableColumn> existingColumns = targetDatasource.getTableColumns(targetTable);
                 List<TableColumn> newColumns;
                 if (sourceDatasource != null && StringUtils.isNotEmpty(sourceTable)) {
-                    context.setStatus("Checking source datasource for column definitions");
+                    log.debug("Checking source datasource for column definitions");
                     newColumns = sourceDatasource.getTableColumns(sourceTable);
                 }
                 else if (StringUtils.isNotEmpty(sourceSql)) {
-                    context.setStatus("Checking target sql for schema changes, and dropping if schema has changed");
+                    log.debug("Checking target sql for schema changes, and dropping if schema has changed");
                     String tempTableName = SqlUtils.getTableName(sourceSql) + "_temp";
                     String tempTableSchema = SqlUtils.addSuffixToCreatedTablename(sourceSql, "_temp");
                     targetDatasource.dropTableIfExists(tempTableName);
@@ -80,7 +80,7 @@ public class CreateTableJob implements PetlJob {
                     schemaChanged = !existingColumns.isEmpty();
                 }
                 if (schemaChanged) {
-                    context.setStatus("Change detected.  Dropping existing schema");
+                    log.debug("Change detected.  Dropping existing schema");
                     log.trace("Existing=" + existingColumns);
                     log.trace("New=" + newColumns);
                     targetDatasource.dropTableIfExists(targetTable);
@@ -90,7 +90,7 @@ public class CreateTableJob implements PetlJob {
         }
 
         if (tableExists) {
-            context.setStatus("Table " + targetTable + " already exists.  Not recreating");
+            log.debug("Table " + targetTable + " already exists.  Not recreating");
             return;
         }
 
@@ -119,7 +119,7 @@ public class CreateTableJob implements PetlJob {
             throw new PetlException("No schema to execute was found");
         }
 
-        context.setStatus("Creating schema");
+        log.debug("Creating schema");
         log.trace(schemaToExecute);
         targetDatasource.executeUpdate(schemaToExecute);
     }

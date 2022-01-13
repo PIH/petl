@@ -2,6 +2,8 @@ package org.pih.petl.job;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.commons.lang.text.StrSubstitutor;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.pih.petl.api.EtlService;
 import org.pih.petl.api.ExecutionContext;
 import org.pih.petl.api.JobExecution;
@@ -22,6 +24,8 @@ import java.util.Map;
 @Component("iterating-job")
 public class IteratingJob implements PetlJob {
 
+    private final Log log = LogFactory.getLog(getClass());
+
     @Autowired
     EtlService etlService;
 
@@ -30,7 +34,7 @@ public class IteratingJob implements PetlJob {
      */
     @Override
     public void execute(final ExecutionContext context) throws Exception {
-        context.setStatus("Executing IteratingJob");
+        log.debug("Executing IteratingJob");
         JobConfigReader configReader = new JobConfigReader(etlService.getApplicationConfig(), context.getJobConfig());
         JobExecutor jobExecutor = new JobExecutor(etlService, configReader.getInt(1, "maxConcurrentJobs"));
         try {
@@ -47,7 +51,7 @@ public class IteratingJob implements PetlJob {
                 JobExecution childExecution = new JobExecution(null, context.getJobExecution().getUuid(), childConfig.getDescription());
                 ExecutionContext iterationContext = new ExecutionContext(childExecution, childConfig);
                 iterationTasks.add(new JobExecutionTask(etlService, petlJob, iterationContext));
-                context.setStatus("Adding iteration task: " + iterationVars);
+                log.debug("Adding iteration task: " + iterationVars);
             }
             jobExecutor.executeInParallel(iterationTasks);
         }

@@ -22,7 +22,7 @@ import java.util.List;
 @Component("sql-execution")
 public class SqlJob implements PetlJob {
 
-    private static Log log = LogFactory.getLog(SqlJob.class);
+    private final Log log = LogFactory.getLog(getClass());
 
     @Autowired
     ApplicationConfig applicationConfig;
@@ -32,14 +32,14 @@ public class SqlJob implements PetlJob {
      */
     @Override
     public void execute(final ExecutionContext context) throws Exception {
-        context.setStatus("Executing SqlJob");
+        log.debug("Executing SqlJob");
         JobConfigReader configReader = new JobConfigReader(applicationConfig, context.getJobConfig());
 
         String delimiter = configReader.getString("delimiter");
 
         DataSource dataSource = configReader.getDataSource("datasource");
         for (String sqlFile : configReader.getStringList("scripts")) {
-            context.setStatus("Executing Sql Script: " + sqlFile);
+            log.debug("Executing Sql Script: " + sqlFile);
             try (Connection targetConnection = dataSource.openConnection()) {
                 String sqlFileContents = configReader.getFileContentsAtPath(sqlFile);
                 if (StringUtils.isEmpty(delimiter)) {
