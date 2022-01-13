@@ -21,7 +21,7 @@
 		</comment>
 		<createTable tableName="petl_job_execution">
 			<column name="uuid" type="char(36)">
-				<constraints nullable="false" />
+				<constraints primaryKey="true" nullable="false" unique="true" />
 			</column>
 			<column name="job_path" type="varchar(1000)"/>
 			<column name="parent_execution_uuid" type="char(36)" />
@@ -36,6 +36,15 @@
 			</column>
 			<column name="error_message" type="varchar(1000)"/>
 		</createTable>
+		<createIndex tableName="petl_job_execution" indexName="petl_job_execution_job_path_idx">
+			<column name="job_path"/>
+		</createIndex>
+		<createIndex tableName="petl_job_execution" indexName="petl_job_execution_parent_execution_uuid_idx">
+			<column name="parent_execution_uuid"/>
+		</createIndex>
+		<createIndex tableName="petl_job_execution" indexName="petl_job_execution_status_idx">
+			<column name="status"/>
+		</createIndex>
 	</changeSet>
 
 </databaseChangeLog>
