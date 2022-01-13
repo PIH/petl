@@ -59,7 +59,7 @@ public class JobExecutor {
         }
         catch (Throwable t) {
             String exception = ExceptionUtils.getMessage(t);
-            execution.setErrorMessage(exception.substring(0,1000));
+            execution.setErrorMessageFromException(t);
             execution.setStatus(JobExecutionStatus.FAILED);
             log.error(execution, t);
             throw(new PetlException("Job Execution Failed: " + execution, t));
@@ -109,11 +109,13 @@ public class JobExecutor {
                         execution.setStatus(JobExecutionStatus.SUCCEEDED);
                     } else {
                         execution.setStatus(JobExecutionStatus.FAILED);
+                        execution.setErrorMessageFromException(result.getException());
                     }
                 }
                 else {
                     task.incrementAttemptNum();
                     execution.setStatus(JobExecutionStatus.FAILED_WILL_RETRY);
+                    execution.setErrorMessageFromException(result.getException());
                 }
                 etlService.saveJobExecution(execution);
                 log.info(execution);
@@ -158,6 +160,7 @@ public class JobExecutor {
                     execution.setStatus(JobExecutionStatus.SUCCEEDED);
                 } else {
                     execution.setStatus(JobExecutionStatus.FAILED);
+                    execution.setErrorMessageFromException(result.getException());
                     failedResult = result;
                 }
             }

@@ -1,5 +1,7 @@
 package org.pih.petl.api;
 
+import org.apache.commons.lang.exception.ExceptionUtils;
+
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
@@ -160,5 +162,13 @@ public class JobExecution {
 
     public void setErrorMessage(String errorMessage) {
         this.errorMessage = errorMessage;
+    }
+
+    public void setErrorMessageFromException(Throwable t) {
+        String message = ExceptionUtils.getMessage(t);
+        if (message.length() > 1000) {
+            message = message.substring(0, 1000);
+        }
+        setErrorMessage(message);
     }
 }
