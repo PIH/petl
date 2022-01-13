@@ -30,7 +30,7 @@ public class IteratingJobTest extends BasePetlTest {
     @Test
     public void testJobWithSqlExecution() throws Exception {
         verifyNoTablesExist();
-        etlService.executeJob("jobWithSqlExecution.yml");
+        executeJob("jobWithSqlExecution.yml");
         verifyAllTablesExist();
         verifyRowCount("encounter_types", 13);
     }

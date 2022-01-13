@@ -30,7 +30,7 @@ public class SqlJobTest extends BasePetlTest {
     @Test
     public void shouldExecuteAllPassedScripts() throws Exception {
         verifyNoTablesExist();
-        etlService.executeJob("multipleScripts.yml");
+        executeJob("multipleScripts.yml");
         verifyTableExists("table1");
         verifyTableExists("table2");
     }
@@ -38,13 +38,13 @@ public class SqlJobTest extends BasePetlTest {
     @Test
     public void shouldPassParametersIntoScripts() throws Exception {
         verifyNoTablesExist();
-        etlService.executeJob("parameterizedScript.yml");
+        executeJob("parameterizedScript.yml");
         verifyTableExists("table3");
     }
 
     @Test
     public void shouldUseDelimiterToExecuteMultipleScripts() throws Exception {
         verifyNoTablesExist();
-        etlService.executeJob("delimitedScript.yml");
+        executeJob("delimitedScript.yml");
     }
 }

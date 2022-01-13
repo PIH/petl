@@ -5,8 +5,10 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.pih.petl.ApplicationConfig;
 import org.pih.petl.PetlException;
+import org.pih.petl.job.PetlJob;
 import org.pih.petl.job.config.JobConfig;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,8 +22,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.UUID;
-import java.util.concurrent.ExecutionException;
 
 /**
  * Core service methods for loading jobs, executing jobs, and tracking the status of job executions
@@ -33,13 +33,17 @@ public class EtlService {
 
     final ApplicationConfig applicationConfig;
     final JobExecutionRepository jobExecutionRepository;
-    final JobExecutor jobExecutor;
 
     @Autowired
-    public EtlService(ApplicationConfig applicationConfig, JobExecutionRepository jobExecutionRepository) throws ExecutionException, InterruptedException {
+    List<PetlJob> petlJobs;
+
+    @Autowired
+    public EtlService(
+            ApplicationConfig applicationConfig,
+            JobExecutionRepository jobExecutionRepository
+    ) {
         this.applicationConfig = applicationConfig;
         this.jobExecutionRepository = jobExecutionRepository;
-        this.jobExecutor = new JobExecutor(applicationConfig.getPetlConfig().getMaxConcurrentJobs());
     }
 
     /**
@@ -64,9 +68,11 @@ public class EtlService {
                             String relativePath = configPath.relativize(path).toString();
                             try {
                                 JobConfig jobConfig = applicationConfig.getPetlJobConfig(relativePath);
-                                if (JobFactory.isValid(jobConfig)) {
-                                    m.put(relativePath, jobConfig);
+                                PetlJob petlJob = getPetlJob(jobConfig);
+                                if (petlJob == null) {
+                                    throw new PetlException("Invalid job type specified: " + jobConfig.getType());
                                 }
+                                m.put(relativePath, jobConfig);
                             }
                             catch (Exception e) {
                                 log.debug("Unable to load job config from file: " + relativePath, e);
@@ -97,6 +103,16 @@ public class EtlService {
         return l.get(0);
     }
 
+    public PetlJob getPetlJob(JobConfig jobConfig) {
+        for (PetlJob petlJob : petlJobs) {
+            Component component = petlJob.getClass().getAnnotation(Component.class);
+            if (component != null && jobConfig.getType().equals(component.value())) {
+                return petlJob;
+            }
+        }
+        throw new PetlException("Unknown job type: " + jobConfig.getType());
+    }
+
     /**
      * Save the given job execution to the DB
      */
@@ -114,35 +130,9 @@ public class EtlService {
     public void markHungJobsAsRun() {
         for (JobExecution jobExecution : jobExecutionRepository.findJobExecutionsByCompletedIsNullAndStartedIsNotNull()) {
             jobExecution.setCompleted(new Date());
+            jobExecution.setStatus(JobExecutionStatus.ABORTED);
             jobExecutionRepository.save(jobExecution);
         }
-    }
-
-    /**
-     * Executes the given job, returning the relevant job execution that contains status of the job
-     */
-    public JobExecution executeJob(String jobPath) {
-        JobConfig jobConfig = applicationConfig.getPetlJobConfig(jobPath);
-        String executionUuid = UUID.randomUUID().toString();
-        JobExecution execution = new JobExecution(executionUuid, jobPath);
-        log.info("Executing Job: " + jobPath + " (" + executionUuid + ")");
-        try {
-            saveJobExecution(execution);
-            jobExecutor.execute(new JobExecutionTask(new ExecutionContext(execution, jobConfig, applicationConfig)));
-            execution.setStatus("Execution Successful");
-            log.info("Job Successful: " + jobPath + " (" + executionUuid + ")");
-        }
-        catch (Exception e) {
-            execution.setErrorMessage(e.getMessage().substring(0,1000));
-            execution.setStatus("Execution Failed");
-			log.error("Job Execution Failed for " + jobPath, e);
-            throw(new PetlException("Job Execution Failed for " + jobPath, e));
-        }
-        finally {
-            execution.setCompleted(new Date());
-            saveJobExecution(execution);
-        }
-        return execution;
     }
 
     /**

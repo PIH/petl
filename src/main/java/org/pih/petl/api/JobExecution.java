@@ -1,12 +1,14 @@
 package org.pih.petl.api;
 
+import org.apache.commons.lang.exception.ExceptionUtils;
+
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
 import javax.persistence.Id;
 import java.util.Date;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import java.util.UUID;
 
 /**
  * Represents an ETL job execution and the status of this
@@ -14,39 +16,47 @@ import org.apache.commons.logging.LogFactory;
 @Entity(name = "petl_job_execution")
 public class JobExecution {
 
-    private static Log log = LogFactory.getLog(JobExecution.class);
-
     @Id
     private String uuid;
 
-    @Column(name = "job_path", nullable = false, length = 100)
+    @Column(name = "job_path", length = 1000)
     private String jobPath;
 
-    @Column(name = "total_expected")
-    private Integer totalExpected;
+    @Column(name ="parent_execution_uuid", length = 36)
+    private String parentExecutionUuid;
 
-    @Column(name = "total_loaded")
-    private Integer totalLoaded;
+    @Column(name = "description", length = 1000)
+    private String description;
 
-    @Column(name = "started", nullable = false)
+    @Column(name = "initiated", nullable = false)
+    private Date initiated;
+
+    @Column(name = "started")
     private Date started;
 
     @Column(name = "completed")
     private Date completed;
 
-    @Column(name = "status", nullable = false, length = 1000)
-    private String status;
+    @Column(name = "status", nullable = false, length = 50)
+    @Enumerated(EnumType.STRING)
+    private JobExecutionStatus status;
 
     @Column(name = "error_message", length = 1000)
     private String errorMessage;
 
     public JobExecution() {}
 
-    public JobExecution(String uuid, String jobPath) {
-        this.uuid = uuid;
+    public JobExecution(String jobPath) {
+        this(jobPath, null, null);
+    }
+
+    public JobExecution(String jobPath, String parentExecutionUuid, String description) {
+        this.uuid = UUID.randomUUID().toString();
         this.jobPath = jobPath;
-        this.started = new Date();
-        this.status = "Execution Initiated";
+        this.parentExecutionUuid = parentExecutionUuid;
+        this.description = description;
+        this.initiated = new Date();
+        this.status = JobExecutionStatus.INITIATED;
     }
 
     public int getDurationSeconds() {
@@ -59,12 +69,22 @@ public class JobExecution {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append("Job " + jobPath + " (" + uuid + "): " + status);
-        if (totalLoaded != null && totalExpected != null) {
-            sb.append(" ").append(totalLoaded + "/" + totalExpected);
+        sb.append("Job " + "(" + uuid + "): " + status);
+        if (jobPath != null) {
+            sb.append(", path: " + jobPath);
         }
-        if (started != null && completed != null) {
-            sb.append(" in " + getDurationSeconds() + " seconds");
+        if (description != null) {
+            sb.append(", description: " + description);
+        }
+        if (initiated != null) {
+            sb.append(", initiated: " + initiated);
+        }
+        if (started != null) {
+            sb.append(", started: " + started);
+            if (completed != null) {
+                sb.append(", completed: " + completed);
+                sb.append(", duration: " + getDurationSeconds());
+            }
         }
         if (errorMessage != null) {
             sb.append(" ERROR: " + errorMessage);
@@ -88,28 +108,36 @@ public class JobExecution {
         this.jobPath = jobPath;
     }
 
-    public Integer getTotalExpected() {
-        return totalExpected;
+    public String getParentExecutionUuid() {
+        return parentExecutionUuid;
     }
 
-    public void setTotalExpected(Integer totalExpected) {
-        this.totalExpected = totalExpected;
+    public void setParentExecutionUuid(String parentExecutionUuid) {
+        this.parentExecutionUuid = parentExecutionUuid;
     }
 
-    public Integer getTotalLoaded() {
-        return totalLoaded;
+    public String getDescription() {
+        return description;
     }
 
-    public void setTotalLoaded(Integer totalLoaded) {
-        this.totalLoaded = totalLoaded;
+    public void setDescription(String description) {
+        this.description = description;
     }
 
-    public String getStatus() {
+    public JobExecutionStatus getStatus() {
         return status;
     }
 
-    public void setStatus(String status) {
+    public void setStatus(JobExecutionStatus status) {
         this.status = status;
+    }
+
+    public Date getInitiated() {
+        return initiated;
+    }
+
+    public void setInitiated(Date initiated) {
+        this.initiated = initiated;
     }
 
     public Date getStarted() {
@@ -134,5 +162,13 @@ public class JobExecution {
 
     public void setErrorMessage(String errorMessage) {
         this.errorMessage = errorMessage;
+    }
+
+    public void setErrorMessageFromException(Throwable t) {
+        String message = ExceptionUtils.getMessage(t);
+        if (message.length() > 1000) {
+            message = message.substring(0, 1000);
+        }
+        setErrorMessage(message);
     }
 }

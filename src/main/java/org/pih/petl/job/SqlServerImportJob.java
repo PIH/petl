@@ -9,12 +9,15 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.StopWatch;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.pih.petl.ApplicationConfig;
 import org.pih.petl.PetlException;
 import org.pih.petl.SqlUtils;
 import org.pih.petl.api.ExecutionContext;
 import org.pih.petl.job.config.DataSource;
 import org.pih.petl.job.config.JobConfigReader;
 import org.pih.petl.job.config.TableColumn;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -22,15 +25,23 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 /**
  * PetlJob that can load into SQL Server table
  */
+@Component("sqlserver-bulk-import")
 public class SqlServerImportJob implements PetlJob {
 
-    private static Log log = LogFactory.getLog(SqlServerImportJob.class);
+    private final Log log = LogFactory.getLog(getClass());
+
+    private final Map<String, Object> tableMonitors = new HashMap<>();
+
+    @Autowired
+    ApplicationConfig applicationConfig;
 
     /**
      * @see PetlJob
@@ -38,14 +49,14 @@ public class SqlServerImportJob implements PetlJob {
     @Override
     public void execute(final ExecutionContext context) throws Exception {
 
-        context.setStatus("Executing SqlServerImportJob");
-        JobConfigReader configReader = new JobConfigReader(context);
+        log.debug("Executing SqlServerImportJob");
+        JobConfigReader configReader = new JobConfigReader(applicationConfig, context.getJobConfig());
 
         // Get source datasource
         DataSource sourceDatasource = configReader.getDataSource("extract", "datasource");
         if (!sourceDatasource.testConnection()) {
             String msg = "Unable to connect to datasource: " + configReader.getString("extract", "datasource");
-            context.setStatus(msg);
+            log.debug(msg);
             throw new PetlException(msg);
         }
 
@@ -53,7 +64,7 @@ public class SqlServerImportJob implements PetlJob {
         String conditional = configReader.getString("extract", "conditional");
         if (StringUtils.isNotEmpty(conditional)) {
             if (!sourceDatasource.getBooleanResult(conditional)) {
-                context.setStatus("Conditional returned false, skipping");
+                log.debug("Conditional returned false, skipping");
                 return;
             }
         }
@@ -69,7 +80,7 @@ public class SqlServerImportJob implements PetlJob {
         DataSource targetDatasource = configReader.getDataSource("load", "datasource");
         if (!targetDatasource.testConnection()) {
             String msg = "Unable to connect to datasource: " + configReader.getString("load", "datasource");
-            context.setStatus(msg);
+            log.debug(msg);
             throw new PetlException(msg);
         }
 
@@ -125,111 +136,112 @@ public class SqlServerImportJob implements PetlJob {
             throw new PetlException("You must specify a value for your partition column");
         }
 
-        String tableToBulkInsertInto = targetTable;
+        Object tableMonitor = tableMonitors.computeIfAbsent(targetTable, k -> new Object());
+        synchronized (tableMonitor) {
 
-        if (usePartitioning) {
-            tableToBulkInsertInto = targetTable + "_" + partitionValue;
-            targetDatasource.dropTableIfExists(tableToBulkInsertInto);
-            String partitionSchema = SqlUtils.addSuffixToCreatedTablename(targetSchema, "_" + partitionValue);
-            targetDatasource.executeUpdate(partitionSchema);
-            dropAndRecreateIfSchemasDiffer(context, targetDatasource, targetTable, tableToBulkInsertInto, targetSchema);
-        }
-        else {
-            if (StringUtils.isNotEmpty(targetSchema)) {
-                if (dropAndRecreate) {
-                    context.setStatus("Dropping existing table: " + tableToBulkInsertInto);
-                    targetDatasource.dropTableIfExists(tableToBulkInsertInto);
-                }
-                if (!targetDatasource.tableExists(tableToBulkInsertInto)) {
-                    context.setStatus("Creating target schema for: " + tableToBulkInsertInto);
-                    targetDatasource.executeUpdate(targetSchema);
-                }
-                else {
-                    context.setStatus("Target table already exists at: " + tableToBulkInsertInto);
-                }
-            }
-            else {
-                context.setStatus("No target schema specified");
-            }
-        }
+            String tableToBulkInsertInto = targetTable;
 
-        try (Connection sourceConnection = sourceDatasource.openConnection()) {
-            try (Connection targetConnection = targetDatasource.openConnection()) {
-
-                boolean originalSourceAutoCommit = sourceConnection.getAutoCommit();
-                boolean originalTargetAutocommit = targetConnection.getAutoCommit();
-
-                try {
-                    sourceConnection.setAutoCommit(false); // We intend to rollback changes to source after querying DB
-                    targetConnection.setAutoCommit(true);  // We want to commit to target as we go, to query status
-
-                    // Now execute a bulk import
-                    context.setStatus("Executing import");
-
-                    // Parse the source query into statements
-                    List<String> stmts = SqlUtils.parseSqlIntoStatements(sourceQuery, ";");
-                    log.trace("Parsed extract query into " + stmts.size() + " statements");
-
-                    // Iterate over each statement, and execute.  The final statement is expected to select the data out.
-                    for (Iterator<String> sqlIterator = stmts.iterator(); sqlIterator.hasNext(); ) {
-                        String sqlStatement = sqlIterator.next();
-                        Statement statement = null;
-                        try {
-                            log.trace("Executing: " + sqlStatement);
-                            StopWatch sw = new StopWatch();
-                            sw.start();
-                            if (sqlIterator.hasNext()) {
-                                statement = sourceConnection.createStatement();
-                                statement.execute(sqlStatement);
-                                log.trace("Statement executed");
-                            } else {
-                                log.trace("This is the last statement, treat it as the extraction query");
-
-                                sqlStatement = SqlUtils.addExtraColumnsToSelect(sqlStatement, extraColumns);
-                                log.warn("Executing SQL extraction");
-                                log.trace(sqlStatement);
-
-                                statement = sourceConnection.prepareStatement(
-                                        sqlStatement, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY
-                                );
-                                ResultSet resultSet = null;
-                                try {
-                                    resultSet = ((PreparedStatement) statement).executeQuery();
-                                    if (resultSet != null) {
-                                        Connection sqlServerConnection = getAsSqlServerConnection(targetConnection);
-                                        SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(sqlServerConnection);
-                                        SQLServerBulkCopyOptions bco = new SQLServerBulkCopyOptions();
-                                        bco.setKeepIdentity(true);
-                                        bco.setBatchSize(100);
-                                        bco.setBulkCopyTimeout(3600);
-                                        bulkCopy.setBulkCopyOptions(bco);
-                                        bulkCopy.setDestinationTableName(tableToBulkInsertInto);
-                                        bulkCopy.writeToServer(resultSet);
-                                    } else {
-                                        throw new PetlException("Invalid SQL extraction, no result set found");
-                                    }
-                                } finally {
-                                    DbUtils.closeQuietly(resultSet);
-                                }
-                            }
-                            sw.stop();
-                            log.trace("Statement executed in: " + sw);
-                        } finally {
-                            DbUtils.closeQuietly(statement);
-                        }
+            if (usePartitioning) {
+                tableToBulkInsertInto = targetTable + "_" + partitionValue;
+                targetDatasource.dropTableIfExists(tableToBulkInsertInto);
+                String partitionSchema = SqlUtils.addSuffixToCreatedTablename(targetSchema, "_" + partitionValue);
+                targetDatasource.executeUpdate(partitionSchema);
+                dropAndRecreateIfSchemasDiffer(context, targetDatasource, targetTable, tableToBulkInsertInto, targetSchema);
+            } else {
+                if (StringUtils.isNotEmpty(targetSchema)) {
+                    if (dropAndRecreate) {
+                        log.debug("Dropping existing table: " + tableToBulkInsertInto);
+                        targetDatasource.dropTableIfExists(tableToBulkInsertInto);
                     }
-                    context.setStatus("Import Completed Sucessfully");
-                } finally {
-                    sourceConnection.rollback();
-                    sourceConnection.setAutoCommit(originalSourceAutoCommit);
-                    targetConnection.setAutoCommit(originalTargetAutocommit);
+                    if (!targetDatasource.tableExists(tableToBulkInsertInto)) {
+                        log.debug("Creating target schema for: " + tableToBulkInsertInto);
+                        targetDatasource.executeUpdate(targetSchema);
+                    } else {
+                        log.debug("Target table already exists at: " + tableToBulkInsertInto);
+                    }
+                } else {
+                    log.debug("No target schema specified");
                 }
             }
-        }
 
-        if (usePartitioning) {
-            targetDatasource.executeUpdate(SqlUtils.createMovePartitionStatement(tableToBulkInsertInto, targetTable, partitionValue));
-            targetDatasource.dropTableIfExists(tableToBulkInsertInto);
+            try (Connection sourceConnection = sourceDatasource.openConnection()) {
+                try (Connection targetConnection = targetDatasource.openConnection()) {
+
+                    boolean originalSourceAutoCommit = sourceConnection.getAutoCommit();
+                    boolean originalTargetAutocommit = targetConnection.getAutoCommit();
+
+                    try {
+                        sourceConnection.setAutoCommit(false); // We intend to rollback changes to source after querying DB
+                        targetConnection.setAutoCommit(true);  // We want to commit to target as we go, to query status
+
+                        // Now execute a bulk import
+                        log.debug("Executing import");
+
+                        // Parse the source query into statements
+                        List<String> stmts = SqlUtils.parseSqlIntoStatements(sourceQuery, ";");
+                        log.trace("Parsed extract query into " + stmts.size() + " statements");
+
+                        // Iterate over each statement, and execute.  The final statement is expected to select the data out.
+                        for (Iterator<String> sqlIterator = stmts.iterator(); sqlIterator.hasNext(); ) {
+                            String sqlStatement = sqlIterator.next();
+                            Statement statement = null;
+                            try {
+                                log.trace("Executing: " + sqlStatement);
+                                StopWatch sw = new StopWatch();
+                                sw.start();
+                                if (sqlIterator.hasNext()) {
+                                    statement = sourceConnection.createStatement();
+                                    statement.execute(sqlStatement);
+                                    log.trace("Statement executed");
+                                } else {
+                                    log.trace("This is the last statement, treat it as the extraction query");
+
+                                    sqlStatement = SqlUtils.addExtraColumnsToSelect(sqlStatement, extraColumns);
+                                    log.trace("Executing SQL extraction");
+                                    log.trace(sqlStatement);
+
+                                    statement = sourceConnection.prepareStatement(
+                                            sqlStatement, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY
+                                    );
+                                    ResultSet resultSet = null;
+                                    try {
+                                        resultSet = ((PreparedStatement) statement).executeQuery();
+                                        if (resultSet != null) {
+                                            Connection sqlServerConnection = getAsSqlServerConnection(targetConnection);
+                                            SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(sqlServerConnection);
+                                            SQLServerBulkCopyOptions bco = new SQLServerBulkCopyOptions();
+                                            bco.setKeepIdentity(true);
+                                            bco.setBatchSize(100);
+                                            bco.setBulkCopyTimeout(3600);
+                                            bulkCopy.setBulkCopyOptions(bco);
+                                            bulkCopy.setDestinationTableName(tableToBulkInsertInto);
+                                            bulkCopy.writeToServer(resultSet);
+                                        } else {
+                                            throw new PetlException("Invalid SQL extraction, no result set found");
+                                        }
+                                    } finally {
+                                        DbUtils.closeQuietly(resultSet);
+                                    }
+                                }
+                                sw.stop();
+                                log.trace("Statement executed in: " + sw);
+                            } finally {
+                                DbUtils.closeQuietly(statement);
+                            }
+                        }
+                        log.debug("Import Completed Sucessfully");
+                    } finally {
+                        sourceConnection.rollback();
+                        sourceConnection.setAutoCommit(originalSourceAutoCommit);
+                        targetConnection.setAutoCommit(originalTargetAutocommit);
+                    }
+                }
+            }
+
+            if (usePartitioning) {
+                targetDatasource.executeUpdate(SqlUtils.createMovePartitionStatement(tableToBulkInsertInto, targetTable, partitionValue));
+                targetDatasource.dropTableIfExists(tableToBulkInsertInto);
+            }
         }
     }
 
@@ -251,7 +263,7 @@ public class SqlServerImportJob implements PetlJob {
      * that only one thread detects the change and recreates the table, and other threads will not detect a change
      */
     private synchronized void dropAndRecreateIfSchemasDiffer(ExecutionContext context, DataSource targetDatasource, String existingTable, String newSchemaTable, String newSchema) throws SQLException {
-        context.setStatus("Checking for schema changes between " + existingTable + " and " + newSchemaTable);
+        log.debug("Checking for schema changes between " + existingTable + " and " + newSchemaTable);
         List<TableColumn> existingColumns = targetDatasource.getTableColumns(existingTable);
         List<TableColumn> newColumns = targetDatasource.getTableColumns(newSchemaTable);
         boolean schemaChanged = newColumns.size() != existingColumns.size();
@@ -260,11 +272,11 @@ public class SqlServerImportJob implements PetlJob {
             schemaChanged = !existingColumns.isEmpty();
         }
         if (schemaChanged) {
-            context.setStatus("Change detected.  Dropping " + existingTable);
+            log.debug("Change detected.  Dropping " + existingTable);
             log.trace("Existing=" + existingColumns);
             log.trace("New=" + newColumns);
             targetDatasource.dropTableIfExists(existingTable);
-            context.setStatus("Creating new table");
+            log.debug("Creating new table");
             targetDatasource.executeUpdate(newSchema);
         }
     }

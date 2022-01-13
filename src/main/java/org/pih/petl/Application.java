@@ -3,8 +3,10 @@ package org.pih.petl;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.pih.petl.api.EtlService;
+import org.pih.petl.api.JobExecutor;
 import org.pih.petl.api.JobScheduler;
 import org.pih.petl.api.ScheduledExecutionTask;
+import org.pih.petl.job.config.PetlConfig;
 import org.quartz.SimpleScheduleBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
@@ -62,12 +64,20 @@ public class Application {
 
         // Get and execute any jobs configured to run at startup
         PetlExitCodeGenerator exitCodeGenerator = new PetlExitCodeGenerator();
+        PetlConfig petlConfig = app.getAppConfig().getPetlConfig();
         try {
-            List<String> startupJobs = app.getAppConfig().getPetlConfig().getStartup().getJobs();
+            List<String> startupJobs = petlConfig.getStartup().getJobs();
             log.info("STARTUP JOBS: " + startupJobs);
-            for (String job : startupJobs) {
-                log.info("Executing Startup Job: " + job);
-                app.getEtlService().executeJob(job);
+            if (!startupJobs.isEmpty()) {
+                JobExecutor jobExecutor = new JobExecutor(app.getEtlService(), petlConfig.getMaxConcurrentJobs());
+                try {
+                    for (String job : startupJobs) {
+                        jobExecutor.executeJob(job);
+                    }
+                }
+                finally {
+                    jobExecutor.shutdown();
+                }
             }
         }
         catch (Exception e) {

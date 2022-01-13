@@ -3,6 +3,8 @@ package org.pih.petl;
 import org.pih.petl.api.ExecutionContext;
 import org.pih.petl.job.PetlJob;
 import org.pih.petl.job.config.JobConfigReader;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -10,7 +12,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+@Component("test-job")
 public class TestJob implements PetlJob {
+
+    @Autowired
+    ApplicationConfig applicationConfig;
 
     public static final Map<String, Integer> attemptNum = new HashMap<>();
     public static final Map<String, Boolean> successful = new HashMap<>();
@@ -24,7 +30,7 @@ public class TestJob implements PetlJob {
 
     @Override
     public void execute(ExecutionContext context) throws Exception {
-        JobConfigReader jobConfigReader = new JobConfigReader(context.getApplicationConfig(), context.getJobConfig());
+        JobConfigReader jobConfigReader = new JobConfigReader(applicationConfig, context.getJobConfig());
         String testId = jobConfigReader.getString("testId");
         successful.put(testId, false);
         int currentAttemptNum = (attemptNum.get(testId) == null ? 1 : attemptNum.get(testId) + 1);

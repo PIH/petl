@@ -31,7 +31,7 @@ public class RunMultipleTest extends BasePetlTest {
     @Test
     public void testJobWithSqlExecution() throws Exception {
         verifyNoTablesExist();
-        etlService.executeJob("defaultExecution.yml");
+        executeJob("defaultExecution.yml");
         verifyAllTablesExist();
         verifyRowCount("encounter_types", 62);
     }

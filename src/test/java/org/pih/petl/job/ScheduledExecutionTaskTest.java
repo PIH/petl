@@ -6,6 +6,7 @@ import org.junit.runner.RunWith;
 import org.pih.petl.SpringRunnerTest;
 import org.pih.petl.api.EtlService;
 import org.pih.petl.api.JobExecutionRepository;
+import org.pih.petl.api.JobExecutionStatus;
 import org.pih.petl.api.ScheduledExecutionTask;
 import org.quartz.JobExecutionContext;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -51,7 +52,7 @@ public class ScheduledExecutionTaskTest {
     public void testRunningScheduledExecutionTaskShouldOnlyRunJobWithSchedule() throws Exception {
         jobExecutionRepository.deleteAll();
         scheduledExecutionTask.execute(jobExecutionContext);
-        assertThat(etlService.getLatestJobExecution("jobWithSchedule.yml").getStatus(), is("Execution Successful"));
+        assertThat(etlService.getLatestJobExecution("jobWithSchedule.yml").getStatus(), is(JobExecutionStatus.SUCCEEDED));
         assertNull(etlService.getLatestJobExecution("jobWithoutSchedule.yml"));
     }
 }

@@ -31,21 +31,21 @@ public class CreateTableJobTest extends BasePetlTest {
     @Test
     public void testLoadingFromMySQL() throws Exception {
         verifyNoTablesExist();
-        etlService.executeJob("createEncounterTypesFromSchema.yml");
+        executeJob("createEncounterTypesFromSchema.yml");
         verifyAllTablesExist();
     }
 
     @Test
     public void testLoadingFromMySQLDropIfExists() throws Exception {
         verifyNoTablesExist();
-        etlService.executeJob("createEncounterTypesDrop.yml");
+        executeJob("createEncounterTypesDrop.yml");
         verifyAllTablesExist();
     }
 
     @Test
     public void testLoadingFromSchemaDropIfSchemaChanged() throws Exception {
         verifyNoTablesExist();
-        etlService.executeJob("createEncounterTypesDropIfChanged.yml");
+        executeJob("createEncounterTypesDropIfChanged.yml");
         verifyAllTablesExist();
         Assert.assertEquals(4, getSqlServerDatasource().getTableColumns("encounter_types").size());
     }
