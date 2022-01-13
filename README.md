@@ -58,7 +58,16 @@ logging:
 
 * **Job Execution Persistence**:  Allows you to configure where job execution history information is persisted 
     and how Spring, Hibernate, and the Quartz scheduler are configured.
-  
+
+PETL creates an internal database table called `petl_job_execution` which contains a history of all of all jobs
+that have been executed, along with nested job executions, the status of these executions, and the timing and duration of each.  
+This table is used internally by the scheduler to determine whether a given job should be automatically run based on a configured cron.  
+It can also be useful for PETL administrators to monitor job execution status and errors.
+
+By default, PETL will maintain a persistent, file-based H2 database at ${petl.homeDir}/data/petl.mv.db to manage this.
+This enables PETL to be installed and used without any external database dependencies.  The out-of-the-box configuration
+is such:
+
 ```yaml
 spring:
   datasource:
@@ -71,8 +80,29 @@ spring:
   jpa:
     hibernate:
       ddl-auto: "none"
+  liquibase:
+    database-change-log-table: "petl_database_change_log"
+    database-change-log-lock-table: "petl_database_change_log_lock"
   quartz:
     job-store-type: "memory"
+```
+
+In cases where implementations prefer to store the petl_job_execution table in another database, for greater visibility
+of execution history and status, that can be configured by overriding the above properties in application.yml.
+
+For example, to use a separate SQL Server database, one could add the following to their application.yml:
+
+```yaml
+spring:
+  datasource:
+    platform: "mssql"
+    driver-class-name: "com.microsoft.sqlserver.jdbc.SQLServerDriver"
+    url: "jdbc:sqlserver://localhost:1433;databaseName=openmrs_reporting"
+    username: "sa"
+    password: "9%4qP7b2H!%J"
+  jpa:
+    hibernate:
+      dialect: "org.hibernate.dialect.SQLServer2012Dialect"
 ```
 
 * **PETL Job and Datasource Locations**:  This allows specification of where job and datasource configuration files
@@ -182,6 +212,7 @@ however they want.  The structure of a `job.yml` file looks like the following:
 
 ```yaml
 type: 'job-type'            # valid types are sqlserver-bulk-import, pentaho-job, job-pipeline
+description: 'My job'       # Each job can optionally be given a description.  If provided, this description will be output in logs and in the petl_job_execution table
 configuration:              # Each job type supports different properties within configuration
 path: "some-template.yml"   # As an alternative to specifying type and configuration, one can refer to another job definition by path
 schedule:
@@ -214,6 +245,7 @@ job template like follows:
 import-to-sqlserver.yml
 ```yaml
 type: "sqlserver-bulk-import"
+description: "Import ${tableName} from ${siteName}"
 configuration:
   extract:
     datasource: "openmrs-${siteName}.yml"
