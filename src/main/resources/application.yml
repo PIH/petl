@@ -15,8 +15,8 @@ spring:
     hibernate:
       ddl-auto: "none"
   liquibase:
-    database-change-log-table: "petl_database_change_log"
-    database-change-log-lock-table: "petl_database_change_log_lock"
+    database-change-log-table: "PETL_DATABASE_CHANGE_LOG"
+    database-change-log-lock-table: "PETL_DATABASE_CHANGE_LOG_LOCK"
   quartz:
     job-store-type: "memory"
 
