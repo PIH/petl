@@ -3,12 +3,14 @@ package org.pih.petl.job;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.pih.petl.ApplicationConfig;
 import org.pih.petl.PetlException;
 import org.pih.petl.SqlUtils;
 import org.pih.petl.api.ExecutionContext;
 import org.pih.petl.job.config.DataSource;
 import org.pih.petl.job.config.JobConfigReader;
 import org.pih.petl.job.config.TableColumn;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -21,13 +23,16 @@ public class CreateTableJob implements PetlJob {
 
     private static final Log log = LogFactory.getLog(CreateTableJob.class);
 
+    @Autowired
+    ApplicationConfig applicationConfig;
+
     /**
      * @see PetlJob
      */
     @Override
     public void execute(final ExecutionContext context) throws Exception {
         context.setStatus("Executing CreateTableJob");
-        JobConfigReader configReader = new JobConfigReader(context);
+        JobConfigReader configReader = new JobConfigReader(applicationConfig, context.getJobConfig());
 
         // Get source datasource
         DataSource sourceDatasource = configReader.getDataSource("source", "datasource");

@@ -1,7 +1,6 @@
 package org.pih.petl.api;
 
 import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.pih.petl.ApplicationConfig;
@@ -34,7 +33,6 @@ public class EtlService {
 
     final ApplicationConfig applicationConfig;
     final JobExecutionRepository jobExecutionRepository;
-    final JobExecutor jobExecutor;
 
     @Autowired
     List<PetlJob> petlJobs;
@@ -46,7 +44,6 @@ public class EtlService {
     ) {
         this.applicationConfig = applicationConfig;
         this.jobExecutionRepository = jobExecutionRepository;
-        this.jobExecutor = new JobExecutor(applicationConfig.getPetlConfig().getMaxConcurrentJobs());
     }
 
     /**
@@ -136,35 +133,6 @@ public class EtlService {
             jobExecution.setStatus(JobExecutionStatus.ABORTED);
             jobExecutionRepository.save(jobExecution);
         }
-    }
-
-    /**
-     * Executes the given job, returning the relevant job execution that contains status of the job
-     */
-    public JobExecution executeJob(String jobPath) {
-        JobConfig jobConfig = applicationConfig.getPetlJobConfig(jobPath);
-        JobExecution execution = new JobExecution(jobPath);
-        log.info("Executing Job: " + execution);
-        try {
-            saveJobExecution(execution);
-            PetlJob petlJob = getPetlJob(jobConfig);
-            ExecutionContext context = new ExecutionContext(execution, jobConfig, applicationConfig);
-            jobExecutor.execute(new JobExecutionTask(petlJob, context));
-            execution.setStatus(JobExecutionStatus.SUCCEEDED);
-            log.info("Job Successful: " + execution);
-        }
-        catch (Throwable t) {
-            String exception = ExceptionUtils.getMessage(t);
-            execution.setErrorMessage(exception.substring(0,1000));
-            execution.setStatus(JobExecutionStatus.FAILED);
-			log.error("Job Execution Failed for " + jobPath, t);
-            throw(new PetlException("Job Execution Failed for " + jobPath, t));
-        }
-        finally {
-            execution.setCompleted(new Date());
-            saveJobExecution(execution);
-        }
-        return execution;
     }
 
     /**

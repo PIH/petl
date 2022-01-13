@@ -2,7 +2,7 @@
 logging:
   level:
     root: "WARN"
-    org.pih: "DEBUG"
+    org.pih: "INFO"
 
 spring:
   datasource:

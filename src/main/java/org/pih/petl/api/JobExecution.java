@@ -2,6 +2,8 @@ package org.pih.petl.api;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
 import javax.persistence.Id;
 import java.util.Date;
 import java.util.UUID;
@@ -24,13 +26,17 @@ public class JobExecution {
     @Column(name = "description", length = 1000)
     private String description;
 
-    @Column(name = "started", nullable = false)
+    @Column(name = "initiated", nullable = false)
+    private Date initiated;
+
+    @Column(name = "started")
     private Date started;
 
     @Column(name = "completed")
     private Date completed;
 
     @Column(name = "status", nullable = false, length = 50)
+    @Enumerated(EnumType.STRING)
     private JobExecutionStatus status;
 
     @Column(name = "error_message", length = 1000)
@@ -47,8 +53,8 @@ public class JobExecution {
         this.jobPath = jobPath;
         this.parentExecutionUuid = parentExecutionUuid;
         this.description = description;
-        this.started = new Date();
-        this.status = JobExecutionStatus.IN_PROGRESS;
+        this.initiated = new Date();
+        this.status = JobExecutionStatus.INITIATED;
     }
 
     public int getDurationSeconds() {
@@ -61,17 +67,21 @@ public class JobExecution {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append("Job " + " (" + uuid + "): " + status);
+        sb.append("Job " + "(" + uuid + "): " + status);
         if (jobPath != null) {
             sb.append(", path: " + jobPath);
         }
         if (description != null) {
             sb.append(", description: " + description);
         }
+        if (initiated != null) {
+            sb.append(", initiated: " + initiated);
+        }
         if (started != null) {
             sb.append(", started: " + started);
             if (completed != null) {
                 sb.append(", completed: " + completed);
+                sb.append(", duration: " + getDurationSeconds());
             }
         }
         if (errorMessage != null) {
@@ -118,6 +128,14 @@ public class JobExecution {
 
     public void setStatus(JobExecutionStatus status) {
         this.status = status;
+    }
+
+    public Date getInitiated() {
+        return initiated;
+    }
+
+    public void setInitiated(Date initiated) {
+        this.initiated = initiated;
     }
 
     public Date getStarted() {

@@ -8,7 +8,6 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.text.StrSubstitutor;
 import org.pih.petl.ApplicationConfig;
 import org.pih.petl.PetlException;
-import org.pih.petl.api.ExecutionContext;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -22,10 +21,6 @@ public class JobConfigReader {
 
     private ApplicationConfig appConfig;
     private JobConfig config;
-
-    public JobConfigReader(ExecutionContext context) {
-        this(context.getApplicationConfig(), context.getJobConfig());
-    }
     
     public JobConfigReader(ApplicationConfig appConfig, JobConfig config) {
         this.appConfig = appConfig;

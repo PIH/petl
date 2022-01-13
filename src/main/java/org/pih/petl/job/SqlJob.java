@@ -3,11 +3,13 @@ package org.pih.petl.job;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.pih.petl.ApplicationConfig;
 import org.pih.petl.PetlException;
 import org.pih.petl.SqlUtils;
 import org.pih.petl.api.ExecutionContext;
 import org.pih.petl.job.config.DataSource;
 import org.pih.petl.job.config.JobConfigReader;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.sql.Connection;
@@ -22,13 +24,16 @@ public class SqlJob implements PetlJob {
 
     private static Log log = LogFactory.getLog(SqlJob.class);
 
+    @Autowired
+    ApplicationConfig applicationConfig;
+
     /**
      * @see PetlJob
      */
     @Override
     public void execute(final ExecutionContext context) throws Exception {
         context.setStatus("Executing SqlJob");
-        JobConfigReader configReader = new JobConfigReader(context);
+        JobConfigReader configReader = new JobConfigReader(applicationConfig, context.getJobConfig());
 
         String delimiter = configReader.getString("delimiter");
 

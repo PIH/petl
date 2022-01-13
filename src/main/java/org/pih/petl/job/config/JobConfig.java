@@ -3,6 +3,7 @@ package org.pih.petl.job.config;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.text.StrSubstitutor;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -44,7 +45,7 @@ public class JobConfig {
             ret.put("type", type);
         }
         if (configuration != null) {
-            ret.put("configuration", configuration.toString());
+            ret.put("configuration", StrSubstitutor.replace(configuration.toString(), getParameters()));
         }
         return ret.toString();
     }

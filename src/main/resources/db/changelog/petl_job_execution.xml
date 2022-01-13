@@ -6,95 +6,36 @@
 		xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd">
 
 	<changeSet id="petl_job_execution_1" author="PIH">
-        <preConditions onFail="MARK_RAN">
-        	<not><tableExists tableName="petl_job_execution" /></not>
-        </preConditions>
-        <comment>
+		<preConditions onFail="MARK_RAN">
+			<tableExists tableName="petl_job_execution"/>
+		</preConditions>
+		<dropTable tableName="petl_job_execution"/>
+	</changeSet>
+
+	<changeSet id="petl_job_execution_2" author="PIH">
+		<preConditions>
+			<not><tableExists tableName="petl_job_execution" /></not>
+		</preConditions>
+		<comment>
 			Create table to persist job execution history
-        </comment>
-        <createTable tableName="petl_job_execution">
+		</comment>
+		<createTable tableName="petl_job_execution">
 			<column name="uuid" type="char(36)">
 				<constraints nullable="false" />
 			</column>
-			<column name="job_path" type="varchar(100)">
+			<column name="job_path" type="varchar(1000)"/>
+			<column name="parent_execution_uuid" type="char(36)" />
+			<column name="description" type="varchar(1000)" />
+			<column name="initiated" type="datetime">
 				<constraints nullable="false" />
 			</column>
-			<column name="total_expected" type="int" />
-			<column name="total_loaded" type="int" />
-			<column name="started" type="datetime">
-				<constraints nullable="false" />
-			</column>
+			<column name="started" type="datetime"/>
 			<column name="completed" type="datetime"/>
-			<column name="status" type="varchar(1000)">
+			<column name="status" type="varchar(50)">
 				<constraints nullable="false" />
 			</column>
 			<column name="error_message" type="varchar(1000)"/>
 		</createTable>
-	</changeSet>
-
-	<changeSet id="PETL-117-1" author="PIH">
-		<preConditions onFail="MARK_RAN">
-			<columnExists tableName="petl_job_execution" columnName="total_expected" />
-		</preConditions>
-		<dropColumn tableName="petl_job_execution" columnName="total_expected" />
-	</changeSet>
-
-	<changeSet id="PETL-117-2" author="PIH">
-		<preConditions onFail="MARK_RAN">
-			<columnExists tableName="petl_job_execution" columnName="total_loaded" />
-		</preConditions>
-		<dropColumn tableName="petl_job_execution" columnName="total_loaded" />
-	</changeSet>
-
-	<changeSet id="PETL-117-3" author="PIH">
-		<update tableName="petl_job_execution">
-			<column name="status" value="IN_PROGRESS" />
-			<where>status = 'Execution Initiated'</where>
-		</update>
-	</changeSet>
-
-	<changeSet id="PETL-117-4" author="PIH">
-		<update tableName="petl_job_execution">
-			<column name="status" value="SUCCESS" />
-			<where>status = 'Execution Successful'</where>
-		</update>
-	</changeSet>
-
-	<changeSet id="PETL-117-5" author="PIH">
-		<update tableName="petl_job_execution">
-			<column name="status" value="FAILED" />
-			<where>status = 'Execution Failed'</where>
-		</update>
-	</changeSet>
-
-	<changeSet id="PETL-117-6" author="PIH">
-		<modifyDataType tableName="petl_job_execution" columnName="status" newDataType="varchar(50)" />
-	</changeSet>
-
-	<changeSet id="PETL-117-7" author="PIH">
-		<modifyDataType tableName="petl_job_execution" columnName="job_path" newDataType="varchar(1000)" />
-	</changeSet>
-
-	<changeSet id="PETL-117-8" author="PIH">
-		<preConditions onFail="MARK_RAN">
-			<not><columnExists tableName="petl_job_execution" columnName="parent_execution_uuid" /></not>
-		</preConditions>
-		<addColumn tableName="petl_job_execution">
-			<column name="parent_execution_uuid" type="char(36)" />
-		</addColumn>
-	</changeSet>
-
-	<changeSet id="PETL-117-9" author="PIH">
-		<preConditions onFail="MARK_RAN">
-			<not><columnExists tableName="petl_job_execution" columnName="description" /></not>
-		</preConditions>
-		<addColumn tableName="petl_job_execution">
-			<column name="description" type="varchar(1000)" />
-		</addColumn>
-	</changeSet>
-
-	<changeSet id="PETL-117-10" author="PIH">
-		<dropNotNullConstraint tableName="petl_job_execution" columnName="job_path" />
 	</changeSet>
 
 </databaseChangeLog>

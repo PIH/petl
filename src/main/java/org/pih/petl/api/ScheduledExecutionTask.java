@@ -3,7 +3,6 @@ package org.pih.petl.api;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.pih.petl.ApplicationConfig;
 import org.pih.petl.job.config.JobConfig;
 import org.pih.petl.job.config.Schedule;
 import org.quartz.CronExpression;
@@ -13,6 +12,7 @@ import org.quartz.JobExecutionException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.PreDestroy;
 import java.util.Date;
 import java.util.Map;
 
@@ -27,11 +27,21 @@ public class ScheduledExecutionTask implements Job {
     private static boolean enabled = true;
     private static boolean inProgress = false;
 
-    @Autowired
-    ApplicationConfig applicationConfig;
+    final EtlService etlService;
+    final JobExecutor jobExecutor;
 
     @Autowired
-    EtlService etlService;
+    public ScheduledExecutionTask(EtlService etlService) {
+        this.etlService = etlService;
+        this.jobExecutor = new JobExecutor(etlService, etlService.getApplicationConfig().getPetlConfig().getMaxConcurrentJobs());
+    }
+
+    @PreDestroy
+    public  void onShutdown() {
+        if (jobExecutor != null) {
+            jobExecutor.shutdown();
+        }
+    }
 
     /**
      * Load all jobs from file system
@@ -60,7 +70,7 @@ public class ScheduledExecutionTask implements Job {
                         JobExecution latestExecution = etlService.getLatestJobExecution(jobPath);
                         if (latestExecution == null) {
                             log.debug("Job: " + jobPath + " - Executing for the first time.");
-                            etlService.executeJob(jobPath);
+                            jobExecutor.executeJob(jobPath);
                         }
                         else {
                             Date lastStartDate = latestExecution.getStarted();
@@ -75,7 +85,7 @@ public class ScheduledExecutionTask implements Job {
                                 if (nextScheduledDate != null && nextScheduledDate.compareTo(currentDate) <= 0) {
                                     log.debug("Executing scheduled job: " + jobPath);
                                     log.trace("Last run: " + lastStartDate);
-                                    JobExecution execution = etlService.executeJob(jobPath);
+                                    JobExecution execution = jobExecutor.executeJob(jobPath);
                                     nextScheduledDate = cronExpression.getNextValidTimeAfter(execution.getStarted());
                                     log.trace("Scheduled job will run again at: " + nextScheduledDate);
                                 }

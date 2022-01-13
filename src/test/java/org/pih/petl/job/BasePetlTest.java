@@ -7,6 +7,8 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.pih.petl.ApplicationConfig;
 import org.pih.petl.api.EtlService;
+import org.pih.petl.api.JobExecution;
+import org.pih.petl.api.JobExecutor;
 import org.pih.petl.job.config.DataSource;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -17,6 +19,22 @@ public abstract class BasePetlTest {
 
     @Autowired
     EtlService etlService;
+
+    public JobExecution executeJob(String jobPath) {
+        JobExecutor executor = new JobExecutor(etlService, 1);
+        return executor.executeJob(jobPath);
+    }
+
+    public Exception executeJobAndReturnException(String jobPath) {
+        Exception exception = null;
+        try {
+            executeJob(jobPath);
+        }
+        catch (Exception e) {
+            exception = e;
+        }
+        return exception;
+    }
 
     abstract List<String> getTablesCreated();
 

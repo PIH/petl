@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.commons.lang.text.StrSubstitutor;
 import org.pih.petl.api.EtlService;
 import org.pih.petl.api.ExecutionContext;
+import org.pih.petl.api.JobExecution;
 import org.pih.petl.api.JobExecutionTask;
 import org.pih.petl.api.JobExecutor;
 import org.pih.petl.job.config.JobConfig;
@@ -30,8 +31,8 @@ public class IteratingJob implements PetlJob {
     @Override
     public void execute(final ExecutionContext context) throws Exception {
         context.setStatus("Executing IteratingJob");
-        JobConfigReader configReader = new JobConfigReader(context);
-        JobExecutor jobExecutor = new JobExecutor(configReader.getInt(1, "maxConcurrentJobs"));
+        JobConfigReader configReader = new JobConfigReader(etlService.getApplicationConfig(), context.getJobConfig());
+        JobExecutor jobExecutor = new JobExecutor(etlService, configReader.getInt(1, "maxConcurrentJobs"));
         try {
             List<JsonNode> iterations = configReader.getList("iterations");
             List<JobExecutionTask> iterationTasks = new ArrayList<>();
@@ -43,8 +44,9 @@ public class IteratingJob implements PetlJob {
                 }
                 JobConfig childConfig = configReader.getJobConfig(iterationVars, "jobTemplate");
                 PetlJob petlJob = etlService.getPetlJob(childConfig);
-                ExecutionContext iterationContext = new ExecutionContext(context, childConfig);
-                iterationTasks.add(new JobExecutionTask(petlJob, iterationContext));
+                JobExecution childExecution = new JobExecution(null, context.getJobExecution().getUuid(), childConfig.getDescription());
+                ExecutionContext iterationContext = new ExecutionContext(childExecution, childConfig);
+                iterationTasks.add(new JobExecutionTask(etlService, petlJob, iterationContext));
                 context.setStatus("Adding iteration task: " + iterationVars);
             }
             jobExecutor.executeInParallel(iterationTasks);

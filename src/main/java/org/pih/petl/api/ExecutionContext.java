@@ -2,7 +2,6 @@ package org.pih.petl.api;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.pih.petl.ApplicationConfig;
 import org.pih.petl.job.config.JobConfig;
 
 /**
@@ -14,19 +13,11 @@ public class ExecutionContext {
 
     private JobExecution jobExecution;
     private JobConfig jobConfig;
-    private ApplicationConfig applicationConfig;
     private String status;
 
-    public ExecutionContext(JobExecution jobExecution, JobConfig jobConfig, ApplicationConfig applicationConfig) {
+    public ExecutionContext(JobExecution jobExecution, JobConfig jobConfig) {
         this.jobExecution = jobExecution;
         this.jobConfig = jobConfig;
-        this.applicationConfig = applicationConfig;
-    }
-
-    public ExecutionContext(ExecutionContext parentContext, JobConfig childConfig) {
-        this.jobExecution = parentContext.getJobExecution();
-        this.applicationConfig = parentContext.getApplicationConfig();
-        this.jobConfig = childConfig;
     }
 
     public JobExecution getJobExecution() {
@@ -35,10 +26,6 @@ public class ExecutionContext {
 
     public JobConfig getJobConfig() {
         return jobConfig;
-    }
-
-    public ApplicationConfig getApplicationConfig() {
-        return applicationConfig;
     }
 
     public String getStatus() {

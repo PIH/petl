@@ -9,12 +9,14 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.StopWatch;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.pih.petl.ApplicationConfig;
 import org.pih.petl.PetlException;
 import org.pih.petl.SqlUtils;
 import org.pih.petl.api.ExecutionContext;
 import org.pih.petl.job.config.DataSource;
 import org.pih.petl.job.config.JobConfigReader;
 import org.pih.petl.job.config.TableColumn;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.sql.Connection;
@@ -34,6 +36,9 @@ public class SqlServerImportJob implements PetlJob {
 
     private static Log log = LogFactory.getLog(SqlServerImportJob.class);
 
+    @Autowired
+    ApplicationConfig applicationConfig;
+
     /**
      * @see PetlJob
      */
@@ -41,7 +46,7 @@ public class SqlServerImportJob implements PetlJob {
     public void execute(final ExecutionContext context) throws Exception {
 
         context.setStatus("Executing SqlServerImportJob");
-        JobConfigReader configReader = new JobConfigReader(context);
+        JobConfigReader configReader = new JobConfigReader(applicationConfig, context.getJobConfig());
 
         // Get source datasource
         DataSource sourceDatasource = configReader.getDataSource("extract", "datasource");
@@ -188,7 +193,7 @@ public class SqlServerImportJob implements PetlJob {
                                 log.trace("This is the last statement, treat it as the extraction query");
 
                                 sqlStatement = SqlUtils.addExtraColumnsToSelect(sqlStatement, extraColumns);
-                                log.warn("Executing SQL extraction");
+                                log.trace("Executing SQL extraction");
                                 log.trace(sqlStatement);
 
                                 statement = sourceConnection.prepareStatement(
