@@ -185,13 +185,6 @@
     <build>
         <plugins>
             <plugin>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-maven-plugin</artifactId>
-                <configuration>
-                    <executable>true</executable>
-                </configuration>
-            </plugin>
-            <plugin>
                 <groupId>org.sonatype.plugins</groupId>
                 <artifactId>nexus-staging-maven-plugin</artifactId>
                 <version>1.6.7</version>
@@ -200,6 +193,13 @@
                     <serverId>ossrh</serverId>
                     <nexusUrl>https://s01.oss.sonatype.org/</nexusUrl>
                     <autoReleaseAfterClose>true</autoReleaseAfterClose>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <executable>true</executable>
                 </configuration>
             </plugin>
         </plugins>
@@ -263,7 +263,7 @@
             <build>
                 <plugins>
                     <!--
-                    To deploy non-snapshot versions to Sonatype, signatures must be generated useing gpg
+                    To deploy non-snapshot versions to Sonatype, signatures must be generated using gpg
                     Note that gpg2 key must exist on Bamboo server and the key and passphrase can be
                     passed on the command line.
                     Instructions for creating a key:
