@@ -44,28 +44,30 @@ public class Application {
 	public static void main(String[] args) throws Exception {
         log.info("Starting up PETL");
 
-        RuntimeMXBean runtimeMxBean = ManagementFactory.getRuntimeMXBean();
-        log.info("JAVA VM: " + runtimeMxBean.getVmName());
-        log.info("JAVA VENDOR: " + runtimeMxBean.getSpecVendor());
-        log.info("JAVA VERSION: " + runtimeMxBean.getSpecVersion() + " (" + runtimeMxBean.getVmVersion() + ")");
-        log.info("JAVA_OPTS: " + runtimeMxBean.getInputArguments());
+        PetlExitCodeGenerator exitCodeGenerator = new PetlExitCodeGenerator();
 
         // Initialize environment
         ApplicationContext context = SpringApplication.run(Application.class, args);
         Application app = context.getBean(Application.class);
 
-        log.info("PETL Started Successfully");
-        log.info("PETL_HOME: " + app.getAppConfig().getPetlHomeDir());
-        log.info("JOB DIR: " + app.getAppConfig().getJobDir());
-        log.info("DATASOURCE DIR: " + app.getAppConfig().getDataSourceDir());
-
-        // Reset any hung jobs
-        app.getEtlService().markHungJobsAsRun();
-
-        // Get and execute any jobs configured to run at startup
-        PetlExitCodeGenerator exitCodeGenerator = new PetlExitCodeGenerator();
-        PetlConfig petlConfig = app.getAppConfig().getPetlConfig();
         try {
+            log.info("PETL Starting Up");
+
+            RuntimeMXBean runtimeMxBean = ManagementFactory.getRuntimeMXBean();
+            log.info("JAVA VM: " + runtimeMxBean.getVmName());
+            log.info("JAVA VENDOR: " + runtimeMxBean.getSpecVendor());
+            log.info("JAVA VERSION: " + runtimeMxBean.getSpecVersion() + " (" + runtimeMxBean.getVmVersion() + ")");
+            log.info("JAVA_OPTS: " + runtimeMxBean.getInputArguments());
+            log.info("PETL_HOME: " + app.getAppConfig().getPetlHomeDir());
+            log.info("JOB DIR: " + app.getAppConfig().getJobDir());
+            log.info("DATASOURCE DIR: " + app.getAppConfig().getDataSourceDir());
+
+            // Reset any hung jobs
+            app.getEtlService().markHungJobsAsRun();
+
+            PetlConfig petlConfig = app.getAppConfig().getPetlConfig();
+
+            // Get and execute any jobs configured to run at startup
             List<String> startupJobs = petlConfig.getStartup().getJobs();
             log.info("STARTUP JOBS: " + startupJobs);
             if (!startupJobs.isEmpty()) {
@@ -87,6 +89,7 @@ public class Application {
         finally {
             // If configured to exist after startup jobs, exit application
             if (app.getAppConfig().getPetlConfig().getStartup().isExitAutomatically()) {
+                log.info("PETL Shutting Down");
                 int exitCode = SpringApplication.exit(context, exitCodeGenerator);
                 for (Throwable exception : exitCodeGenerator.getExceptions()) {
                     log.error(exception);
@@ -98,6 +101,7 @@ public class Application {
         // Set up the schedule to check if any etl jobs need to execute every minute
         SimpleScheduleBuilder schedule = simpleSchedule().repeatForever().withIntervalInSeconds(60);
         app.getScheduler().schedule(ScheduledExecutionTask.class, schedule, 10000);  // Delay 10 seconds
+        log.info("PETL running");
     }
 
     /**
