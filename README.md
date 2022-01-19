@@ -549,16 +549,16 @@ From the directory where you've created your `application.yml` file, run PETL vi
 
 # Releasing
 
-On each build, our Bamboo CI server deploys the Maven artifact to the 'artifacts' directory on our Bamboo server:
+On each build, our Bamboo CI server deploys the Maven artifact to our Maven repo on Sonatype:
 
-http://bamboo.pih-emr.org/artifacts/
+https://s01.oss.sonatype.org/#nexus-search;quick~petl
 
-So doing a "release" should be as simple as:
+So doing a release should be as simple as:
 
 * Changing the pom.xml to remove the snapshot from the version number (ie, to do the "2.1.0" release, change the
   version in the pom from "2.1.0-SNAPSHOT" to "2.1.0")
   
-* Commit the change and let the Bamboo job run.  Afterwards the new release (ie petl-2.1.0.jar) should appear in the artifacts directory of bamboo: http://bamboo.pih-emr.org/artifacts/
+* Commit the change and let the Bamboo job run.  Afterwards the new release (ie petl-2.1.0.jar) should appear in Sonatype: https://s01.oss.sonatype.org/#nexus-search;quick~petl
 
 * Once this is confirmed, change the version number to the next snapshot (ie change "2.1.0" to "2.2.0-SNAPSHOT") so 
   that subsequent commits won't overwrite the "2.1.0" jar
