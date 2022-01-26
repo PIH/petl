@@ -8,7 +8,7 @@ on:
     branches: ['master']
 
 jobs:
-  deploy:
+  build-and-test:
     runs-on: ubuntu-latest
     steps:
 
@@ -33,7 +33,7 @@ jobs:
           server-password: BINTRAY_PASSWORD
 
       # Execute the Maven deploy command to compile, test, package, and verify
-      - name: Maven Deploy
+      - name: Maven Verify
         run: mvn -B verify --file pom.xml
         env:
           BINTRAY_USERNAME: pih
