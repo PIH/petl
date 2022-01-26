@@ -33,4 +33,18 @@ public class PentahoJobTest {
         JobExecution execution = executor.executeJob("job.yml");
         Assert.assertNull(execution.getErrorMessage());
     }
+
+    @Test
+    public void testJobThatFailsResultsInAFailedPetlJobExecution() {
+        JobExecutor executor = new JobExecutor(etlService, 1);
+        Throwable exception = null;
+        try {
+            executor.executeJob("failing-job.yml");
+        }
+        catch (Throwable t) {
+            exception = t;
+        }
+        Assert.assertNotNull(exception);
+
+    }
 }

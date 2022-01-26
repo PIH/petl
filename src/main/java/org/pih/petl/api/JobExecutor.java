@@ -58,7 +58,6 @@ public class JobExecutor {
             execution.setStatus(JobExecutionStatus.SUCCEEDED);
         }
         catch (Throwable t) {
-            String exception = ExceptionUtils.getMessage(t);
             execution.setErrorMessageFromException(t);
             execution.setStatus(JobExecutionStatus.FAILED);
             log.error(execution, t);
