@@ -1,6 +1,7 @@
 package org.pih.petl.job;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.StopWatch;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -146,12 +147,19 @@ public class PentahoJob implements PetlJob {
             stopWatch.stop();
 
             Result result = job.getResult();
-            // TODO: We can inspect the result here and take action (eg. notify on errors, etc)
 
             log.debug("***************");
-            log.debug("PetlJob executed in:  " + stopWatch.toString());
+            log.debug("PetlJob executed in:  " + stopWatch);
             log.debug("PetlJob Result: " + result);
             log.debug("***************");
+
+            if (result.getNrErrors() > 0 || result.getExitStatus() > 0) {
+                String msg = result.getLogText();
+                if (StringUtils.isEmpty(msg)) {
+                    msg = "There was an error during Pentaho job execution.  Num Errors: " + result.getNrErrors() + "; exit code: " + result.getExitStatus();
+                }
+                throw new PetlException(msg);
+            }
         }
         finally {
             try {
