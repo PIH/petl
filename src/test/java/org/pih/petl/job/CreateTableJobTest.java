@@ -47,6 +47,6 @@ public class CreateTableJobTest extends BasePetlTest {
         verifyNoTablesExist();
         executeJob("createEncounterTypesDropIfChanged.yml");
         verifyAllTablesExist();
-        Assert.assertEquals(2, getSqlServerDatasource().getTableColumns("encounter_types").size());
+        Assert.assertEquals(4, getSqlServerDatasource().getTableColumns("encounter_types").size());
     }
 }
