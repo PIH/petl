@@ -32,7 +32,7 @@ jobs:
           server-username: BINTRAY_USERNAME
           server-password: BINTRAY_PASSWORD
 
-      # Execute the Maven deploy command to compile, test, package, and verify
+      # Execute the Maven verify command to compile, test, and verify
       - name: Maven Verify
         run: mvn -B verify --file pom.xml
         env:
