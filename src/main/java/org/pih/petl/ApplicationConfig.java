@@ -169,7 +169,8 @@ public class ApplicationConfig {
             }
 
             if (StringUtils.isNotEmpty(config.getPath())) {
-                ConfigFile configFileAtPath = getJobConfigFile(config.getPath());
+                String path = StrSubstitutor.replace(config.getPath(), config.getParameters());
+                ConfigFile configFileAtPath = getJobConfigFile(path);
                 if (!configFileAtPath.exists()) {
                     throw new PetlException("Job Configuration file not found: " + config.getPath());
                 }
