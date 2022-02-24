@@ -5,7 +5,6 @@ import org.apache.commons.lang.text.StrSubstitutor;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.pih.petl.api.EtlService;
-import org.pih.petl.api.ExecutionContext;
 import org.pih.petl.api.JobExecution;
 import org.pih.petl.api.JobExecutionTask;
 import org.pih.petl.api.JobExecutor;
