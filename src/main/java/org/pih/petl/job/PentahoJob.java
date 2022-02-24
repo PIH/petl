@@ -13,7 +13,7 @@ import org.pentaho.di.job.Job;
 import org.pentaho.di.job.JobMeta;
 import org.pih.petl.ApplicationConfig;
 import org.pih.petl.PetlException;
-import org.pih.petl.api.ExecutionContext;
+import org.pih.petl.api.JobExecution;
 import org.pih.petl.job.config.JobConfigReader;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -45,9 +45,9 @@ public class PentahoJob implements PetlJob {
      * @see PetlJob
      */
     @Override
-    public void execute(final ExecutionContext context) throws Exception {
+    public void execute(final JobExecution jobExecution) throws Exception {
 
-        JobConfigReader configReader = new JobConfigReader(applicationConfig, context.getJobConfig());
+        JobConfigReader configReader = new JobConfigReader(applicationConfig, jobExecution.getJobConfig());
         Properties configuration = configReader.getAsProperties();
 
         String jobFilePath = configuration.getProperty(JOB_FILE_PATH);
@@ -61,7 +61,7 @@ public class PentahoJob implements PetlJob {
         so that the pipeline can find and use these as currently designed.
         */
         File workDir = ensureDir(applicationConfig.getPetlHomeDir(), "work");
-        File jobDir = ensureDir(workDir, context.getJobExecution().getUuid());
+        File jobDir = ensureDir(workDir, jobExecution.getUuid());
         File kettleDir = ensureDir(jobDir, ".kettle");
         System.setProperty("KETTLE_HOME", jobDir.getAbsolutePath());
 

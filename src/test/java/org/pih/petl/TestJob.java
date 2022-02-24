@@ -1,6 +1,6 @@
 package org.pih.petl;
 
-import org.pih.petl.api.ExecutionContext;
+import org.pih.petl.api.JobExecution;
 import org.pih.petl.job.PetlJob;
 import org.pih.petl.job.config.JobConfigReader;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,8 +29,8 @@ public class TestJob implements PetlJob {
     }
 
     @Override
-    public void execute(ExecutionContext context) throws Exception {
-        JobConfigReader jobConfigReader = new JobConfigReader(applicationConfig, context.getJobConfig());
+    public void execute(final JobExecution jobExecution) throws Exception {
+        JobConfigReader jobConfigReader = new JobConfigReader(applicationConfig, jobExecution.getJobConfig());
         String testId = jobConfigReader.getString("testId");
         successful.put(testId, false);
         int currentAttemptNum = (attemptNum.get(testId) == null ? 1 : attemptNum.get(testId) + 1);

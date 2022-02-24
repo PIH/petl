@@ -135,7 +135,7 @@ public class ApplicationConfig {
         if (!configFile.exists()) {
             throw new PetlException("Job Configuration file not found: " + configFile);
         }
-        return getPetlJobConfig(configFile, getEnv());
+        return getPetlJobConfig(configFile, new HashMap<>());
     }
 
     public JobConfig getPetlJobConfig(ConfigFile configFile, Map<String, String> parameters) {
@@ -156,20 +156,20 @@ public class ApplicationConfig {
             Map<String, String> newParameters = new LinkedHashMap<>(parameters);
             for (String parameter : config.getParameters().keySet()) {
                 String value = config.getParameters().get(parameter);
-                newParameters.put(parameter, StrSubstitutor.replace(value, parameters));
+                newParameters.put(parameter, getSubstitutedValue(value, parameters));
             }
             config.setParameters(newParameters);
 
             if (config.getSchedule() != null && config.getSchedule().getCron() != null) {
                 Schedule schedule = config.getSchedule();
-                schedule.setCron(StrSubstitutor.replace(schedule.getCron(), config.getParameters()));
+                schedule.setCron(getSubstitutedValue(schedule.getCron(), config.getParameters()));
             }
             if (config.getDescription() != null) {
-                config.setDescription(StrSubstitutor.replace(config.getDescription(), config.getParameters()));
+                config.setDescription(getSubstitutedValue(config.getDescription(), config.getParameters()));
             }
 
             if (StringUtils.isNotEmpty(config.getPath())) {
-                String path = StrSubstitutor.replace(config.getPath(), config.getParameters());
+                String path = getSubstitutedValue(config.getPath(), config.getParameters());
                 ConfigFile configFileAtPath = getJobConfigFile(path);
                 if (!configFileAtPath.exists()) {
                     throw new PetlException("Job Configuration file not found: " + config.getPath());
@@ -210,5 +210,11 @@ public class ApplicationConfig {
         catch (Exception e) {
             throw new IllegalStateException("Unable to read Object from string");
         }
+    }
+
+    public String getSubstitutedValue(String value, Map<String, String> parameters) {
+        value = StrSubstitutor.replace(value, parameters);
+        value = StrSubstitutor.replace(value, getEnv());
+        return value;
     }
 }

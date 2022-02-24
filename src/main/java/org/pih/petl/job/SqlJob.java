@@ -6,7 +6,7 @@ import org.apache.commons.logging.LogFactory;
 import org.pih.petl.ApplicationConfig;
 import org.pih.petl.PetlException;
 import org.pih.petl.SqlUtils;
-import org.pih.petl.api.ExecutionContext;
+import org.pih.petl.api.JobExecution;
 import org.pih.petl.job.config.DataSource;
 import org.pih.petl.job.config.JobConfigReader;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,9 +31,9 @@ public class SqlJob implements PetlJob {
      * @see PetlJob
      */
     @Override
-    public void execute(final ExecutionContext context) throws Exception {
+    public void execute(final JobExecution jobExecution) throws Exception {
         log.debug("Executing SqlJob");
-        JobConfigReader configReader = new JobConfigReader(applicationConfig, context.getJobConfig());
+        JobConfigReader configReader = new JobConfigReader(applicationConfig, jobExecution.getJobConfig());
 
         String delimiter = configReader.getString("delimiter");
 

@@ -1,10 +1,8 @@
 package org.pih.petl.api;
 
-import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.pih.petl.PetlException;
-import org.pih.petl.job.PetlJob;
 import org.pih.petl.job.config.ErrorHandling;
 import org.pih.petl.job.config.JobConfig;
 
@@ -44,17 +42,14 @@ public class JobExecutor {
      * via a scheduled execution.
      */
     public JobExecution executeJob(String jobPath) {
-        JobExecution execution = new JobExecution(jobPath);
+        JobConfig jobConfig = etlService.getApplicationConfig().getPetlJobConfig(jobPath);
+        JobExecution execution = new JobExecution(jobPath, jobConfig);
         try {
             etlService.saveJobExecution(execution);
-            JobConfig jobConfig = etlService.getApplicationConfig().getPetlJobConfig(jobPath);
-            PetlJob petlJob = etlService.getPetlJob(jobConfig);
             execution.setDescription(jobConfig.getDescription());
             etlService.saveJobExecution(execution);
             log.info(execution);
-            ExecutionContext context = new ExecutionContext(execution, jobConfig);
-            JobExecutionTask task = new JobExecutionTask(etlService, petlJob, context);
-            executeInSeries(Collections.singletonList(task));
+            execute(new JobExecutionTask(etlService, execution));
             execution.setStatus(JobExecutionStatus.SUCCEEDED);
         }
         catch (Throwable t) {
@@ -80,7 +75,7 @@ public class JobExecutor {
         while (tasksToSchedule.size() > 0) {
             List<Future<JobExecutionResult>> futures = new ArrayList<>();
             for (JobExecutionTask task : tasksToSchedule) {
-                JobExecution execution = task.getExecutionContext().getJobExecution();
+                JobExecution execution = task.getJobExecution();
                 etlService.saveJobExecution(execution);
                 if (task.getAttemptNum() == 1) {
                     futures.add(executorService.submit(task));
@@ -89,7 +84,7 @@ public class JobExecutor {
                     log.info(execution);
                 }
                 else {
-                    ErrorHandling errorHandling = task.getJobConfig().getErrorHandling();
+                    ErrorHandling errorHandling = task.getJobExecution().getJobConfig().getErrorHandling();
                     futures.add(executorService.schedule(task, errorHandling.getRetryInterval(), errorHandling.getRetryIntervalUnit()));
                     execution.setStatus(JobExecutionStatus.RETRY_QUEUED);
                     etlService.saveJobExecution(execution);
@@ -99,8 +94,8 @@ public class JobExecutor {
             for (Future<JobExecutionResult> future : futures) {
                 JobExecutionResult result = future.get();
                 JobExecutionTask task = result.getJobExecutionTask();
-                JobExecution execution = task.getExecutionContext().getJobExecution();
-                if (result.isSuccessful() || task.getAttemptNum() >= task.getJobConfig().getErrorHandling().getMaxAttempts()) {
+                JobExecution execution = task.getJobExecution();
+                if (result.isSuccessful() || task.getAttemptNum() >= task.getJobExecution().getJobConfig().getErrorHandling().getMaxAttempts()) {
                     finalResults.add(result);
                     tasksToSchedule.remove(task);
                     execution.setCompleted(new Date());
@@ -134,10 +129,24 @@ public class JobExecutor {
     /**
      * Execute a List of jobs in series.  A failure will terminate immediately and subsequent jobs will not run
      */
+    public void execute(JobExecutionTask task) throws InterruptedException, ExecutionException {
+        executeInSeries(Collections.singletonList(task));
+    }
+
+    /**
+     * Execute a List of jobs in series.  A failure will terminate immediately and subsequent jobs will not run
+     */
     public void executeInSeries(List<JobExecutionTask> tasks) throws InterruptedException, ExecutionException {
+        // First, ensure all job executions are saved so that they can be tracked and re-initiated as needed
+        for (JobExecutionTask task : tasks) {
+            JobExecution execution = task.getJobExecution();
+            etlService.saveJobExecution(execution);
+        }
+
+        // Next, execute each and only execute subsequent tasks if the earlier ones are successful
         JobExecutionResult failedResult = null;
         for (JobExecutionTask task : tasks) {
-            JobExecution execution = task.getExecutionContext().getJobExecution();
+            JobExecution execution = task.getJobExecution();
             etlService.saveJobExecution(execution);
             if (failedResult == null) {
                 Future<JobExecutionResult> futureResult = executorService.submit(task);
@@ -146,7 +155,7 @@ public class JobExecutor {
                 log.info(execution);
 
                 JobExecutionResult result = futureResult.get(); // This blocks until result is available
-                ErrorHandling errorHandling = task.getJobConfig().getErrorHandling();
+                ErrorHandling errorHandling = task.getJobExecution().getJobConfig().getErrorHandling();
                 while (!result.isSuccessful() && task.getAttemptNum() < errorHandling.getMaxAttempts()) {
                     task.incrementAttemptNum();
                     execution.setStatus(JobExecutionStatus.RETRY_QUEUED);

@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.pih.petl.api.EtlService;
-import org.pih.petl.api.ExecutionContext;
 import org.pih.petl.api.JobExecution;
 import org.pih.petl.api.JobExecutionTask;
 import org.pih.petl.api.JobExecutor;
@@ -31,19 +30,18 @@ public class RunMultipleJob implements PetlJob {
      * @see PetlJob
      */
     @Override
-    public void execute(final ExecutionContext context) throws Exception {
-        JobConfigReader configReader = new JobConfigReader(etlService.getApplicationConfig(), context.getJobConfig());
+    public void execute(final JobExecution jobExecution) throws Exception {
+        JobConfigReader configReader = new JobConfigReader(etlService.getApplicationConfig(), jobExecution.getJobConfig());
         JobExecutor jobExecutor = new JobExecutor(etlService, 1);
         try {
             List<JsonNode> jobTemplates = configReader.getList("jobs");
             log.debug("Executing " + jobTemplates.size() + " jobs");
             List<JobExecutionTask> tasks = new ArrayList<>();
+            int sequenceNum = 1;
             for (JsonNode jobTemplate : jobTemplates) {
                 JobConfig childConfig = configReader.getJobConfig(jobTemplate);
-                PetlJob petlJob = etlService.getPetlJob(childConfig);
-                JobExecution childExecution = new JobExecution(null, context.getJobExecution().getUuid(), childConfig.getDescription());
-                ExecutionContext iterationContext = new ExecutionContext(childExecution, childConfig);
-                tasks.add(new JobExecutionTask(etlService, petlJob, iterationContext));
+                JobExecution childExecution = new JobExecution(jobExecution, childConfig, sequenceNum++);
+                tasks.add(new JobExecutionTask(etlService, childExecution));
             }
             jobExecutor.executeInSeries(tasks);
         }

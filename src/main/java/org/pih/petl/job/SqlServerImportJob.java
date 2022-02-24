@@ -12,7 +12,7 @@ import org.apache.commons.logging.LogFactory;
 import org.pih.petl.ApplicationConfig;
 import org.pih.petl.PetlException;
 import org.pih.petl.SqlUtils;
-import org.pih.petl.api.ExecutionContext;
+import org.pih.petl.api.JobExecution;
 import org.pih.petl.job.config.DataSource;
 import org.pih.petl.job.config.JobConfigReader;
 import org.pih.petl.job.config.TableColumn;
@@ -47,10 +47,10 @@ public class SqlServerImportJob implements PetlJob {
      * @see PetlJob
      */
     @Override
-    public void execute(final ExecutionContext context) throws Exception {
+    public void execute(final JobExecution jobExecution) throws Exception {
 
         log.debug("Executing SqlServerImportJob");
-        JobConfigReader configReader = new JobConfigReader(applicationConfig, context.getJobConfig());
+        JobConfigReader configReader = new JobConfigReader(applicationConfig, jobExecution.getJobConfig());
 
         // Get source datasource
         DataSource sourceDatasource = configReader.getDataSource("extract", "datasource");
@@ -146,7 +146,7 @@ public class SqlServerImportJob implements PetlJob {
                 targetDatasource.dropTableIfExists(tableToBulkInsertInto);
                 String partitionSchema = SqlUtils.addSuffixToCreatedTablename(targetSchema, "_" + partitionValue);
                 targetDatasource.executeUpdate(partitionSchema);
-                dropAndRecreateIfSchemasDiffer(context, targetDatasource, targetTable, tableToBulkInsertInto, targetSchema);
+                dropAndRecreateIfSchemasDiffer(targetDatasource, targetTable, tableToBulkInsertInto, targetSchema);
             } else {
                 if (StringUtils.isNotEmpty(targetSchema)) {
                     if (dropAndRecreate) {
@@ -262,7 +262,7 @@ public class SqlServerImportJob implements PetlJob {
      * This method is synchronized so that if multiple jobs run in parallel that all check to see if the table needs updating,
      * that only one thread detects the change and recreates the table, and other threads will not detect a change
      */
-    private synchronized void dropAndRecreateIfSchemasDiffer(ExecutionContext context, DataSource targetDatasource, String existingTable, String newSchemaTable, String newSchema) throws SQLException {
+    private synchronized void dropAndRecreateIfSchemasDiffer(DataSource targetDatasource, String existingTable, String newSchemaTable, String newSchema) throws SQLException {
         log.debug("Checking for schema changes between " + existingTable + " and " + newSchemaTable);
         List<TableColumn> existingColumns = targetDatasource.getTableColumns(existingTable);
         List<TableColumn> newColumns = targetDatasource.getTableColumns(newSchemaTable);
