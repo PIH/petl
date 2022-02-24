@@ -128,7 +128,7 @@ public class EtlService {
      * (Used on startup to make sure hung jobs are rerun at next scheduled interval)
      */
     public void markHungJobsAsRun() {
-        for (JobExecution jobExecution : jobExecutionRepository.findJobExecutionsByCompletedIsNullAndStartedIsNotNull()) {
+        for (JobExecution jobExecution : jobExecutionRepository.findJobExecutionsByCompletedIsNull()) {
             jobExecution.setCompleted(new Date());
             jobExecution.setStatus(JobExecutionStatus.ABORTED);
             jobExecutionRepository.save(jobExecution);

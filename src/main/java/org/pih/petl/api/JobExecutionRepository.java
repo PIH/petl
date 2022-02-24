@@ -9,5 +9,5 @@ import java.util.List;
  */
 public interface JobExecutionRepository extends CrudRepository<JobExecution, String> {
     List<JobExecution> findJobExecutionByJobPathOrderByStartedDesc(String jobPath);
-    List<JobExecution> findJobExecutionsByCompletedIsNullAndStartedIsNotNull();
+    List<JobExecution> findJobExecutionsByCompletedIsNull();
 }
