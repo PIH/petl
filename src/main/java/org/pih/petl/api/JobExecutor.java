@@ -44,12 +44,18 @@ public class JobExecutor {
     public JobExecution executeJob(String jobPath) {
         JobConfig jobConfig = etlService.getApplicationConfig().getPetlJobConfig(jobPath);
         JobExecution execution = new JobExecution(jobPath, jobConfig);
+        execution.setDescription(jobConfig.getDescription());
+        etlService.saveJobExecution(execution);
+        return executeJob(execution);
+    }
+
+    /**
+     * Executes the given job, returning the relevant job execution that contains status of the job
+     */
+    public JobExecution executeJob(JobExecution execution) {
         try {
-            etlService.saveJobExecution(execution);
-            execution.setDescription(jobConfig.getDescription());
-            etlService.saveJobExecution(execution);
             log.info(execution);
-            execute(new JobExecutionTask(etlService, execution));
+            executeInSeries(Collections.singletonList(new JobExecutionTask(etlService, execution)));
             execution.setStatus(JobExecutionStatus.SUCCEEDED);
         }
         catch (Throwable t) {
@@ -124,13 +130,6 @@ public class JobExecutor {
         if (errors.size() > 0) {
             throw new PetlException("Errors occurred in " + errors.size() + " / " + finalResults.size() + " jobs");
         }
-    }
-
-    /**
-     * Execute a List of jobs in series.  A failure will terminate immediately and subsequent jobs will not run
-     */
-    public void execute(JobExecutionTask task) throws InterruptedException, ExecutionException {
-        executeInSeries(Collections.singletonList(task));
     }
 
     /**

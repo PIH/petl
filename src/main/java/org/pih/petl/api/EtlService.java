@@ -123,6 +123,28 @@ public class EtlService {
         return jobExecution;
     }
 
+    public List<JobExecution> getJobExecutionsAtTopLevel() {
+        return jobExecutionRepository.findJobExecutionsByJobPathIsNotNullOrderByInitiatedDesc();
+    }
+
+    public JobExecution getJobExecution(String uuid) {
+        return jobExecutionRepository.getJobExecutionByUuid(uuid);
+    }
+
+    public List<JobExecution> getChildExecutions(JobExecution jobExecution) {
+        return jobExecutionRepository.findJobExecutionsByParentExecutionUuidEqualsOrderBySequenceNum(jobExecution.getUuid());
+    }
+
+    public JobExecution executeJob(JobExecution jobExecution) {
+        JobExecutor jobExecutor = new JobExecutor(this, 1);
+        try {
+            return jobExecutor.executeJob(jobExecution);
+        }
+        finally {
+            jobExecutor.shutdown();
+        }
+    }
+
     /**
      * Update all jobs with null date completed to have date completed = NOW
      * (Used on startup to make sure hung jobs are rerun at next scheduled interval)
