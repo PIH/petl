@@ -23,7 +23,7 @@ public class JobExecutionResult {
 
     public boolean shouldRetry() {
         int numAttempts = jobExecutionTask.getAttemptNum();;
-        int maxAttempts = jobExecutionTask.getJobConfig().getErrorHandling().getMaxAttempts();
+        int maxAttempts = jobExecutionTask.getJobExecution().getJobConfig().getErrorHandling().getMaxAttempts();
         return numAttempts < maxAttempts;
     }
 

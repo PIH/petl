@@ -47,4 +47,28 @@
 		</createIndex>
 	</changeSet>
 
+	<changeSet id="petl_job_execution_3" author="PIH">
+		<preConditions onFail="MARK_RAN">
+			<not><columnExists tableName="petl_job_execution" columnName="config" /></not>
+		</preConditions>
+		<comment>
+			Add config to petl_job_execution table
+		</comment>
+		<addColumn tableName="petl_job_execution">
+			<column name="config" type="text"/>
+		</addColumn>
+	</changeSet>
+
+	<changeSet id="petl_job_execution_4" author="PIH">
+		<preConditions onFail="MARK_RAN">
+			<not><columnExists tableName="petl_job_execution" columnName="sequence_num" /></not>
+		</preConditions>
+		<comment>
+			Add sequence_num to petl_job_execution table
+		</comment>
+		<addColumn tableName="petl_job_execution">
+			<column name="sequence_num" type="int"/>
+		</addColumn>
+	</changeSet>
+
 </databaseChangeLog>

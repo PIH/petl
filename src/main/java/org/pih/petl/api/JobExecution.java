@@ -1,12 +1,16 @@
 package org.pih.petl.api;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
+import org.pih.petl.ApplicationConfig;
+import org.pih.petl.PetlException;
+import org.pih.petl.job.config.JobConfig;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
 import javax.persistence.Id;
+import javax.persistence.Lob;
 import java.util.Date;
 import java.util.UUID;
 
@@ -25,8 +29,15 @@ public class JobExecution {
     @Column(name ="parent_execution_uuid", length = 36)
     private String parentExecutionUuid;
 
+    @Column(name ="sequence_num")
+    private Integer sequenceNum;
+
     @Column(name = "description", length = 1000)
     private String description;
+
+    @Lob
+    @Column(name = "config")
+    private String config;
 
     @Column(name = "initiated", nullable = false)
     private Date initiated;
@@ -44,19 +55,36 @@ public class JobExecution {
     @Column(name = "error_message", length = 1000)
     private String errorMessage;
 
-    public JobExecution() {}
+    private transient JobConfig jobConfig;
 
-    public JobExecution(String jobPath) {
-        this(jobPath, null, null);
-    }
-
-    public JobExecution(String jobPath, String parentExecutionUuid, String description) {
+    public JobExecution() {
         this.uuid = UUID.randomUUID().toString();
-        this.jobPath = jobPath;
-        this.parentExecutionUuid = parentExecutionUuid;
-        this.description = description;
         this.initiated = new Date();
         this.status = JobExecutionStatus.INITIATED;
+    }
+
+    public JobExecution(JobConfig jobConfig) {
+        this();
+        this.description = jobConfig.getDescription();
+        this.jobConfig = jobConfig;
+        try {
+            this.config = ApplicationConfig.getYamlMapper().writeValueAsString(jobConfig);
+        }
+        catch (Exception e) {
+            throw new PetlException("Unable to write job configuration to json", e);
+        }
+    }
+
+    public JobExecution(String jobPath, JobConfig jobConfig) {
+        this(jobConfig);
+        this.jobPath = jobPath;
+    }
+
+    public JobExecution(JobExecution parentExecution, JobConfig jobConfig, Integer sequenceNum) {
+        this(jobConfig);
+        this.description = jobConfig.getDescription();
+        this.parentExecutionUuid = parentExecution.getUuid();
+        this.sequenceNum = sequenceNum;
     }
 
     public int getDurationSeconds() {
@@ -64,6 +92,18 @@ public class JobExecution {
         long st = started.getTime();
         long ed = (completed == null ? new Date() : completed).getTime();
         return (int)(ed-st)/1000;
+    }
+
+    public JobConfig getJobConfig() {
+        if (jobConfig == null) {
+            try {
+                jobConfig = ApplicationConfig.getYamlMapper().readValue(config, JobConfig.class);
+            }
+            catch (Exception e) {
+                throw new PetlException("Unable to read job configuration from json", e);
+            }
+        }
+        return jobConfig;
     }
 
     @Override
@@ -116,12 +156,28 @@ public class JobExecution {
         this.parentExecutionUuid = parentExecutionUuid;
     }
 
+    public Integer getSequenceNum() {
+        return sequenceNum;
+    }
+
+    public void setSequenceNum(Integer sequenceNum) {
+        this.sequenceNum = sequenceNum;
+    }
+
     public String getDescription() {
         return description;
     }
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public String getConfig() {
+        return config;
+    }
+
+    public void setConfig(String config) {
+        this.config = config;
     }
 
     public JobExecutionStatus getStatus() {

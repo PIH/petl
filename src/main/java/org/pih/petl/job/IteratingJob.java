@@ -33,24 +33,23 @@ public class IteratingJob implements PetlJob {
      * @see PetlJob
      */
     @Override
-    public void execute(final ExecutionContext context) throws Exception {
+    public void execute(final JobExecution jobExecution) throws Exception {
         log.debug("Executing IteratingJob");
-        JobConfigReader configReader = new JobConfigReader(etlService.getApplicationConfig(), context.getJobConfig());
+        JobConfigReader configReader = new JobConfigReader(etlService.getApplicationConfig(), jobExecution.getJobConfig());
         JobExecutor jobExecutor = new JobExecutor(etlService, configReader.getInt(1, "maxConcurrentJobs"));
         try {
             List<JsonNode> iterations = configReader.getList("iterations");
             List<JobExecutionTask> iterationTasks = new ArrayList<>();
+            int sequenceNum = 1;
             for (JsonNode iteration : iterations) {
                 Map<String, String> iterationVars = configReader.getMap(iteration);
                 for (String paramName : iterationVars.keySet()) {
                     String paramValue = iterationVars.get(paramName);
-                    iterationVars.put(paramName, StrSubstitutor.replace(paramValue, context.getJobConfig().getParameters()));
+                    iterationVars.put(paramName, StrSubstitutor.replace(paramValue, jobExecution.getJobConfig().getParameters()));
                 }
                 JobConfig childConfig = configReader.getJobConfig(iterationVars, "jobTemplate");
-                PetlJob petlJob = etlService.getPetlJob(childConfig);
-                JobExecution childExecution = new JobExecution(null, context.getJobExecution().getUuid(), childConfig.getDescription());
-                ExecutionContext iterationContext = new ExecutionContext(childExecution, childConfig);
-                iterationTasks.add(new JobExecutionTask(etlService, petlJob, iterationContext));
+                JobExecution childExecution = new JobExecution(jobExecution, childConfig, sequenceNum++);
+                iterationTasks.add(new JobExecutionTask(etlService, childExecution));
                 log.debug("Adding iteration task: " + iterationVars);
             }
             jobExecutor.executeInParallel(iterationTasks);
