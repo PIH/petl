@@ -4,6 +4,7 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.pih.petl.SpringRunnerTest;
+import org.pih.petl.job.config.TableColumn;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -47,6 +48,11 @@ public class CreateTableJobTest extends BasePetlTest {
         verifyNoTablesExist();
         executeJob("createEncounterTypesDropIfChanged.yml");
         verifyAllTablesExist();
-        Assert.assertEquals(4, getSqlServerDatasource().getTableColumns("encounter_types").size());
+        List<TableColumn> columns = getSqlServerDatasource().getTableColumns("encounter_types");
+        Assert.assertEquals(4, columns.size());
+        Assert.assertEquals("UUID CHAR(38)", columns.get(0).toString().toUpperCase());
+        Assert.assertEquals("NAME VARCHAR(100)", columns.get(1).toString().toUpperCase());
+        Assert.assertEquals("DESCRIPTION VARCHAR(1000)", columns.get(2).toString().toUpperCase());
+        Assert.assertEquals("PROVIDER VARCHAR(100)", columns.get(3).toString().toUpperCase());
     }
 }
