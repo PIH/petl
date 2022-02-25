@@ -118,10 +118,10 @@ public class DataSource {
             while (rs.next()) {
                 String name = rs.getString("COLUMN_NAME");
                 String type = rs.getString("TYPE_NAME");
-                if (sizedTypes.contains(type)) {
+                if (sizedTypes.contains(type.toUpperCase())) {
                     String size = rs.getString("COLUMN_SIZE");
                     if (StringUtils.isNotEmpty(size)) {
-                        type += " (" + size;
+                        type += "(" + size;
                         String decimalDigits = rs.getString("DECIMAL_DIGITS");
                         if (StringUtils.isNotEmpty(decimalDigits)) {
                             type += "," + decimalDigits;
