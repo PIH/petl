@@ -57,6 +57,7 @@ public class JobExecutor {
             log.info(execution);
             executeInSeries(Collections.singletonList(new JobExecutionTask(etlService, execution)));
             execution.setStatus(JobExecutionStatus.SUCCEEDED);
+            execution.setErrorMessage(null);
         }
         catch (Throwable t) {
             execution.setErrorMessageFromException(t);

@@ -62,6 +62,7 @@ public class JobExecutionRestController {
                 }
                 if (successful) {
                     execution.setStatus(JobExecutionStatus.SUCCEEDED);
+                    execution.setErrorMessage(null);
                 } else {
                     execution.setStatus(JobExecutionStatus.FAILED);
                 }
