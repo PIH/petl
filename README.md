@@ -470,6 +470,31 @@ Example configuration:
           actionIfExists: "drop"  # Optional.  Values you can specify are "drop" and "dropIfChanged".  Default is to leave the table unchanged if it already exists.
 ```
 
+# Monitoring Jobs and REST API
+
+A basic REST API exists that enables one to view job executions and to re-execute failed executions.  The designed use cases are as follows:
+Note that this REST API exists at the port configured as the server.port in application.yml.
+
+**GET /execution**
+
+This returns an array of job executions that have been executed at the top level (i.e. not nested within other executions).
+
+**GET /execution/{uuid}**
+
+This returns the job execution object with the given uuid, including it's configuration and status.
+
+**GET /execution/{uuid}/children**
+
+This returns an array of job executions that have the job execution with the given uuid as a parent.
+The idea is that you'd first identify top-level executions, and then use this end-point to drill down into further
+nested "child" executions.
+
+**POST /execution/{uuid}**
+
+Posting to a particular existing job execution endpoint will re-execute this job (and any nested child jobs) that
+have a status other than SUCCEEDED.  The purpose of this is to enable re-executing a failed job or all of the failed jobs
+that are nested in a top-level job without needing to re-execute every job from scratch.
+
 # Developer Reference
 
 ## Building
@@ -564,20 +589,6 @@ So doing a release should be as simple as:
   that subsequent commits won't overwrite the "2.1.0" jar
   
 * Update the "petl_version" variable in Puppet to deploy the version of Petl you want to release on each server
-
-# TODO:
-
-* Deploy petl to maven (snapshots and releases)
-* Change from pulling petl from bamboo to maven and remove the Bamboo release steps above
-* Add ability to load (initial + updates) to jobs and datasources from external location (eg. url)
-* Add ability to check for updates to existing jobs and datasources from external location
-* Provide web services and/or a web application that enables a broad range of users to:
-  * Check for updates to current configuration based on source + version
-  * Load updates to current configuration if available
-  * View the details of the various jobs and the history of their execution
-  * View the last update date and current status of the Pipeline(s)
-  * Kick off an update of the pipeline(s)
-  * View any errors in running the pipeline(s) 
 
 # Related Projects
 
