@@ -394,10 +394,6 @@ configuration:
       configuration:
         jobs:
           - "load-lower-neno.yml"
-  execution:
-    maxRetriesPerJob: 5
-    retryInterval: 30
-    retryIntervalUnit: "MINUTES"
 schedule:
     cron: "0 0 5 ? * *"  
 ```
