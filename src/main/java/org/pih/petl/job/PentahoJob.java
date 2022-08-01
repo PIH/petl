@@ -21,6 +21,7 @@ import org.springframework.stereotype.Component;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 
@@ -85,7 +86,13 @@ public class PentahoJob implements PetlJob {
             try {
                 log.debug("Initializing Kettle Environment");
                 log.debug("KETTLE_HOME = " + System.getProperty("KETTLE_HOME"));
-                System.setProperty("KETTLE_PLUGIN_CLASSES", "org.pentaho.di.trans.steps.append.AppendMeta");
+                List<String> plugins = configReader.getStringList("job", "plugins");
+                if (!plugins.contains("org.pentaho.di.trans.steps.append.AppendMeta")) {
+                    plugins.add("org.pentaho.di.trans.steps.append.AppendMeta");
+                }
+                String kettlePluginClasses = String.join(",", plugins);
+                System.setProperty("KETTLE_PLUGIN_CLASSES", kettlePluginClasses);
+                log.debug("KETTLE_PLUGIN_CLASSES: " + System.getProperty("KETTLE_PLUGIN_CLASSES"));
                 KettleEnvironment.init();
             }
             catch (KettleException e) {
@@ -168,6 +175,7 @@ public class PentahoJob implements PetlJob {
             catch (Exception e) {
                 log.warn("Error deleting job directory: " + jobDir);
             }
+            KettleEnvironment.reset();
         }
     }
 

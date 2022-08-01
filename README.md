@@ -323,6 +323,13 @@ This type of job executes a Pentaho Kettle Job (.kjb) file. The minimum required
 One can optionally specify the logging level that Pentaho Kettle should use.  Values that are supported (from most verbose to least verbose, include):
 ROWLEVEL, DEBUG, DETAILED, BASIC, MINIMAL, ERROR. The default is "MINIMAL" if not explicitly configured.
 
+Some jobs in Pentaho require specific plugins to be activated in order to use those features.  To enable one or more plugins,
+you can specify this configuration under configuration.job.plugins.  See example below.  This is optional.  If you find that
+a job succeeds when executed in Spoon, but fails when run via PETL, and the log file has a message indicating that a plugin is missing
+( something like "Can't run transformation due to plugin missing" ), you can attempt to identify the correct plugin by opening
+that transformation in Spoon, and then viewing the Spoon logs, which shoul indicate the name of the class for the transformation
+that was just loaded.
+
 Beyond these built-in configuration options, users can configure any other arbitrary values within the configuration
 section, and these will be made available to all jobs and transforms to refer to a variables.  All nested objects within
 the yaml configuration will be flattened with dot syntax.  For example the Job File Path above would be available to refer
@@ -337,7 +344,8 @@ For example, jobs within the [pih-pentaho](https://github.com/pih/pih-pentaho) p
 This job currently runs Kettle 9.1.0.0-324.  To develop jobs and transforms within this version, you can download:
 https://sourceforge.net/projects/pentaho/files/Pentaho%209.1/client-tools/pdi-ce-9.1.0.0-324.zip/download
 
-An example configuration to run a Pentaho job with BASIC level of logging at 5am every morning:
+An example configuration to run a Pentaho job with BASIC level of logging at 5am every morning, that has a transformation
+that uses the "Sequence" step within a transformation:
 
 ```yaml
 type: "pentaho-job"
@@ -345,6 +353,8 @@ configuration:
   job:
     filePath: "pentaho/src/jobs/refresh-warehouse.kjb"
     logLevel: "BASIC"
+    plugins:
+      - "org.pentaho.di.trans.steps.addsequence.AddSequenceMeta"
   pih:
     pentahoHome: "${petl.jobDir}/pentaho/src"
     country: "haiti"
