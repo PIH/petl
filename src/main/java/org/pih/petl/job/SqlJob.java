@@ -20,12 +20,14 @@ import java.util.List;
  * Encapsulates a particular ETL job configuration
  */
 @Component("sql-execution")
-public class SqlJob implements PetlJob {
+public class SqlJob extends AbstractJob {
 
     private final Log log = LogFactory.getLog(getClass());
 
     @Autowired
-    ApplicationConfig applicationConfig;
+    public SqlJob(ApplicationConfig applicationConfig) {
+        super(applicationConfig);
+    }
 
     /**
      * @see PetlJob

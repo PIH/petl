@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.commons.lang.text.StrSubstitutor;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.pih.petl.ApplicationConfig;
 import org.pih.petl.api.EtlService;
 import org.pih.petl.api.JobExecution;
 import org.pih.petl.api.JobExecutionTask;
@@ -21,12 +22,17 @@ import java.util.Map;
  * Encapsulates a particular ETL job configuration
  */
 @Component("iterating-job")
-public class IteratingJob implements PetlJob {
+public class IteratingJob extends AbstractJob {
 
     private final Log log = LogFactory.getLog(getClass());
 
     @Autowired
     EtlService etlService;
+
+    @Autowired
+    public IteratingJob(ApplicationConfig applicationConfig) {
+        super(applicationConfig);
+    }
 
     /**
      * @see PetlJob

@@ -1,0 +1,36 @@
+version: '2'
+services:
+
+  # A Flink Session cluster can be used to run multiple jobs. Each job needs to be submitted to the cluster after the
+  # cluster has been deployed. To deploy a Flink Session cluster with Docker, you need to start a JobManager container
+  jobmanager:
+    image: flink:1.13.5
+    container_name: flink-jobmanager
+    ports:
+      - "8081:8081"
+    command: jobmanager
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: jobmanager 
+
+  # We can then add one or more task manager containers
+  taskmanager:
+    image: flink:1.13.5
+    container_name: flink-taskmanager
+    depends_on:
+      - jobmanager
+    command: taskmanager
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: jobmanager
+        taskmanager.numberOfTaskSlots: 2
+    volumes:
+      - "./target/lib/flink-connector-kafka_2.12-1.13.5.jar:/opt/flink/lib/flink-connector-kafka_2.12-1.13.5.jar"
+      - "./target/lib/kafka-clients-2.4.1.jar:/opt/flink/lib/kafka-clients-2.4.1.jar"
+
+networks:
+  default:
+    external:
+      name: "analytics-incubator-network"

@@ -29,7 +29,7 @@ import java.util.Set;
  * This class is responsible for running a Pentaho Kettle PetlJob
  */
 @Component("pentaho-job")
-public class PentahoJob implements PetlJob {
+public class PentahoJob extends AbstractJob {
 
     private static final Log log = LogFactory.getLog(PentahoJob.class);
 
@@ -40,7 +40,9 @@ public class PentahoJob implements PetlJob {
     public static final String PIH_PENTAHO_HOME = "pih.pentahoHome";
 
     @Autowired
-    ApplicationConfig applicationConfig;
+    public PentahoJob(ApplicationConfig applicationConfig) {
+        super(applicationConfig);
+    }
 
     /**
      * @see PetlJob

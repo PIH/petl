@@ -3,6 +3,7 @@ package org.pih.petl.job;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.pih.petl.ApplicationConfig;
 import org.pih.petl.api.EtlService;
 import org.pih.petl.api.JobExecution;
 import org.pih.petl.api.JobExecutionTask;
@@ -19,12 +20,17 @@ import java.util.List;
  * Encapsulates a particular ETL job configuration
  */
 @Component("job-pipeline")
-public class RunMultipleJob implements PetlJob {
+public class RunMultipleJob extends AbstractJob {
 
     private final Log log = LogFactory.getLog(getClass());
 
     @Autowired
     EtlService etlService;
+
+    @Autowired
+    public RunMultipleJob(ApplicationConfig applicationConfig) {
+        super(applicationConfig);
+    }
 
     /**
      * @see PetlJob

@@ -14,7 +14,13 @@ The initial objectives of PETL have been to satisfy the following objectives:
 ## Install Java
 
 The PETL application is delivered as an executable JAR file.  This means that PETL requires only the Java Runtime
-installed in order to run it.  The recommended Java version is **OpenJDK 8 JDK**.
+installed in order to run it.  The recommended Java version is **OpenJDK 11 JDK**.
+
+If your default system JDK is 8, and you need to build with Java 11, you can run the following:
+
+```shell
+export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64 && mvn clean install
+```
 
 ## Install PETL
 

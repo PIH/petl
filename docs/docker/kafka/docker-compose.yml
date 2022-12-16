@@ -1,0 +1,50 @@
+version: '2'
+services:
+
+  zookeeper:
+    image: debezium/zookeeper:1.8
+    container_name: "zookeeper"
+    #volumes:
+    #  - "./zookeeper/data:/zookeeper/data"
+    #  - "./zookeeper/txns:/zookeeper/txns"
+    ports:
+      - "2181:2181"
+      - "2888:2888"
+      - "3888:3888"
+
+  kafka:
+    image: debezium/kafka:1.8
+    container_name: "kafka"
+    #volumes:
+    #  - "./kafka/data:/kafka/data"
+    ports:
+      - "9092:9092"
+    depends_on:
+      - "zookeeper"
+    environment:
+      - ZOOKEEPER_CONNECT=zookeeper:2181
+
+  connect:
+    image: debezium/connect:1.8
+    container_name: "connect"
+    ports:
+      - "8083:8083"
+    depends_on:
+      - "kafka"
+    environment:
+      - BOOTSTRAP_SERVERS=kafka:9092
+      - GROUP_ID=debezium-connect
+      - CONFIG_STORAGE_TOPIC=my_connect_configs
+      - OFFSET_STORAGE_TOPIC=my_connect_offsets
+      - STATUS_STORAGE_TOPIC=my_connect_statuses
+
+  # Kowl is a web application that helps you to explore the Kafka cluster
+  kowl:
+    image: quay.io/cloudhut/kowl:master
+    container_name: "kowl"
+    ports:
+      - "8282:8080"
+    environment:
+      KAFKA_BROKERS: "kafka:9092"
+    depends_on:
+      - "kafka"

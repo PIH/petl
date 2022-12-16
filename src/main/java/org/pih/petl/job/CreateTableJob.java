@@ -19,12 +19,14 @@ import java.util.List;
  * PetlJob that can create a table
  */
 @Component("create-table")
-public class CreateTableJob implements PetlJob {
+public class CreateTableJob extends AbstractJob {
 
     private final Log log = LogFactory.getLog(getClass());
 
     @Autowired
-    ApplicationConfig applicationConfig;
+    public CreateTableJob(ApplicationConfig applicationConfig) {
+        super(applicationConfig);
+    }
 
     /**
      * @see PetlJob

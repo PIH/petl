@@ -34,14 +34,16 @@ import java.util.Map;
  * PetlJob that can load into SQL Server table
  */
 @Component("sqlserver-bulk-import")
-public class SqlServerImportJob implements PetlJob {
+public class SqlServerImportJob extends AbstractJob {
 
     private final Log log = LogFactory.getLog(getClass());
 
     private final Map<String, Object> tableMonitors = new HashMap<>();
 
     @Autowired
-    ApplicationConfig applicationConfig;
+    public SqlServerImportJob(ApplicationConfig applicationConfig) {
+        super(applicationConfig);
+    }
 
     /**
      * @see PetlJob
