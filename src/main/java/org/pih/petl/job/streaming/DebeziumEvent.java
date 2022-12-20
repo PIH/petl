@@ -13,6 +13,7 @@ public class DebeziumEvent implements Serializable {
 
     private static final JsonMapper mapper = new JsonMapper();
 
+    private final ChangeEvent<String, String> changeEvent;
     private final Long timestamp;
     private final DebeziumOperation operation;
     private final ObjectMap key;
@@ -21,6 +22,7 @@ public class DebeziumEvent implements Serializable {
     private final ObjectMap source;
 
     public DebeziumEvent(ChangeEvent<String, String> changeEvent) {
+        this.changeEvent = changeEvent;
         try {
             JsonNode keyNode = mapper.readTree(changeEvent.key());
             JsonNode valueNode = mapper.readTree(changeEvent.value());
@@ -34,6 +36,10 @@ public class DebeziumEvent implements Serializable {
         catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public ChangeEvent<String, String> getChangeEvent() {
+        return changeEvent;
     }
 
     public String getServerName() {
@@ -64,12 +70,20 @@ public class DebeziumEvent implements Serializable {
         return after;
     }
 
+    public ObjectMap getValues() {
+        return operation == DebeziumOperation.DELETE ? getBefore() : getAfter();
+    }
+
+    public String getUuid() {
+        return getValues().getString("uuid");
+    }
+
     public ObjectMap getSource() {
         return source;
     }
 
     @Override
     public String toString() {
-        return timestamp + "," + getServerName() + "," + operation + "," + getTable() + "," + key;
+        return getChangeEvent().toString();
     }
 }

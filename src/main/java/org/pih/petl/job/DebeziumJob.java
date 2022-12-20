@@ -1,6 +1,5 @@
 package org.pih.petl.job;
 
-import io.debezium.engine.ChangeEvent;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.pih.petl.ApplicationConfig;
@@ -9,12 +8,12 @@ import org.pih.petl.api.JobExecution;
 import org.pih.petl.job.config.DataSource;
 import org.pih.petl.job.config.JobConfigReader;
 import org.pih.petl.job.streaming.DebeziumStream;
+import org.pih.petl.job.streaming.consumer.DebeziumConsumer;
 
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
 
 /**
  * This class is responsible for running a job against a Debezium stream
@@ -23,6 +22,7 @@ import java.util.function.Consumer;
  * streamId:   unique, numeric id that associates this particular Debezium job with mysql as a replication node
  * datasource: a mysql datasource that Debezium.  the user and data source must be able to read the row-level binlog
  * tables:  the list of tables to read from the binlog
+ * functionClass:  the class that implements Consumer<ChangeEvent<String, String>> that should be executed for each record
  * <p>
  * Optional configuration:
  * resetEachExecution:  if true, this will start the job over from scratch, rather than picking up from last offset
@@ -56,7 +56,7 @@ public abstract class DebeziumJob extends AbstractJob {
             stream.setProperty(key, debeziumConfig.get(key));
         }
 
-        Consumer<ChangeEvent<String, String>> function = getChangeEventFunction(configReader);
+        DebeziumConsumer function = getConsumer(configReader);
 
         // Reset the stream is configured to do so
         if (configReader.getBoolean(false, "resetEachExecution")) {
@@ -112,12 +112,12 @@ public abstract class DebeziumJob extends AbstractJob {
      * @return the function to run for each change event
      */
     @SuppressWarnings("unchecked")
-    public Consumer<ChangeEvent<String, String>> getChangeEventFunction(JobConfigReader configReader) {
+    public DebeziumConsumer getConsumer(JobConfigReader configReader) {
         try {
             String functionClassName = configReader.getString("functionClass");
             Class<?> functionClass = DebeziumJob.class.getClassLoader().loadClass(functionClassName);
             Object functionObject = functionClass.getConstructor().newInstance();
-            return (Consumer<ChangeEvent<String, String>>) functionObject;
+            return (DebeziumConsumer) functionObject;
         }
         catch (Exception e) {
             throw new PetlException("Unable to create change event function", e);

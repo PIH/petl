@@ -7,6 +7,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.pih.petl.job.config.DataSource;
+import org.pih.petl.job.streaming.consumer.DebeziumConsumer;
 
 import java.io.File;
 import java.io.IOException;
@@ -108,7 +109,7 @@ public class DebeziumStream {
     /**
      * Starts the debezium stream
      */
-    public void start(Consumer<ChangeEvent<String, String>> changeEventConsumer) {
+    public void start(DebeziumConsumer debeziumConsumer) {
         log.info("Starting Debezium Stream: " + streamName);
         log.debug("Configuration: " + config);
 
@@ -119,16 +120,24 @@ public class DebeziumStream {
             log.info("Created directory: " + getOffsetsFile().getParentFile());
         }
 
+        debeziumConsumer.startup();
+
         engine = DebeziumEngine.create(Json.class)
                 .using(config)
-                .notifying(changeEventConsumer)
+                .notifying(debeziumConsumer)
                 .build();
 
         executor.execute(engine);
     }
 
-    public void stop() {
+    public void stop(DebeziumConsumer debeziumConsumer) {
         log.info("Stopping Debezium Stream: " + streamName);
+        try {
+            debeziumConsumer.shutdown();
+        }
+        catch (Exception e) {
+            log.warn("An error occurred while trying to shutdown the consumer", e);
+        }
         try {
             if (engine != null) {
                 engine.close();

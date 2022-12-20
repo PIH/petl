@@ -22,6 +22,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <debeziumVersion>1.8.0.Final</debeziumVersion>
+        <cassandraDriverVersion>4.15.0</cassandraDriverVersion>
         <java.version>11</java.version>
     </properties>
 
@@ -165,6 +166,26 @@
             <groupId>io.debezium</groupId>
             <artifactId>debezium-connector-mysql</artifactId>
             <version>${debeziumVersion}</version>
+        </dependency>
+
+        <!-- Cassandra -->
+
+        <dependency>
+            <groupId>com.datastax.oss</groupId>
+            <artifactId>java-driver-core</artifactId>
+            <version>${cassandraDriverVersion}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.datastax.oss</groupId>
+            <artifactId>java-driver-query-builder</artifactId>
+            <version>${cassandraDriverVersion}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.datastax.oss</groupId>
+            <artifactId>java-driver-mapper-runtime</artifactId>
+            <version>${cassandraDriverVersion}</version>
         </dependency>
 
         <!-- test dependencies -->
