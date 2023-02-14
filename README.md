@@ -304,6 +304,9 @@ configuration:
       column: "partition_num"  # If specified, this will use this column for the partition scheme, when created
       value: "3"  # If specified, this will use this column value for the partition, when created
     dropAndRecreateTable: "false"  # Optional, default is true, which will drop and recreate the target table (if it exists) each time this is run
+    bulkCopy:
+      batchSize: 100 # Optional, default is 100.  You can increase or decrease the number of records in each batch with this
+      timeout: 7200 # Optional, default is 7200 (2 hours).  You can increase or decrease the timeout of the operation with this
 ```
    
 NOTE:
