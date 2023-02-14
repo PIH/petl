@@ -164,6 +164,10 @@ public class SqlServerImportJob implements PetlJob {
                 }
             }
 
+            // Get bulk load configuration
+            int batchSize = configReader.getInt(100, "load", "bulkCopy", "batchSize");
+            int timeout = configReader.getInt(7200, "load", "bulkCopy", "timeout"); // 2h default
+
             try (Connection sourceConnection = sourceDatasource.openConnection()) {
                 try (Connection targetConnection = targetDatasource.openConnection()) {
 
@@ -211,8 +215,8 @@ public class SqlServerImportJob implements PetlJob {
                                             SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(sqlServerConnection);
                                             SQLServerBulkCopyOptions bco = new SQLServerBulkCopyOptions();
                                             bco.setKeepIdentity(true);
-                                            bco.setBatchSize(100);
-                                            bco.setBulkCopyTimeout(3600);
+                                            bco.setBatchSize(batchSize);
+                                            bco.setBulkCopyTimeout(timeout);
                                             bulkCopy.setBulkCopyOptions(bco);
                                             bulkCopy.setDestinationTableName(tableToBulkInsertInto);
                                             bulkCopy.writeToServer(resultSet);
