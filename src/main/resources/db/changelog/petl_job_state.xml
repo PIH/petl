@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+		xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+		xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd">
+
+	<changeSet id="petl_job_state_20230227" author="PIH">
+		<preConditions>
+			<not><tableExists tableName="petl_job_state" /></not>
+		</preConditions>
+		<comment>
+			Create table to persist job state between executions
+		</comment>
+		<createTable tableName="petl_job_state">
+			<column name="id" type="int" autoIncrement="true">
+				<constraints primaryKey="true" nullable="false" />
+			</column>
+			<column name="job_key" type="varchar(1000)" />
+			<column name="property" type="varchar(1000)"/>
+			<column name="value" type="varchar(1000)" />
+		</createTable>
+		<createIndex tableName="petl_job_state" indexName="petl_job_state_job_key_property_idx">
+			<column name="job_key"/>
+			<column name="property"/>
+		</createIndex>
+	</changeSet>
+
+</databaseChangeLog>

@@ -1,3 +1,5 @@
 databaseChangeLog:
   - include:
       file: "db/changelog/petl_job_execution.xml"
+  - include:
+      file: "db/changelog/petl_job_state.xml"

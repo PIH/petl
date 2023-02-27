@@ -33,6 +33,7 @@ public class EtlService {
 
     final ApplicationConfig applicationConfig;
     final JobExecutionRepository jobExecutionRepository;
+    final JobStateRepository jobStateRepository;
 
     @Autowired
     List<PetlJob> petlJobs;
@@ -40,10 +41,12 @@ public class EtlService {
     @Autowired
     public EtlService(
             ApplicationConfig applicationConfig,
-            JobExecutionRepository jobExecutionRepository
+            JobExecutionRepository jobExecutionRepository,
+            JobStateRepository jobStateRepository
     ) {
         this.applicationConfig = applicationConfig;
         this.jobExecutionRepository = jobExecutionRepository;
+        this.jobStateRepository = jobStateRepository;
     }
 
     /**
@@ -155,6 +158,30 @@ public class EtlService {
             jobExecution.setStatus(JobExecutionStatus.ABORTED);
             jobExecutionRepository.save(jobExecution);
         }
+    }
+
+    /**
+     * Return the state value for the job with the given key, with the given state property
+     * @param jobKey the identifier of the job
+     * @param property the identifier of the state
+     * @return the value of the state for the given job and property
+     */
+    public String getStateValue(String jobKey, String property) {
+        JobState.Key key = new JobState.Key(jobKey, property);
+        return jobStateRepository.findById(key).map(JobState::getValue).orElse(null);
+    }
+
+    /**
+     * Set the state value for the job with the given key, for the given state property
+     * @param jobKey the identifier of the job
+     * @param property the identifier of the state
+     * @param value the value of the state for the given job and property
+     */
+    public void setStateValue(String jobKey, String property, String value) {
+        JobState.Key key = new JobState.Key(jobKey, property);
+        JobState state = jobStateRepository.findById(key).orElse(new JobState(key, value));
+        state.setValue(value);
+        jobStateRepository.save(state);
     }
 
     /**

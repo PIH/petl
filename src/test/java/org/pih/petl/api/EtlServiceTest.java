@@ -32,4 +32,11 @@ public class EtlServiceTest {
         Assert.assertNotNull(configuredJobs.get("sqlserverimport/job.yml"));
         Assert.assertNotNull(configuredJobs.get("pentaho/job.yml"));
     }
+
+    @Test
+    public void testSettingAndGettingState() {
+        etlService.setStateValue("testJob", "stateKey", "stateValue");
+        Assert.assertEquals(etlService.getStateValue("testJob", "stateKey"), "stateValue");
+        Assert.assertNull(etlService.getStateValue("testJob", "otherKey"));
+    }
 }
