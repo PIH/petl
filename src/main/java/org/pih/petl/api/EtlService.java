@@ -98,8 +98,8 @@ public class EtlService {
     /**
      * @return the most recent Job Execution for the given Job Path
      */
-    public JobExecution getLatestJobExecution(String jobPath) {
-        List<JobExecution> l = jobExecutionRepository.findJobExecutionByJobPathOrderByStartedDesc(jobPath);
+    public JobExecution getLatestJobExecution(String jobKey) {
+        List<JobExecution> l = jobExecutionRepository.findJobExecutionByJobKeyOrderByStartedDesc(jobKey);
         if (l == null || l.isEmpty()) {
             return null;
         }
@@ -127,7 +127,7 @@ public class EtlService {
     }
 
     public List<JobExecution> getJobExecutionsAtTopLevel() {
-        return jobExecutionRepository.findJobExecutionsByJobPathIsNotNullOrderByInitiatedDesc();
+        return jobExecutionRepository.findJobExecutionsByJobKeyIsNotNullOrderByInitiatedDesc();
     }
 
     public JobExecution getJobExecution(String uuid) {

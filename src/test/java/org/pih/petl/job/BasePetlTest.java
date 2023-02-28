@@ -20,15 +20,15 @@ public abstract class BasePetlTest {
     @Autowired
     EtlService etlService;
 
-    public JobExecution executeJob(String jobPath) {
+    public JobExecution executeJob(String jobKey) {
         JobExecutor executor = new JobExecutor(etlService, 1);
-        return executor.executeJob(jobPath);
+        return executor.executeJob(jobKey);
     }
 
-    public Exception executeJobAndReturnException(String jobPath) {
+    public Exception executeJobAndReturnException(String jobKey) {
         Exception exception = null;
         try {
-            executeJob(jobPath);
+            executeJob(jobKey);
         }
         catch (Exception e) {
             exception = e;

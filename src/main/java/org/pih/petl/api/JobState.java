@@ -1,5 +1,8 @@
 package org.pih.petl.api;
 
+import org.apache.commons.lang.builder.EqualsBuilder;
+import org.apache.commons.lang.builder.HashCodeBuilder;
+
 import javax.persistence.Column;
 import javax.persistence.Embeddable;
 import javax.persistence.EmbeddedId;
@@ -56,6 +59,19 @@ public class JobState {
         public Key(String jobKey, String property) {
             this.jobKey = jobKey;
             this.property = property;
+        }
+
+        @Override
+        public int hashCode() {
+            return new HashCodeBuilder().append(jobKey).append(property).toHashCode();
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (obj == null) { return false; }
+            if (!(obj instanceof JobState.Key)) { return false; }
+            Key that = (Key) obj;
+            return new EqualsBuilder().append(this.jobKey, that.jobKey).append(this.property, that.property).isEquals();
         }
 
         public String getJobKey() {

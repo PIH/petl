@@ -8,8 +8,8 @@ import java.util.List;
  * Methods for working with the petl_job_execution table.  Spring Data JPA will auto-create these methods
  */
 public interface JobExecutionRepository extends CrudRepository<JobExecution, String> {
-    List<JobExecution> findJobExecutionsByJobPathIsNotNullOrderByInitiatedDesc();
-    List<JobExecution> findJobExecutionByJobPathOrderByStartedDesc(String jobPath);
+    List<JobExecution> findJobExecutionsByJobKeyIsNotNullOrderByInitiatedDesc();
+    List<JobExecution> findJobExecutionByJobKeyOrderByStartedDesc(String jobKey);
     List<JobExecution> findJobExecutionsByCompletedIsNull();
     List<JobExecution> findJobExecutionsByParentExecutionUuidEqualsOrderBySequenceNum(String uuid);
     JobExecution getJobExecutionByUuid(String uuid);

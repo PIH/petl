@@ -41,9 +41,9 @@ public class JobExecutor {
      * This is intended to be how all top-level jobs are executed, whether executed at startup, or
      * via a scheduled execution.
      */
-    public JobExecution executeJob(String jobPath) {
-        JobConfig jobConfig = etlService.getApplicationConfig().getPetlJobConfig(jobPath);
-        JobExecution execution = new JobExecution(jobPath, jobConfig);
+    public JobExecution executeJob(String jobKey) {
+        JobConfig jobConfig = etlService.getApplicationConfig().getPetlJobConfig(jobKey);
+        JobExecution execution = new JobExecution(jobKey, jobConfig);
         execution.setDescription(jobConfig.getDescription());
         etlService.saveJobExecution(execution);
         return executeJob(execution);
