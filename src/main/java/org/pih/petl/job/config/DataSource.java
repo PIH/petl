@@ -1,6 +1,7 @@
 package org.pih.petl.job.config;
 
 import org.apache.commons.dbutils.QueryRunner;
+import org.apache.commons.dbutils.handlers.MapHandler;
 import org.apache.commons.dbutils.handlers.ScalarHandler;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
@@ -16,6 +17,7 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Encapsulates a data source configuration
@@ -70,6 +72,18 @@ public class DataSource {
             try (Statement statement = connection.createStatement()) {
                 statement.execute(sql);
             }
+        }
+    }
+
+    public <T> T querySingleValue(String sql) throws SQLException {
+        try (Connection connection = openConnection()) {
+            return new QueryRunner().query(connection, sql, new ScalarHandler<>());
+        }
+    }
+
+    public Map<String, Object> querySingleRow(String sql) throws SQLException {
+        try (Connection connection = openConnection()) {
+            return new QueryRunner().query(connection, sql, new MapHandler());
         }
     }
 

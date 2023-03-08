@@ -1,0 +1,1 @@
+select sum(1+2) as onePlusTwo, sqrt(25) as sqrtTwentyFive;

@@ -10,6 +10,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.pih.petl.job.config.ConfigFile;
 import org.pih.petl.job.config.DataSource;
+import org.pih.petl.job.config.DataSourceQuery;
 import org.pih.petl.job.config.JobConfig;
 import org.pih.petl.job.config.PetlConfig;
 import org.pih.petl.job.config.Schedule;
@@ -157,6 +158,22 @@ public class ApplicationConfig {
             for (String parameter : config.getParameters().keySet()) {
                 String value = config.getParameters().get(parameter);
                 newParameters.put(parameter, getSubstitutedValue(value, parameters));
+            }
+            Map<String, Object> queryParams = new HashMap<>();
+            for (DataSourceQuery query : config.getParameterQueries()) {
+                DataSource dataSource = getEtlDataSource(query.getDatasource());
+                if (StringUtils.isNotBlank(query.getQuery())) {
+                    String sql = getSubstitutedValue(query.getQuery(), parameters);
+                    queryParams.putAll(dataSource.querySingleRow(sql));
+                }
+                if (StringUtils.isNotBlank(query.getQueryPath())) {
+                    String sql = getSubstitutedValue(getJobConfigFile(query.getQueryPath()).getContents(), parameters);
+                    queryParams.putAll(dataSource.querySingleRow(sql));
+                }
+            }
+            for (String p : queryParams.keySet()) {
+                Object value = queryParams.get(p);
+                newParameters.put(p, value == null ? null : value.toString());
             }
             config.setParameters(newParameters);
 

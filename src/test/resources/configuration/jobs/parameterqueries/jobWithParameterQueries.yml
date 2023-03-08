@@ -1,0 +1,15 @@
+type: "sqlserver-bulk-import"
+parameterQueries:
+  - datasource: "mysql-testcontainer.yml"
+    query: "select name as vitalSignsEncounterType from encounter_type where uuid = '4fb47712-34a6-40d2-8ed3-e153abbd25b7'"
+  - datasource: "sqlserver-testcontainer.yml"
+    queryPath: "sql/queryDate.sql"
+configuration:
+  extract:
+    datasource: "mysql-testcontainer.yml"
+    query:  "source.sql"
+
+  load:
+    datasource: "sqlserver-testcontainer.yml"
+    table: "encounter_types"
+    schema: "target.sql"

@@ -5,7 +5,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.text.StrSubstitutor;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -23,6 +25,8 @@ public class JobConfig {
     private String type;
 
     private JsonNode configuration;
+
+    private List<DataSourceQuery> parameterQueries;
 
     private Map<String, String> parameters;
 
@@ -99,6 +103,17 @@ public class JobConfig {
 
     public void setParameters(Map<String, String> parameters) {
         this.parameters = parameters;
+    }
+
+    public List<DataSourceQuery> getParameterQueries() {
+        if (parameterQueries == null) {
+            parameterQueries = new ArrayList<>();
+        }
+        return parameterQueries;
+    }
+
+    public void setParameterQueries(List<DataSourceQuery> parameterQueries) {
+        this.parameterQueries = parameterQueries;
     }
 
     public Schedule getSchedule() {
