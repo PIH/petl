@@ -1,12 +1,7 @@
 package org.pih.petl.job;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.microsoft.sqlserver.jdbc.ISQLServerConnection;
-import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
-import com.microsoft.sqlserver.jdbc.SQLServerBulkCopyOptions;
-import org.apache.commons.dbutils.DbUtils;
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang.time.StopWatch;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.pih.petl.ApplicationConfig;
@@ -19,14 +14,9 @@ import org.pih.petl.job.config.TableColumn;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -167,99 +157,13 @@ public class SqlServerImportJob implements PetlJob {
             // Get bulk load configuration
             int batchSize = configReader.getInt(100, "load", "bulkCopy", "batchSize");
             int timeout = configReader.getInt(7200, "load", "bulkCopy", "timeout"); // 2h default
-
-            try (Connection sourceConnection = sourceDatasource.openConnection()) {
-                try (Connection targetConnection = targetDatasource.openConnection()) {
-
-                    boolean originalSourceAutoCommit = sourceConnection.getAutoCommit();
-                    boolean originalTargetAutocommit = targetConnection.getAutoCommit();
-
-                    try {
-                        sourceConnection.setAutoCommit(false); // We intend to rollback changes to source after querying DB
-                        targetConnection.setAutoCommit(true);  // We want to commit to target as we go, to query status
-
-                        // Now execute a bulk import
-                        log.debug("Executing import");
-
-                        // Parse the source query into statements
-                        List<String> stmts = SqlUtils.parseSqlIntoStatements(sourceQuery, ";");
-                        log.trace("Parsed extract query into " + stmts.size() + " statements");
-
-                        // Iterate over each statement, and execute.  The final statement is expected to select the data out.
-                        for (Iterator<String> sqlIterator = stmts.iterator(); sqlIterator.hasNext(); ) {
-                            String sqlStatement = sqlIterator.next();
-                            Statement statement = null;
-                            try {
-                                log.trace("Executing: " + sqlStatement);
-                                StopWatch sw = new StopWatch();
-                                sw.start();
-                                if (sqlIterator.hasNext()) {
-                                    statement = sourceConnection.createStatement();
-                                    statement.execute(sqlStatement);
-                                    log.trace("Statement executed");
-                                } else {
-                                    log.trace("This is the last statement, treat it as the extraction query");
-
-                                    sqlStatement = SqlUtils.addExtraColumnsToSelect(sqlStatement, extraColumns);
-                                    log.trace("Executing SQL extraction");
-                                    log.trace(sqlStatement);
-
-                                    statement = sourceConnection.prepareStatement(
-                                            sqlStatement, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY
-                                    );
-                                    ResultSet resultSet = null;
-                                    try {
-                                        resultSet = ((PreparedStatement) statement).executeQuery();
-                                        if (resultSet != null) {
-                                            Connection sqlServerConnection = getAsSqlServerConnection(targetConnection);
-                                            SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(sqlServerConnection);
-                                            SQLServerBulkCopyOptions bco = new SQLServerBulkCopyOptions();
-                                            bco.setKeepIdentity(true);
-                                            bco.setBatchSize(batchSize);
-                                            bco.setBulkCopyTimeout(timeout);
-                                            bulkCopy.setBulkCopyOptions(bco);
-                                            bulkCopy.setDestinationTableName(tableToBulkInsertInto);
-                                            bulkCopy.writeToServer(resultSet);
-                                        } else {
-                                            throw new PetlException("Invalid SQL extraction, no result set found");
-                                        }
-                                    } finally {
-                                        DbUtils.closeQuietly(resultSet);
-                                    }
-                                }
-                                sw.stop();
-                                log.trace("Statement executed in: " + sw);
-                            } finally {
-                                DbUtils.closeQuietly(statement);
-                            }
-                        }
-                        log.debug("Import Completed Sucessfully");
-                    } finally {
-                        sourceConnection.rollback();
-                        sourceConnection.setAutoCommit(originalSourceAutoCommit);
-                        targetConnection.setAutoCommit(originalTargetAutocommit);
-                    }
-                }
-            }
+            SqlUtils.bulkLoadIntoSqlServer(sourceDatasource, targetDatasource, sourceQuery, extraColumns, batchSize, timeout, tableToBulkInsertInto);
 
             if (usePartitioning) {
                 targetDatasource.executeUpdate(SqlUtils.createMovePartitionStatement(tableToBulkInsertInto, targetTable, partitionValue));
                 targetDatasource.dropTableIfExists(tableToBulkInsertInto);
             }
         }
-    }
-
-    /**
-     * @return a connection for the given connection.  This allows mocking to occur in unit tests as needed
-     */
-    public Connection getAsSqlServerConnection(Connection connection) throws SQLException {
-        if (connection.isWrapperFor(ISQLServerConnection.class)) {
-            if (!(connection instanceof ISQLServerConnection)) {
-                log.trace("The passed connection is a wrapper for ISQLServerConnection, unwrapping it.");
-                return connection.unwrap(ISQLServerConnection.class);
-            }
-        }
-        return connection;
     }
 
     /**
