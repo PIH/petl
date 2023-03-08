@@ -35,8 +35,8 @@ public class EtlServiceTest {
 
     @Test
     public void testSettingAndGettingState() {
-        etlService.setStateValue("testJob", "stateKey", "stateValue");
-        Assert.assertEquals(etlService.getStateValue("testJob", "stateKey"), "stateValue");
-        Assert.assertNull(etlService.getStateValue("testJob", "otherKey"));
+        etlService.setStateValue("stateKey", "stateValue");
+        Assert.assertEquals(etlService.getStateValue("stateKey"), "stateValue");
+        Assert.assertNull(etlService.getStateValue("otherKey"));
     }
 }

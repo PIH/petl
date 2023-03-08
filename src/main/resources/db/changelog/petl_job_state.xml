@@ -13,11 +13,8 @@
 			Create table to persist job state between executions
 		</comment>
 		<createTable tableName="petl_job_state">
-			<column name="job_key" type="varchar(1000)">
-				<constraints nullable="false" primaryKey="true" primaryKeyName="pk_petl_job_state" />
-			</column>
-			<column name="property" type="varchar(1000)">
-				<constraints nullable="false" primaryKey="true" primaryKeyName="pk_petl_job_state" />
+			<column name="key" type="varchar(1000)">
+				<constraints nullable="false" primaryKey="true" />
 			</column>
 			<column name="value" type="varchar(1000)" />
 		</createTable>

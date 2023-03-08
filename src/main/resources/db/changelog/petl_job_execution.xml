@@ -71,15 +71,4 @@
 		</addColumn>
 	</changeSet>
 
-	<changeSet id="petl_job_execution_5" author="PIH">
-		<preConditions onFail="MARK_RAN">
-			<columnExists tableName="petl_job_execution" columnName="job_path" />
-			<not><columnExists tableName="petl_job_execution" columnName="job_key" /></not>
-		</preConditions>
-		<comment>
-			Rename job_path to job_key
-		</comment>
-		<renameColumn tableName="petl_job_execution" oldColumnName="job_path" newColumnName="job_key" />
-	</changeSet>
-
 </databaseChangeLog>

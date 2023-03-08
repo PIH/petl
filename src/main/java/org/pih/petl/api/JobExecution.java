@@ -23,8 +23,8 @@ public class JobExecution {
     @Id
     private String uuid;
 
-    @Column(name = "job_key", length = 1000)
-    private String jobKey;
+    @Column(name = "job_path", length = 1000)
+    private String jobPath;
 
     @Column(name ="parent_execution_uuid", length = 36)
     private String parentExecutionUuid;
@@ -75,9 +75,9 @@ public class JobExecution {
         }
     }
 
-    public JobExecution(String jobKey, JobConfig jobConfig) {
+    public JobExecution(String jobPath, JobConfig jobConfig) {
         this(jobConfig);
-        this.jobKey = jobKey;
+        this.jobPath = jobPath;
     }
 
     public JobExecution(JobExecution parentExecution, JobConfig jobConfig, Integer sequenceNum) {
@@ -110,8 +110,8 @@ public class JobExecution {
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("Job " + "(" + uuid + "): " + status);
-        if (jobKey != null) {
-            sb.append(", key: " + jobKey);
+        if (jobPath != null) {
+            sb.append(", path: " + jobPath);
         }
         if (description != null) {
             sb.append(", description: " + description);
@@ -140,12 +140,12 @@ public class JobExecution {
         this.uuid = uuid;
     }
 
-    public String getJobKey() {
-        return jobKey;
+    public String getJobPath() {
+        return jobPath;
     }
 
-    public void setJobKey(String jobKey) {
-        this.jobKey = jobKey;
+    public void setJobPath(String jobPath) {
+        this.jobPath = jobPath;
     }
 
     public String getParentExecutionUuid() {

@@ -73,6 +73,12 @@ public class DataSource {
         }
     }
 
+    public <T> T querySingleValue(String sql) throws SQLException {
+        try (Connection connection = openConnection()) {
+            return new QueryRunner().query(connection, sql, new ScalarHandler<>());
+        }
+    }
+
     public boolean tableExists(String tableName) throws SQLException {
         try (Connection targetConnection = openConnection()) {
             return targetConnection.getMetaData().getTables(getDatabaseName(), null, tableName, new String[] {"TABLE"}).next();

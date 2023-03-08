@@ -61,16 +61,16 @@ public class ScheduledExecutionTask implements Job {
                 log.trace("Executing Task: " + currentDate);
                 Map<String, JobConfig> jobs = etlService.getAllConfiguredJobs();
                 log.trace("Found " + jobs.size() + " configured Jobs");
-                for (String jobKey : jobs.keySet()) {
-                    log.trace("Checking job: " + jobKey);
-                    JobConfig jobConfig = jobs.get(jobKey);
+                for (String jobPath : jobs.keySet()) {
+                    log.trace("Checking job: " + jobPath);
+                    JobConfig jobConfig = jobs.get(jobPath);
                     Schedule schedule = jobConfig.getSchedule();
                     boolean isScheduled = schedule != null && StringUtils.isNotBlank(schedule.getCron());
                     if (isScheduled) {
-                        JobExecution latestExecution = etlService.getLatestJobExecution(jobKey);
+                        JobExecution latestExecution = etlService.getLatestJobExecution(jobPath);
                         if (latestExecution == null) {
-                            log.debug("Job: " + jobKey + " - Executing for the first time.");
-                            jobExecutor.executeJob(jobKey);
+                            log.debug("Job: " + jobPath + " - Executing for the first time.");
+                            jobExecutor.executeJob(jobPath);
                         }
                         else {
                             Date lastStartDate = latestExecution.getStarted();
@@ -83,9 +83,9 @@ public class ScheduledExecutionTask implements Job {
                                 Date nextScheduledDate = cronExpression.getNextValidTimeAfter(lastStartDate);
                                 log.trace("Next scheduled for: " + nextScheduledDate);
                                 if (nextScheduledDate != null && nextScheduledDate.compareTo(currentDate) <= 0) {
-                                    log.debug("Executing scheduled job: " + jobKey);
+                                    log.debug("Executing scheduled job: " + jobPath);
                                     log.trace("Last run: " + lastStartDate);
-                                    JobExecution execution = jobExecutor.executeJob(jobKey);
+                                    JobExecution execution = jobExecutor.executeJob(jobPath);
                                     nextScheduledDate = cronExpression.getNextValidTimeAfter(execution.getStarted());
                                     log.trace("Scheduled job will run again at: " + nextScheduledDate);
                                 }

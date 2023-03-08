@@ -98,8 +98,8 @@ public class EtlService {
     /**
      * @return the most recent Job Execution for the given Job Path
      */
-    public JobExecution getLatestJobExecution(String jobKey) {
-        List<JobExecution> l = jobExecutionRepository.findJobExecutionByJobKeyOrderByStartedDesc(jobKey);
+    public JobExecution getLatestJobExecution(String jobPath) {
+        List<JobExecution> l = jobExecutionRepository.findJobExecutionByJobPathOrderByStartedDesc(jobPath);
         if (l == null || l.isEmpty()) {
             return null;
         }
@@ -127,7 +127,7 @@ public class EtlService {
     }
 
     public List<JobExecution> getJobExecutionsAtTopLevel() {
-        return jobExecutionRepository.findJobExecutionsByJobKeyIsNotNullOrderByInitiatedDesc();
+        return jobExecutionRepository.findJobExecutionsByJobPathIsNotNullOrderByInitiatedDesc();
     }
 
     public JobExecution getJobExecution(String uuid) {
@@ -161,24 +161,20 @@ public class EtlService {
     }
 
     /**
-     * Return the state value for the job with the given key, with the given state property
-     * @param jobKey the identifier of the job
-     * @param property the identifier of the state
+     * Return the state value for the job with the given key
+     * @param key the name of the property representing the state
      * @return the value of the state for the given job and property
      */
-    public String getStateValue(String jobKey, String property) {
-        JobState.Key key = new JobState.Key(jobKey, property);
+    public String getStateValue(String key) {
         return jobStateRepository.findById(key).map(JobState::getValue).orElse(null);
     }
 
     /**
-     * Set the state value for the job with the given key, for the given state property
-     * @param jobKey the identifier of the job
-     * @param property the identifier of the state
+     * Set the state value for the job with the given key
+     * @param key the name of the property representing the state
      * @param value the value of the state for the given job and property
      */
-    public void setStateValue(String jobKey, String property, String value) {
-        JobState.Key key = new JobState.Key(jobKey, property);
+    public void setStateValue(String key, String value) {
         JobState state = jobStateRepository.findById(key).orElse(new JobState(key, value));
         state.setValue(value);
         jobStateRepository.save(state);
