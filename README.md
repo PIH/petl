@@ -303,6 +303,11 @@ configuration:
       scheme: "psSite"  # If specified, this will associate this partition scheme for this table when created
       column: "partition_num"  # If specified, this will use this column for the partition scheme, when created
       value: "3"  # If specified, this will use this column value for the partition, when created
+      incremental: # If specified, the incremental configuration enables configuring the job to incrementally update
+        enabled: "true" # If true, incremental loading will be enabled
+        newWatermarkQuery: "sql/incremental/newWatermarkQuery.sql" # Required query against the load datasource to determine the new watermark
+        previousWatermarkQuery: "sql/incremental/previousWatermarkQuery.sql" # Required query against the load datasource to determine the previous watermark
+        deleteQuery: "sql/incremental/deleteQuery.sql" # Required query against the load datasource that to delete rows that have been changed between previous and new watermarks
     dropAndRecreateTable: "false"  # Optional, default is true, which will drop and recreate the target table (if it exists) each time this is run
     bulkCopy:
       batchSize: 100 # Optional, default is 100.  You can increase or decrease the number of records in each batch with this
