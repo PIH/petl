@@ -219,7 +219,7 @@
     <repositories>
         <repository>
             <id>ossrh</id>
-            <url>https://s01.oss.sonatype.org/content/repositories/public</url>
+            <url>https://repo.orl.eng.hitachivantara.com/ui/native/pnt-mvn/org</url>
         </repository>
         <repository>
             <id>pentaho.resolve.repo</id>
