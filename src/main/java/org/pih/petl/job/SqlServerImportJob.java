@@ -232,7 +232,7 @@ public class SqlServerImportJob implements PetlJob {
                 targetDatasource.executeUpdate(insertSql);
                 logNumberOfRows("After Insert:", targetDatasource, tableToBulkInsertInto);
                 log.info("Deleting values that have changed since the last watermark");
-                log.warn(incrementalDeleteQuery);
+                log.trace(incrementalDeleteQuery);
                 targetDatasource.executeUpdate(incrementalDeleteQuery);
                 logNumberOfRows("After Delete:", targetDatasource, tableToBulkInsertInto);
             }
