@@ -68,8 +68,14 @@ public class DataSource {
     public void executeUpdate(String sql) throws SQLException {
         try (Connection connection = openConnection()) {
             try (Statement statement = connection.createStatement()) {
-                statement.execute(sql);
+                statement.executeUpdate(sql);
             }
+        }
+    }
+
+    public <T> T querySingleValue(String sql) throws SQLException {
+        try (Connection connection = openConnection()) {
+            return new QueryRunner().query(connection, sql, new ScalarHandler<>());
         }
     }
 
