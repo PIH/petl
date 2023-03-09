@@ -143,7 +143,14 @@ public class JobConfigReader {
     public Boolean getBoolean(Boolean defaultValue, String... keys) {
         JsonNode n = get(keys);
         if (n != null) {
-            return n.asBoolean();
+            if (n.isBoolean()) {
+                return n.asBoolean();
+            }
+            String stringVal = getString(n);
+            if (StringUtils.isNotBlank(stringVal)) {
+                return Boolean.parseBoolean(stringVal);
+            }
+            return false;
         }
         return defaultValue;
     }
@@ -199,7 +206,7 @@ public class JobConfigReader {
             for (Iterator<String> i = n.fieldNames(); i.hasNext(); ) {
                 String fieldName = i.next();
                 String fieldValue = n.get(fieldName).asText();
-                m.put(fieldName, StrSubstitutor.replace(fieldValue, config.getParameters()));
+                m.put(StrSubstitutor.replace(fieldName, config.getParameters()), StrSubstitutor.replace(fieldValue, config.getParameters()));
             }
         }
         return m;
