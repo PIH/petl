@@ -324,6 +324,32 @@ NOTE:
 
 * The "load.schema" attribute is optional.  If not specified, then no target table creation or deleting is done by the job.
 
+**A note about incremental loading**
+
+In a Bulk Load job, one can make things "incremental" by taking the following steps:
+
+The "previousWatermarkQuery" retrieves the low watermark for any updates. This query should return the datetime for which any records last changed on or before this datetime are determined to be up-to-date and don't need to be reloaded. This is evaluated to a previousWatermark datetime.
+
+The "newWatermarkQuery" retrieves the high watermark for any updates. Any records who have last changed after this datetime are considered too new and not processed as part of this incremental loading job. This is to ensure consistency between records being queried on the source system and target system. This is evaluated to a newWatermark datetime.
+
+The "incrementalDeleteQuery" represents the statement that should be run to delete any records that are considered changed during the execution window (between the previousWatermark and newWatermark).
+
+The "schema" sql statement for loading needs to be modified to contain a columns that identify which rows need to be deleted and re-inserted. This may typically be a column for patient_id (if changes are determined by patient-level change events) and a column for last_updated datetime.
+
+The "extract" sql query for querying MySQL needs to be modified to return all rows if previousWatermark is null, or to return only a subset of rows if previousWatermark is not null. This needs to be consistent with the definition of the incrementalDeleteQuery, to ensure that any rows that are deleted are re-inserted if they are still valid.
+
+The principle is this, if incremental.enabled = true
+
+* A new partition is created as normal
+* The watermark values are retrieved
+* The partition is preloaded with all data that matches the partition value already present in SQL Server
+* The incrementalDeleteQuery is used to remove any rows that have been changed in the watermark window
+* The bulk load operation happens as normal, but only inserting the subset of rows that have changed in the watermark window
+
+This means that over time, any data that was previously loaded that is subsequently deleted or voided in the source system will be deleted out of the target warehouse table, since it will be deleted and not re-inserted. And it means that we don't need any complexity of updates vs. inserts of existing data since updates are just treated as deletes + inserts.
+
+Configuration of incremental loading is tricky and likely will require significant testing to ensure it is working correctly and not losing any data.  One can change the logging level in application.yml for org.pih.petl.job.SqlServerImportJob to either DEBUG or TRACE for more detailed logging to help with troubleshooting.
+
 ### pentaho-job
 
 This type of job executes a Pentaho Kettle Job (.kjb) file. The minimum required configuration property is the path to this file.
