@@ -305,9 +305,10 @@ configuration:
       value: "3"  # If specified, this will use this column value for the partition, when created
       incremental: # If specified, the incremental configuration enables configuring the job to incrementally update
         enabled: "true" # If true, incremental loading will be enabled
-        newWatermarkQuery: "sql/incremental/newWatermarkQuery.sql" # Required query against the load datasource to determine the new watermark
-        previousWatermarkQuery: "sql/incremental/previousWatermarkQuery.sql" # Required query against the load datasource to determine the previous watermark
-        deleteQuery: "sql/incremental/deleteQuery.sql" # Required query against the load datasource that to delete rows that have been changed between previous and new watermarks
+        newWatermarkQuery: "sql/incremental/new-watermark-query.sql" # Required query against the load datasource to determine the new watermark
+        previousWatermarkQuery: "sql/incremental/previous-watermark-query.sql" # Required query against the load datasource to determine the previous watermark
+        updateWatermarkStatement: "sql/incremental/update-watermark-statement.sql" # Required statement against the load datasource that is responsible for storing watermark values after a successful execution
+        deleteStatement: "sql/incremental/delete-statement.sql" # Required query against the load datasource that to delete rows that have been changed between previous and new watermarks
     dropAndRecreateTable: "false"  # Optional, default is true, which will drop and recreate the target table (if it exists) each time this is run
     bulkCopy:
       batchSize: 100 # Optional, default is 100.  You can increase or decrease the number of records in each batch with this
@@ -328,23 +329,26 @@ NOTE:
 
 In a Bulk Load job, one can make things "incremental" by taking the following steps:
 
-The "previousWatermarkQuery" retrieves the low watermark for any updates. This query should return the datetime for which any records last changed on or before this datetime are determined to be up-to-date and don't need to be reloaded. This is evaluated to a previousWatermark datetime.
+The `previousWatermarkQuery` retrieves the low watermark for any updates. This query should return the datetime for which any records last changed on or before this datetime are determined to be up-to-date and don't need to be reloaded. This is evaluated to a `previousWatermark` datetime.  This will typically read from the store into which the `updateWatermarkStatement` sets the watermark values for each execution (see below).
 
-The "newWatermarkQuery" retrieves the high watermark for any updates. Any records who have last changed after this datetime are considered too new and not processed as part of this incremental loading job. This is to ensure consistency between records being queried on the source system and target system. This is evaluated to a newWatermark datetime.
+The `newWatermarkQuery` retrieves the high watermark for any updates. Any records who have last changed after this datetime are considered too new and not processed as part of this incremental loading job. This is to ensure consistency between records being queried on the source system and target system. This is evaluated to a `newWatermark` datetime.
 
-The "incrementalDeleteQuery" represents the statement that should be run to delete any records that are considered changed during the execution window (between the previousWatermark and newWatermark).
+The `updateWatermarkStatement` is responsible for storing the `previousWatermark` and `newWatermark` values for a given execution, once the import has successfully completed.
 
-The "schema" sql statement for loading needs to be modified to contain a columns that identify which rows need to be deleted and re-inserted. This may typically be a column for patient_id (if changes are determined by patient-level change events) and a column for last_updated datetime.
+The `incrementalDeleteStatement` represents the statement that should be run to delete any records that are considered changed during the execution window (between the `previousWatermark` and `newWatermark`).
 
-The "extract" sql query for querying MySQL needs to be modified to return all rows if previousWatermark is null, or to return only a subset of rows if previousWatermark is not null. This needs to be consistent with the definition of the incrementalDeleteQuery, to ensure that any rows that are deleted are re-inserted if they are still valid.
+The `load.schema` sql statement for loading needs to be modified to contain a columns that identify which rows need to be deleted and re-inserted. For example, if changes tracked at a patient level, this would typically mean that a column for patient_id would need to be included so that the `incrementalDeleteStatement` is able to determine what rows in the target need to be deleted and re-inserted in each incremental execution.
+
+The `extract.query` sql query for querying MySQL needs to be modified to return all rows if previousWatermark is null, or to return only a subset of rows if previousWatermark is not null. This needs to be consistent with the definition of the `incrementalDeleteStatement`, to ensure that any rows that are deleted are re-inserted if they are still valid.
 
 The principle is this, if incremental.enabled = true
 
 * A new partition is created as normal
-* The watermark values are retrieved
+* The previous watermark values are retrieved
 * The partition is preloaded with all data that matches the partition value already present in SQL Server
 * The incrementalDeleteQuery is used to remove any rows that have been changed in the watermark window
 * The bulk load operation happens as normal, but only inserting the subset of rows that have changed in the watermark window
+* The new watermark values are stored
 
 This means that over time, any data that was previously loaded that is subsequently deleted or voided in the source system will be deleted out of the target warehouse table, since it will be deleted and not re-inserted. And it means that we don't need any complexity of updates vs. inserts of existing data since updates are just treated as deletes + inserts.
 
