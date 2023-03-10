@@ -218,28 +218,20 @@
 
     <repositories>
         <repository>
-            <id>ossrh</id>
-            <url>https://repo.orl.eng.hitachivantara.com/ui/native/pnt-mvn/org</url>
+            <id>central</id>
+            <name>central</name>
+            <url>https://jcenter.bintray.com</url>
         </repository>
         <repository>
-            <id>pentaho.resolve.repo</id>
+            <id>pentaho</id>
             <name>Pentaho Omni</name>
             <url>https://repo.orl.eng.hitachivantara.com/artifactory/pnt-mvn</url>
-            <releases>
-                <enabled>true</enabled>
-                <updatePolicy>always</updatePolicy>
-            </releases>
-            <snapshots>
-                <enabled>true</enabled>
-                <updatePolicy>always</updatePolicy>
-            </snapshots>
         </repository>
     </repositories>
     <pluginRepositories>
         <pluginRepository>
-            <id>plugins</id>
-            <name>Maven Central</name>
-            <url>https://repo.orl.eng.hitachivantara.com/artifactory/pnt-mvn</url>
+            <id>central</id>
+            <url>https://jcenter.bintray.com</url>
             <releases>
                 <enabled>true</enabled>
                 <updatePolicy>daily</updatePolicy>
