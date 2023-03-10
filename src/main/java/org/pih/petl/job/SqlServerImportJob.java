@@ -24,6 +24,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -142,21 +143,25 @@ public class SqlServerImportJob implements PetlJob {
         Date previousWatermark = null;
         String newWatermarkQuery = configReader.getFileContents("load", "partition", "incremental", "newWatermarkQuery");
         String previousWatermarkQuery = configReader.getFileContents("load", "partition", "incremental", "previousWatermarkQuery");
-        String incrementalDeleteQuery = configReader.getFileContents("load", "partition", "incremental", "deleteQuery");
+        String incrementalDeleteStatement = configReader.getFileContents("load", "partition", "incremental", "deleteStatement");
+        String updateWatermarkStatement = configReader.getFileContents("load", "partition", "incremental", "updateWatermarkStatement");
 
         if (incremental) {
             log.info("Incremental loading is enabled for this job");
             if (!usePartitioning) {
                 throw new PetlException("You must use partitioning to do incremental loading from a watermark");
             }
-            if (StringUtils.isBlank(incrementalDeleteQuery)) {
-                throw new PetlException("You must specify an incremental deleteQuery if incremental loading is enabled");
+            if (StringUtils.isBlank(incrementalDeleteStatement)) {
+                throw new PetlException("You must specify an incremental deleteStatement if incremental loading is enabled");
             }
             if (StringUtils.isBlank(newWatermarkQuery)) {
                 throw new PetlException("You must specify an incremental newWatermarkQuery to retrieve existing watermark from target");
             }
             if (StringUtils.isBlank(previousWatermarkQuery)) {
                 throw new PetlException("You must specify an incremental previousWatermarkQuery to retrieve existing watermark from target");
+            }
+            if (StringUtils.isBlank(updateWatermarkStatement)) {
+                throw new PetlException("You must specify an incremental updateWatermarkStatement to track watermarks");
             }
 
             try {
@@ -182,17 +187,22 @@ public class SqlServerImportJob implements PetlJob {
                 return;
             }
 
-            // Ensure that the target incremental delete query has access to the watermarks
-            incrementalDeleteQuery = "" +
-                    "DECLARE @newWatermark DATETIME = " + sqlServerDate(newWatermark) + ";" + System.lineSeparator() +
-                    "DECLARE @previousWatermark DATETIME = " + sqlServerDate(previousWatermark) + ";" + System.lineSeparator() +
-                    incrementalDeleteQuery;
+            String mysqlWatermarks = "" +
+                    "set @newWatermark = " + mysqlDate(newWatermark) + ";" + System.lineSeparator() +
+                    "set @previousWatermark = " + mysqlDate(previousWatermark) + ";" + System.lineSeparator();
+
+            String sqlServerWatermarks = "" +
+                    "DECLARE @newWatermark DATETIME2(3) = " + sqlServerDate(newWatermark) + ";" + System.lineSeparator() +
+                    "DECLARE @previousWatermark DATETIME2(3) = " + sqlServerDate(previousWatermark) + ";" + System.lineSeparator();
 
             // Ensure that the source incremental extract query has access to the watermarks
-            sourceQuery = "" +
-                    "set @newWatermark = " + mysqlDate(newWatermark) + ";" + System.lineSeparator() +
-                    "set @previousWatermark = " + mysqlDate(previousWatermark) + ";" + System.lineSeparator() +
-                    sourceQuery;
+            sourceQuery = mysqlWatermarks + sourceQuery;
+
+            // Ensure that the target incremental update watermark statement has access to the watermarks
+            updateWatermarkStatement = sqlServerWatermarks + updateWatermarkStatement;
+
+            // Ensure that the target incremental delete query has access to the watermarks
+            incrementalDeleteStatement = sqlServerWatermarks + incrementalDeleteStatement;
         }
 
         Object tableMonitor = tableMonitors.computeIfAbsent(targetTable, k -> new Object());
@@ -232,8 +242,8 @@ public class SqlServerImportJob implements PetlJob {
                 targetDatasource.executeUpdate(insertSql);
                 logNumberOfRows("After Insert:", targetDatasource, tableToBulkInsertInto);
                 log.info("Deleting values that have changed since the last watermark");
-                log.trace(incrementalDeleteQuery);
-                targetDatasource.executeUpdate(incrementalDeleteQuery);
+                log.trace(incrementalDeleteStatement);
+                targetDatasource.executeUpdate(incrementalDeleteStatement);
                 logNumberOfRows("After Delete:", targetDatasource, tableToBulkInsertInto);
             }
 
@@ -321,6 +331,12 @@ public class SqlServerImportJob implements PetlJob {
                 targetDatasource.executeUpdate(SqlUtils.createMovePartitionStatement(tableToBulkInsertInto, targetTable, partitionValue));
                 log.info("Dropping table: " + tableToBulkInsertInto);
                 targetDatasource.dropTableIfExists(tableToBulkInsertInto);
+
+                if (newWatermark != null) {
+                    log.info("Updating watermarks: " + targetTable + ", " + partitionValue + ", " + previousWatermark + ", " + newWatermark);
+                    log.trace(updateWatermarkStatement);
+                    targetDatasource.executeUpdate(updateWatermarkStatement);
+                }
             }
         }
     }
@@ -362,7 +378,7 @@ public class SqlServerImportJob implements PetlJob {
     }
 
     private String sqlServerDate(Date date) {
-        return date == null ? "null" : ("cast('" + isoDate(date) + "' as datetime)");
+        return date == null ? "null" : ("cast('" + isoDate(date) + "' as datetime2(3))");
     }
 
     private String mysqlDate(Date date) {
@@ -370,7 +386,7 @@ public class SqlServerImportJob implements PetlJob {
     }
 
     private String isoDate(Date date) {
-        return date.toInstant().toString();
+        return new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS").format(date);
     }
 
     private void logNumberOfRows(String messagePrefix, DataSource dataSource, String tableName) {

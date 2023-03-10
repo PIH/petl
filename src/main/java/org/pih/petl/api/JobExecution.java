@@ -1,6 +1,7 @@
 package org.pih.petl.api;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.commons.lang.time.DurationFormatUtils;
 import org.pih.petl.ApplicationConfig;
 import org.pih.petl.PetlException;
 import org.pih.petl.job.config.JobConfig;
@@ -94,6 +95,12 @@ public class JobExecution {
         return (int)(ed-st)/1000;
     }
 
+    public String getDurationAsString() {
+        long endMillis = (completed == null ? System.currentTimeMillis() : completed.getTime());
+        long startMillis = (started == null ? 0 : started.getTime());
+        return DurationFormatUtils.formatDurationWords(endMillis - startMillis, true, false);
+    }
+
     public JobConfig getJobConfig() {
         if (jobConfig == null) {
             try {
@@ -123,7 +130,7 @@ public class JobExecution {
             sb.append(", started: " + started);
             if (completed != null) {
                 sb.append(", completed: " + completed);
-                sb.append(", duration: " + getDurationSeconds());
+                sb.append(", duration: " + getDurationAsString());
             }
         }
         if (errorMessage != null) {
