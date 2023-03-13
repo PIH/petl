@@ -1,0 +1,67 @@
+type: "job-pipeline"
+configuration:
+  jobs:
+    - type: "sql-execution"
+      description: "Set up for partitioning"
+      configuration:
+        datasource: "sqlserver-testcontainer.yml"
+        scripts:
+          - "partitionScheme.sql"
+
+    - type: "create-table"
+      description: "Set up on target to track watermarks"
+      parameters:
+        tableName: "petl_incremental_update_log"
+      configuration:
+        source:
+          sqlFile: "incremental/petl_incremental_update_log.sql"
+        target:
+          datasource: "sqlserver-testcontainer.yml"
+          tableName: "petl_incremental_update_log"
+
+    - type: "sqlserver-bulk-import"
+      description: "Set up for incremental loading"
+      configuration:
+        extract:
+          datasource: "mysql-testcontainer.yml"
+          query:  "incremental/change-log-extract-query.sql"
+        load:
+          datasource: "sqlserver-testcontainer.yml"
+          table: "encounter_type_changes"
+          schema: "incremental/change-log-target-schema.sql"
+          extraColumns:
+            - name: "partition_num"
+              type: "INT"
+              value: "1"
+          partition:
+            scheme: "psSite"
+            column: "partition_num"
+            value: "1"
+
+    - type: "sqlserver-bulk-import"
+      description: "Load in encounter type incrementally"
+      configuration:
+        extract:
+          datasource: "mysql-testcontainer.yml"
+          query:  "incremental/data-extract-query.sql"
+        load:
+          datasource: "sqlserver-testcontainer.yml"
+          table: "encounter_types"
+          schema: "incremental/data-extract-target-schema.sql"
+          extraColumns:
+            - name: "partition_num"
+              type: "INT"
+              value: "1"
+          partition:
+            scheme: "psSite"
+            column: "partition_num"
+            value: "1"
+            incremental:
+              enabled: "true"
+              newWatermarkQuery: "incremental/new-watermark-query.sql"
+              previousWatermarkQuery: "incremental/previous-watermark-query.sql"
+              updateWatermarkStatement: "incremental/update-watermark-statement.sql"
+              deleteStatement: "incremental/delete-statement.sql"
+          bulkCopy:
+            batchSize: 400
+            timeout: 7200

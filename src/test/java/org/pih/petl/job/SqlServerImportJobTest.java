@@ -2,16 +2,18 @@ package org.pih.petl.job;
 
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
 import org.junit.runner.RunWith;
 import org.pih.petl.SpringRunnerTest;
+import org.pih.petl.SqlUtils;
 import org.pih.petl.api.EtlService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -141,5 +143,22 @@ public class SqlServerImportJobTest extends BasePetlTest {
             foundException = e;
         }
         Assert.assertNotNull(foundException);
+    }
+
+    @Test
+    public void shouldSupportIncrementalLoading() throws Exception {
+        // Initial state
+        Date date1 = queryMysql("select last_updated from encounter_type_changes where uuid = 'aa61d509-6e76-4036-a65d-7813c0c3b752'");
+        Assertions.assertEquals("2022-02-04T10:32:15.012Z", SqlUtils.isoDate(date1));
+        Date date2 = queryMysql("select last_updated from encounter_type_changes where uuid = '55a0d3ea-a4d7-4e88-8f01-5aceb2d3c61b'");
+        Assertions.assertEquals("2022-02-04T22:11:19.556Z", SqlUtils.isoDate(date2));
+        Date date3 = queryMysql("select last_updated from encounter_type_changes where uuid = '1e2a509c-7c9f-11e9-8f9e-2a86e4085a59'");
+        Assertions.assertEquals("2022-02-05T09:54:09.112Z", SqlUtils.isoDate(date3));
+
+        executeJob("jobWithPartitionsIncremental.yml");
+        verifyTableExists("encounter_type_changes");
+        verifyRowCount("encounter_type_changes", 3);
+        Date endingWatermark = getSqlServerDatasource().querySingleValue("select ending_watermark from petl_incremental_update_log where table_name = 'encounter_types'");
+        Assertions.assertEquals("2022-02-05T09:54:09.112Z", SqlUtils.isoDate(endingWatermark));
     }
 }

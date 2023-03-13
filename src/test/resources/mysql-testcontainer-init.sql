@@ -67,3 +67,12 @@ INSERT INTO encounter_type (uuid, name, description) VALUES ('91DDF969-A2D4-4603
 INSERT INTO encounter_type (uuid, name, description) VALUES ('0CF4717A-479F-4349-AE6F-8602E2AA41D3', 'Pediatric Home Assessment', 'Pediatric home assessment');
 INSERT INTO encounter_type (uuid, name, description) VALUES ('0E7160DF-2DD1-4728-B951-641BBE4136B8', 'Maternal Post-partum Home Assessment', 'Maternal post-partum home assessment');
 INSERT INTO encounter_type (uuid, name, description) VALUES ('690670E2-A0CC-452B-854D-B95E2EAB75C9', 'Maternal Follow-up Home Assessment', 'Maternal follow-up home assessment');
+
+create table encounter_type_changes (
+    uuid char(38),
+    last_updated datetime(3)
+);
+
+insert into encounter_type_changes (uuid, last_updated) values ('aa61d509-6e76-4036-a65d-7813c0c3b752', '2022-02-04 10:32:15.012'); -- Consult
+insert into encounter_type_changes (uuid, last_updated) values ('55a0d3ea-a4d7-4e88-8f01-5aceb2d3c61b', '2022-02-04 22:11:19.556'); -- Inscription
+insert into encounter_type_changes (uuid, last_updated) values ('1e2a509c-7c9f-11e9-8f9e-2a86e4085a59', '2022-02-05 09:54:09.112'); -- Vaccination

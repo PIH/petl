@@ -15,6 +15,7 @@ import org.apache.commons.logging.LogFactory;
 import org.pih.petl.job.config.TableColumn;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -181,6 +182,27 @@ public class SqlUtils {
         sb.append(System.lineSeparator());
         sb.append("ALTER TABLE ").append(sourceTable).append(" SWITCH PARTITION ").append(partitionNum).append(" TO ").append(destinationTable).append(" PARTITION ").append(partitionNum).append(";");
         return sb.toString();
+    }
+
+    /**
+     * @return an expression that will represent the given date in sql server
+     */
+    public static String sqlServerDate(Date date) {
+        return date == null ? "null" : ("cast('" + isoDate(date) + "' as datetime2(3))");
+    }
+
+    /**
+     * @return an expression that will represent the given date in mysql
+     */
+    public static String mysqlDate(Date date) {
+        return date == null ? "null" : ("cast('" + isoDate(date) + "' as datetime(3))");
+    }
+
+    /**
+     * @return the given date in ISO format
+     */
+    public static String isoDate(Date date) {
+        return date.toInstant().toString();
     }
 
     //********** CONVENIENCE METHODS **************

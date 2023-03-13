@@ -91,4 +91,10 @@ public abstract class BasePetlTest {
             Assert.assertEquals(expected, result);
         }
     }
+
+    public <T> T queryMysql(String query) throws Exception {
+        ApplicationConfig appConfig = etlService.getApplicationConfig();
+        DataSource ds = appConfig.getEtlDataSource("mysql-testcontainer.yml");
+        return ds.querySingleValue(query);
+    }
 }
