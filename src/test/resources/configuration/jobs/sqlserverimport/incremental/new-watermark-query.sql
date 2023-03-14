@@ -1,0 +1,1 @@
+select max(last_updated) from encounter_type_changes where partition_num = 1

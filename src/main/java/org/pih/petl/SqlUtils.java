@@ -14,6 +14,9 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.pih.petl.job.config.TableColumn;
 
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -181,6 +184,27 @@ public class SqlUtils {
         sb.append(System.lineSeparator());
         sb.append("ALTER TABLE ").append(sourceTable).append(" SWITCH PARTITION ").append(partitionNum).append(" TO ").append(destinationTable).append(" PARTITION ").append(partitionNum).append(";");
         return sb.toString();
+    }
+
+    /**
+     * @return an expression that will represent the given date in sql server
+     */
+    public static String sqlServerDate(Instant instant) {
+        return instant == null ? "null" : ("cast('" + instant + "' as datetime)");
+    }
+
+    /**
+     * @return an expression that will represent the given date in mysql
+     */
+    public static String mysqlDate(Instant instant) {
+        return instant == null ? "null" : ("cast('" + instant + "' as datetime)");
+    }
+
+    /**
+     * @return the given LocalDateTime as an Instant at UTC
+     */
+    public static Instant toUTCInstant(LocalDateTime datetime) {
+        return datetime == null ? null : datetime.toInstant(ZoneOffset.UTC);
     }
 
     //********** CONVENIENCE METHODS **************

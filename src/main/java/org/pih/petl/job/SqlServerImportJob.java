@@ -24,9 +24,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.text.SimpleDateFormat;
+import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -139,8 +138,8 @@ public class SqlServerImportJob implements PetlJob {
         }
 
         boolean incremental = configReader.getBoolean(false, "load", "partition", "incremental", "enabled");
-        Date newWatermark = null;
-        Date previousWatermark = null;
+        Instant newWatermark = null;
+        Instant previousWatermark = null;
         String newWatermarkQuery = configReader.getFileContents("load", "partition", "incremental", "newWatermarkQuery");
         String previousWatermarkQuery = configReader.getFileContents("load", "partition", "incremental", "previousWatermarkQuery");
         String incrementalDeleteStatement = configReader.getFileContents("load", "partition", "incremental", "deleteStatement");
@@ -165,7 +164,7 @@ public class SqlServerImportJob implements PetlJob {
             }
 
             try {
-                newWatermark = targetDatasource.querySingleValue(newWatermarkQuery);
+                newWatermark = targetDatasource.queryUtcInstant(newWatermarkQuery);
                 log.info("New watermark value: " + newWatermark);
             }
             catch (Exception e) {
@@ -173,13 +172,11 @@ public class SqlServerImportJob implements PetlJob {
             }
 
             try {
-                previousWatermark = targetDatasource.querySingleValue(previousWatermarkQuery);
+                previousWatermark = targetDatasource.queryUtcInstant(previousWatermarkQuery);
                 log.info("Previous watermark value: " + previousWatermark);
             }
             catch (Exception e) {
-                incremental = false;
-                log.warn("Unable to retrieve previous watermark, doing full rather than incremental update");
-                log.trace("Error retrieving previous watermark", e);
+                log.warn("Error retrieving previous watermark", e);
             }
 
             if (newWatermark != null && newWatermark.equals(previousWatermark)) {
@@ -188,12 +185,12 @@ public class SqlServerImportJob implements PetlJob {
             }
 
             String mysqlWatermarks = "" +
-                    "set @newWatermark = " + mysqlDate(newWatermark) + ";" + System.lineSeparator() +
-                    "set @previousWatermark = " + mysqlDate(previousWatermark) + ";" + System.lineSeparator();
+                    "set @newWatermark = " + SqlUtils.mysqlDate(newWatermark) + ";" + System.lineSeparator() +
+                    "set @previousWatermark = " + SqlUtils.mysqlDate(previousWatermark) + ";" + System.lineSeparator();
 
             String sqlServerWatermarks = "" +
-                    "DECLARE @newWatermark DATETIME2(3) = " + sqlServerDate(newWatermark) + ";" + System.lineSeparator() +
-                    "DECLARE @previousWatermark DATETIME2(3) = " + sqlServerDate(previousWatermark) + ";" + System.lineSeparator();
+                    "DECLARE @newWatermark DATETIME = " + SqlUtils.sqlServerDate(newWatermark) + ";" + System.lineSeparator() +
+                    "DECLARE @previousWatermark DATETIME = " + SqlUtils.sqlServerDate(previousWatermark) + ";" + System.lineSeparator();
 
             // Ensure that the source incremental extract query has access to the watermarks
             sourceQuery = mysqlWatermarks + sourceQuery;
@@ -235,16 +232,23 @@ public class SqlServerImportJob implements PetlJob {
 
             // If we are doing incremental loading, we first need to pre-populate the partition table with existing data
             if (incremental) {
-                log.info("Incremental loading is enabled.  Preparing target table with existing data.");
-                String insertSql = "insert into " + tableToBulkInsertInto + " select * from " + targetTable + " where " + partitionColumn + " = " + partitionValue;
-                log.info("Inserting existing values from target table");
-                log.trace(insertSql);
-                targetDatasource.executeUpdate(insertSql);
-                logNumberOfRows("After Insert:", targetDatasource, tableToBulkInsertInto);
-                log.info("Deleting values that have changed since the last watermark");
-                log.trace(incrementalDeleteStatement);
-                targetDatasource.executeUpdate(incrementalDeleteStatement);
-                logNumberOfRows("After Delete:", targetDatasource, tableToBulkInsertInto);
+                log.info("Incremental loading is enabled.");
+                if (previousWatermark != null) {
+                    log.info("Previous watermark found: " + previousWatermark);
+                    log.info("Preparing target table with existing data.");
+                    String insertSql = "insert into " + tableToBulkInsertInto + " select * from " + targetTable + " where " + partitionColumn + " = " + partitionValue;
+                    log.info("Inserting existing values from target table");
+                    log.trace(insertSql);
+                    targetDatasource.executeUpdate(insertSql);
+                    logNumberOfRows("After Insert:", targetDatasource, tableToBulkInsertInto);
+                    log.info("Deleting values that have changed since the last watermark");
+                    log.trace(incrementalDeleteStatement);
+                    targetDatasource.executeUpdate(incrementalDeleteStatement);
+                    logNumberOfRows("After Delete:", targetDatasource, tableToBulkInsertInto);
+                }
+                else {
+                    log.info("No previous watermark found, performing full load");
+                }
             }
 
             // Get bulk load configuration
@@ -377,21 +381,9 @@ public class SqlServerImportJob implements PetlJob {
         }
     }
 
-    private String sqlServerDate(Date date) {
-        return date == null ? "null" : ("cast('" + isoDate(date) + "' as datetime2(3))");
-    }
-
-    private String mysqlDate(Date date) {
-        return date == null ? "null" : ("cast('" + isoDate(date) + "' as datetime(3))");
-    }
-
-    private String isoDate(Date date) {
-        return new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS").format(date);
-    }
-
     private void logNumberOfRows(String messagePrefix, DataSource dataSource, String tableName) {
         try {
-            Integer numRows = dataSource.querySingleValue("select count(*) from " + tableName);
+            Integer numRows = dataSource.querySingleValue("select count(*) from " + tableName, Integer.class);
             log.info(messagePrefix + " " + tableName + " contains " + numRows + " rows");
         }
         catch (Exception e) {

@@ -13,7 +13,12 @@ import org.pih.petl.job.config.DataSource;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.Statement;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 public abstract class BasePetlTest {
 
@@ -46,6 +51,10 @@ public abstract class BasePetlTest {
     @After
     public void runAfter() throws Exception {
         dropTablesInTargetDB();
+    }
+
+    public DataSource getMySQLDatasource() {
+        return etlService.getApplicationConfig().getEtlDataSource("mysql-testcontainer.yml");
     }
 
     public DataSource getSqlServerDatasource() {
@@ -89,6 +98,26 @@ public abstract class BasePetlTest {
             QueryRunner qr = new QueryRunner();
             Integer result = qr.query(c, query, new ScalarHandler<>());
             Assert.assertEquals(expected, result);
+        }
+    }
+
+    public void printTableContents(DataSource dataSource, String table) throws Exception {
+        System.out.println(table);
+        System.out.println("================");
+        try (Connection c = dataSource.openConnection()) {
+            try (Statement s = c.createStatement()) {
+                try (ResultSet rs = s.executeQuery("select * from " + table)) {
+                    ResultSetMetaData metaData = rs.getMetaData();
+                    while (rs.next()) {
+                        Map<String, Object> row = new LinkedHashMap<>();
+                        for (int i=1; i<=metaData.getColumnCount(); i++) {
+                            row.put(metaData.getColumnName(i), rs.getObject(i));
+                        }
+                        System.out.println(row);
+                    }
+                }
+            }
+
         }
     }
 }

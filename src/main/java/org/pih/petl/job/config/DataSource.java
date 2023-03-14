@@ -6,13 +6,17 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.pih.petl.PetlException;
+import org.pih.petl.SqlUtils;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -73,9 +77,32 @@ public class DataSource {
         }
     }
 
-    public <T> T querySingleValue(String sql) throws SQLException {
+    public <T> T querySingleValue(String sql, Class<T> type) throws SQLException {
         try (Connection connection = openConnection()) {
-            return new QueryRunner().query(connection, sql, new ScalarHandler<>());
+            try (PreparedStatement statement = connection.prepareStatement(sql)) {
+                try (ResultSet rs = statement.executeQuery()) {
+                    if (rs.next()) {
+                        return rs.getObject(1, type);
+                    }
+                    return null;
+                }
+            }
+        }
+    }
+
+    public Instant queryUtcInstant(String sql) throws SQLException {
+        try (Connection connection = openConnection()) {
+            try (PreparedStatement statement = connection.prepareStatement(sql)) {
+                try (ResultSet rs = statement.executeQuery()) {
+                    if (rs.next()) {
+                        LocalDateTime dateTime = rs.getObject(1, LocalDateTime.class);
+                        if (dateTime != null) {
+                            return SqlUtils.toUTCInstant(dateTime);
+                        }
+                    }
+                    return null;
+                }
+            }
         }
     }
 

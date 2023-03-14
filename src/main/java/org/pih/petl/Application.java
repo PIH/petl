@@ -16,6 +16,7 @@ import org.springframework.context.ApplicationContext;
 import java.lang.management.ManagementFactory;
 import java.lang.management.RuntimeMXBean;
 import java.util.List;
+import java.util.TimeZone;
 
 import static org.quartz.SimpleScheduleBuilder.simpleSchedule;
 
@@ -26,6 +27,10 @@ import static org.quartz.SimpleScheduleBuilder.simpleSchedule;
 public class Application {
 
     private static final Log log = LogFactory.getLog(Application.class);
+
+    static {
+        TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+    }
 
     final ApplicationConfig appConfig;
     final JobScheduler scheduler;
