@@ -179,18 +179,60 @@ public class SqlServerImportJobTest extends BasePetlTest {
         DataSource sqlServer = getSqlServerDatasource();
 
         // Initial state
-        Instant date1 = mysql.queryUtcInstant("select last_updated from encounter_type_changes where uuid = 'aa61d509-6e76-4036-a65d-7813c0c3b752'");
-        Assertions.assertEquals("2022-02-04T10:32:15Z", date1.toString());
-        Instant date2 = mysql.queryUtcInstant("select last_updated from encounter_type_changes where uuid = '55a0d3ea-a4d7-4e88-8f01-5aceb2d3c61b'");
-        Assertions.assertEquals("2022-02-04T22:11:19Z", date2.toString());
-        Instant date3 = mysql.queryUtcInstant("select last_updated from encounter_type_changes where uuid = '1e2a509c-7c9f-11e9-8f9e-2a86e4085a59'");
-        Assertions.assertEquals("2022-02-05T09:54:09Z", date3.toString());
+        {
+            Instant d = mysql.queryUtcInstant("select last_updated from encounter_type_changes where uuid = 'aa61d509-6e76-4036-a65d-7813c0c3b752'");
+            Assertions.assertEquals("2022-02-04T10:32:15Z", d.toString());
+        }
+        {
+            Instant d = mysql.queryUtcInstant("select last_updated from encounter_type_changes where uuid = '55a0d3ea-a4d7-4e88-8f01-5aceb2d3c61b'");
+            Assertions.assertEquals("2022-02-04T22:11:19Z", d.toString());
+        }
+        {
+            Instant d = mysql.queryUtcInstant("select last_updated from encounter_type_changes where uuid = '1e2a509c-7c9f-11e9-8f9e-2a86e4085a59'");
+            Assertions.assertEquals("2022-02-05T09:54:09Z", d.toString());
+        }
 
+        // First execution should be an initial load
         executeJob("jobWithPartitionsIncremental.yml");
+
         verifyTableExists("encounter_type_changes");
         verifyRowCount("encounter_type_changes", 3);
+        verifyRowCount("encounter_types", 62);
+        Assertions.assertEquals(62, sqlServer.querySingleValue("select count(*) from encounter_types where message = 'initial-load'", Integer.class));
         Instant endingWatermark = sqlServer.queryUtcInstant("select ending_watermark from petl_incremental_update_log where table_name = 'encounter_types'");
         Assertions.assertEquals("2022-02-05T09:54:09Z", endingWatermark.toString());
+
+        // Update MySQL to indicate that a few more encounter type changes have happened since
+        // One of these should be at the exact watermark date.  And one should be one of the previous records
+        mysql.executeUpdate("update encounter_type_changes set last_updated = '2022-02-05 09:54:09' where uuid = 'aa61d509-6e76-4036-a65d-7813c0c3b752'");
+
+        // Another should be a totally new record.  We'll make this one second later
+        mysql.executeUpdate("insert into encounter_type_changes (uuid, last_updated) values ('fdee591e-78ba-11e9-8f9e-2a86e4085a59', '2022-02-05 09:54:10')");
+
+        // Verify state
+        {
+            Instant d = mysql.queryUtcInstant("select last_updated from encounter_type_changes where uuid = 'aa61d509-6e76-4036-a65d-7813c0c3b752'");
+            Assertions.assertEquals("2022-02-05T09:54:09Z", d.toString());
+        }
+        {
+            Instant d = mysql.queryUtcInstant("select last_updated from encounter_type_changes where uuid = 'fdee591e-78ba-11e9-8f9e-2a86e4085a59'");
+            Assertions.assertEquals("2022-02-05T09:54:10Z", d.toString());
+        }
+
+        // We now re-run the job
+        executeJob("jobWithPartitionsIncremental.yml");
+
+        verifyTableExists("encounter_type_changes");
+        verifyRowCount("encounter_type_changes", 4);
+        verifyRowCount("encounter_types", 62);
+
+        // We now hove 59 that have not changed, and 3 that are updated on the incremental load
+        // The 3 include the one that was changed to the watermark date, the one that was inserted after the watermark date, and the pre-existing record on the watermark date
+        Assertions.assertEquals(59, sqlServer.querySingleValue("select count(*) from encounter_types where message = 'initial-load'", Integer.class));
+        Assertions.assertEquals(3, sqlServer.querySingleValue("select count(*) from encounter_types where message = 'incremental-load'", Integer.class));
+
+        endingWatermark = sqlServer.queryUtcInstant("select max(ending_watermark) from petl_incremental_update_log where table_name = 'encounter_types'");
+        Assertions.assertEquals("2022-02-05T09:54:10Z", endingWatermark.toString());
     }
 
     @Test
