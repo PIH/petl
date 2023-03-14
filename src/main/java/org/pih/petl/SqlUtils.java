@@ -190,14 +190,14 @@ public class SqlUtils {
      * @return an expression that will represent the given date in sql server
      */
     public static String sqlServerDate(Instant instant) {
-        return instant == null ? "null" : ("cast('" + instant + "' as datetime2(3))");
+        return instant == null ? "null" : ("cast('" + instant + "' as datetime)");
     }
 
     /**
      * @return an expression that will represent the given date in mysql
      */
     public static String mysqlDate(Instant instant) {
-        return instant == null ? "null" : ("cast('" + instant + "' as datetime(3))");
+        return instant == null ? "null" : ("cast('" + instant + "' as datetime)");
     }
 
     /**

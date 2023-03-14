@@ -189,8 +189,8 @@ public class SqlServerImportJob implements PetlJob {
                     "set @previousWatermark = " + SqlUtils.mysqlDate(previousWatermark) + ";" + System.lineSeparator();
 
             String sqlServerWatermarks = "" +
-                    "DECLARE @newWatermark DATETIME2(3) = " + SqlUtils.sqlServerDate(newWatermark) + ";" + System.lineSeparator() +
-                    "DECLARE @previousWatermark DATETIME2(3) = " + SqlUtils.sqlServerDate(previousWatermark) + ";" + System.lineSeparator();
+                    "DECLARE @newWatermark DATETIME = " + SqlUtils.sqlServerDate(newWatermark) + ";" + System.lineSeparator() +
+                    "DECLARE @previousWatermark DATETIME = " + SqlUtils.sqlServerDate(previousWatermark) + ";" + System.lineSeparator();
 
             // Ensure that the source incremental extract query has access to the watermarks
             sourceQuery = mysqlWatermarks + sourceQuery;
