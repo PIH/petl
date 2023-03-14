@@ -14,8 +14,10 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.pih.petl.job.config.TableColumn;
 
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -187,22 +189,22 @@ public class SqlUtils {
     /**
      * @return an expression that will represent the given date in sql server
      */
-    public static String sqlServerDate(Date date) {
-        return date == null ? "null" : ("cast('" + isoDate(date) + "' as datetime2(3))");
+    public static String sqlServerDate(Instant instant) {
+        return instant == null ? "null" : ("cast('" + instant + "' as datetime2(3))");
     }
 
     /**
      * @return an expression that will represent the given date in mysql
      */
-    public static String mysqlDate(Date date) {
-        return date == null ? "null" : ("cast('" + isoDate(date) + "' as datetime(3))");
+    public static String mysqlDate(Instant instant) {
+        return instant == null ? "null" : ("cast('" + instant + "' as datetime(3))");
     }
 
     /**
-     * @return the given date in ISO format
+     * @return the given LocalDateTime as an Instant at UTC
      */
-    public static String isoDate(Date date) {
-        return date.toInstant().toString();
+    public static Instant toUTCInstant(LocalDateTime datetime) {
+        return datetime == null ? null : datetime.toInstant(ZoneOffset.UTC);
     }
 
     //********** CONVENIENCE METHODS **************

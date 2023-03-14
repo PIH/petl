@@ -1,0 +1,13 @@
+type: "job-pipeline"
+configuration:
+  jobs:
+    - type: "sqlserver-bulk-import"
+      description: "Set up for incremental loading"
+      configuration:
+        extract:
+          datasource: "mysql-testcontainer.yml"
+          query:  "incremental/change-log-extract-query.sql"
+        load:
+          datasource: "sqlserver-testcontainer.yml"
+          table: "encounter_type_changes"
+          schema: "incremental/change-log-target-schema.sql"

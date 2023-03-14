@@ -24,8 +24,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -138,8 +138,8 @@ public class SqlServerImportJob implements PetlJob {
         }
 
         boolean incremental = configReader.getBoolean(false, "load", "partition", "incremental", "enabled");
-        Date newWatermark = null;
-        Date previousWatermark = null;
+        Instant newWatermark = null;
+        Instant previousWatermark = null;
         String newWatermarkQuery = configReader.getFileContents("load", "partition", "incremental", "newWatermarkQuery");
         String previousWatermarkQuery = configReader.getFileContents("load", "partition", "incremental", "previousWatermarkQuery");
         String incrementalDeleteStatement = configReader.getFileContents("load", "partition", "incremental", "deleteStatement");
@@ -164,7 +164,7 @@ public class SqlServerImportJob implements PetlJob {
             }
 
             try {
-                newWatermark = targetDatasource.querySingleValue(newWatermarkQuery);
+                newWatermark = targetDatasource.queryUtcInstant(newWatermarkQuery);
                 log.info("New watermark value: " + newWatermark);
             }
             catch (Exception e) {
@@ -172,7 +172,7 @@ public class SqlServerImportJob implements PetlJob {
             }
 
             try {
-                previousWatermark = targetDatasource.querySingleValue(previousWatermarkQuery);
+                previousWatermark = targetDatasource.queryUtcInstant(previousWatermarkQuery);
                 log.info("Previous watermark value: " + previousWatermark);
             }
             catch (Exception e) {
@@ -383,7 +383,7 @@ public class SqlServerImportJob implements PetlJob {
 
     private void logNumberOfRows(String messagePrefix, DataSource dataSource, String tableName) {
         try {
-            Integer numRows = dataSource.querySingleValue("select count(*) from " + tableName);
+            Integer numRows = dataSource.querySingleValue("select count(*) from " + tableName, Integer.class);
             log.info(messagePrefix + " " + tableName + " contains " + numRows + " rows");
         }
         catch (Exception e) {

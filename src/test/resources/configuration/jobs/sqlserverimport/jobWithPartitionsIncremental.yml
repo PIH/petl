@@ -14,10 +14,10 @@ configuration:
         tableName: "petl_incremental_update_log"
       configuration:
         source:
-          sqlFile: "incremental/petl_incremental_update_log.sql"
+          sqlFile: "incremental/${tableName}.sql"
         target:
           datasource: "sqlserver-testcontainer.yml"
-          tableName: "petl_incremental_update_log"
+          tableName: "${tableName}"
 
     - type: "sqlserver-bulk-import"
       description: "Set up for incremental loading"

@@ -48,6 +48,10 @@ public abstract class BasePetlTest {
         dropTablesInTargetDB();
     }
 
+    public DataSource getMySQLDatasource() {
+        return etlService.getApplicationConfig().getEtlDataSource("mysql-testcontainer.yml");
+    }
+
     public DataSource getSqlServerDatasource() {
         return etlService.getApplicationConfig().getEtlDataSource("sqlserver-testcontainer.yml");
     }
@@ -90,11 +94,5 @@ public abstract class BasePetlTest {
             Integer result = qr.query(c, query, new ScalarHandler<>());
             Assert.assertEquals(expected, result);
         }
-    }
-
-    public <T> T queryMysql(String query) throws Exception {
-        ApplicationConfig appConfig = etlService.getApplicationConfig();
-        DataSource ds = appConfig.getEtlDataSource("mysql-testcontainer.yml");
-        return ds.querySingleValue(query);
     }
 }

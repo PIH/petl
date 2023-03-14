@@ -70,9 +70,9 @@ INSERT INTO encounter_type (uuid, name, description) VALUES ('690670E2-A0CC-452B
 
 create table encounter_type_changes (
     uuid char(38),
-    last_updated datetime(3)
+    last_updated datetime
 );
 
-insert into encounter_type_changes (uuid, last_updated) values ('aa61d509-6e76-4036-a65d-7813c0c3b752', '2022-02-04 10:32:15.012'); -- Consult
-insert into encounter_type_changes (uuid, last_updated) values ('55a0d3ea-a4d7-4e88-8f01-5aceb2d3c61b', '2022-02-04 22:11:19.556'); -- Inscription
-insert into encounter_type_changes (uuid, last_updated) values ('1e2a509c-7c9f-11e9-8f9e-2a86e4085a59', '2022-02-05 09:54:09.112'); -- Vaccination
+insert into encounter_type_changes (uuid, last_updated) values ('aa61d509-6e76-4036-a65d-7813c0c3b752', '2022-02-04 10:32:15'); -- Consult
+insert into encounter_type_changes (uuid, last_updated) values ('55a0d3ea-a4d7-4e88-8f01-5aceb2d3c61b', '2022-02-04 22:11:19'); -- Inscription
+insert into encounter_type_changes (uuid, last_updated) values ('1e2a509c-7c9f-11e9-8f9e-2a86e4085a59', '2022-02-05 09:54:09'); -- Vaccination
