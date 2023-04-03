@@ -24,7 +24,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -138,8 +138,8 @@ public class SqlServerImportJob implements PetlJob {
         }
 
         boolean incremental = configReader.getBoolean(false, "load", "partition", "incremental", "enabled");
-        Instant newWatermark = null;
-        Instant previousWatermark = null;
+        LocalDateTime newWatermark = null;
+        LocalDateTime previousWatermark = null;
         String newWatermarkQuery = configReader.getFileContents("load", "partition", "incremental", "newWatermarkQuery");
         String previousWatermarkQuery = configReader.getFileContents("load", "partition", "incremental", "previousWatermarkQuery");
         String incrementalDeleteStatement = configReader.getFileContents("load", "partition", "incremental", "deleteStatement");
@@ -164,7 +164,7 @@ public class SqlServerImportJob implements PetlJob {
             }
 
             try {
-                newWatermark = targetDatasource.queryUtcInstant(newWatermarkQuery);
+                newWatermark = targetDatasource.queryAsLocalDateTime(newWatermarkQuery);
                 log.info("New watermark value: " + newWatermark);
             }
             catch (Exception e) {
@@ -172,7 +172,7 @@ public class SqlServerImportJob implements PetlJob {
             }
 
             try {
-                previousWatermark = targetDatasource.queryUtcInstant(previousWatermarkQuery);
+                previousWatermark = targetDatasource.queryAsLocalDateTime(previousWatermarkQuery);
                 log.info("Previous watermark value: " + previousWatermark);
             }
             catch (Exception e) {
