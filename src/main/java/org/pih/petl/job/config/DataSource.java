@@ -6,7 +6,6 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.pih.petl.PetlException;
-import org.pih.petl.SqlUtils;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -15,7 +14,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -90,15 +88,12 @@ public class DataSource {
         }
     }
 
-    public Instant queryUtcInstant(String sql) throws SQLException {
+    public LocalDateTime queryAsLocalDateTime(String sql) throws SQLException {
         try (Connection connection = openConnection()) {
             try (PreparedStatement statement = connection.prepareStatement(sql)) {
                 try (ResultSet rs = statement.executeQuery()) {
                     if (rs.next()) {
-                        LocalDateTime dateTime = rs.getObject(1, LocalDateTime.class);
-                        if (dateTime != null) {
-                            return SqlUtils.toUTCInstant(dateTime);
-                        }
+                        return rs.getObject(1, LocalDateTime.class);
                     }
                     return null;
                 }

@@ -12,7 +12,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -148,17 +148,17 @@ public class SqlServerImportJobTest extends BasePetlTest {
     }
 
     @Test
-    public void shouldTransferDatesInUTC() throws Exception {
+    public void shouldTransferDatesAccurately() throws Exception {
         Map<String, String> queries = new LinkedHashMap<>();
-        queries.put("aa61d509-6e76-4036-a65d-7813c0c3b752", "2022-02-04T10:32:15Z");
-        queries.put("55a0d3ea-a4d7-4e88-8f01-5aceb2d3c61b", "2022-02-04T22:11:19Z");
-        queries.put("1e2a509c-7c9f-11e9-8f9e-2a86e4085a59", "2022-02-05T09:54:09Z");
+        queries.put("aa61d509-6e76-4036-a65d-7813c0c3b752", "2022-02-04T10:32:15");
+        queries.put("55a0d3ea-a4d7-4e88-8f01-5aceb2d3c61b", "2022-02-04T22:11:19");
+        queries.put("1e2a509c-7c9f-11e9-8f9e-2a86e4085a59", "2022-02-05T09:54:09");
 
         // Initial state in MySQL
         for (String uuid : queries.keySet()) {
             String expected = queries.get(uuid);
             String query = "select last_updated from encounter_type_changes where uuid = '" + uuid + "'";
-            Instant actual = getMySQLDatasource().queryUtcInstant(query);
+            LocalDateTime actual = getMySQLDatasource().queryAsLocalDateTime(query);
             Assertions.assertEquals(expected, actual.toString());
         }
 
@@ -168,7 +168,7 @@ public class SqlServerImportJobTest extends BasePetlTest {
         for (String uuid : queries.keySet()) {
             String expected = queries.get(uuid);
             String query = "select last_updated from encounter_type_changes where uuid = '" + uuid + "'";
-            Instant actual = getSqlServerDatasource().queryUtcInstant(query);
+            LocalDateTime actual = getSqlServerDatasource().queryAsLocalDateTime(query);
             Assertions.assertEquals(expected, actual.toString());
         }
     }
@@ -180,16 +180,16 @@ public class SqlServerImportJobTest extends BasePetlTest {
 
         // Initial state
         {
-            Instant d = mysql.queryUtcInstant("select last_updated from encounter_type_changes where uuid = 'aa61d509-6e76-4036-a65d-7813c0c3b752'");
-            Assertions.assertEquals("2022-02-04T10:32:15Z", d.toString());
+            LocalDateTime d = mysql.queryAsLocalDateTime("select last_updated from encounter_type_changes where uuid = 'aa61d509-6e76-4036-a65d-7813c0c3b752'");
+            Assertions.assertEquals("2022-02-04T10:32:15", d.toString());
         }
         {
-            Instant d = mysql.queryUtcInstant("select last_updated from encounter_type_changes where uuid = '55a0d3ea-a4d7-4e88-8f01-5aceb2d3c61b'");
-            Assertions.assertEquals("2022-02-04T22:11:19Z", d.toString());
+            LocalDateTime d = mysql.queryAsLocalDateTime("select last_updated from encounter_type_changes where uuid = '55a0d3ea-a4d7-4e88-8f01-5aceb2d3c61b'");
+            Assertions.assertEquals("2022-02-04T22:11:19", d.toString());
         }
         {
-            Instant d = mysql.queryUtcInstant("select last_updated from encounter_type_changes where uuid = '1e2a509c-7c9f-11e9-8f9e-2a86e4085a59'");
-            Assertions.assertEquals("2022-02-05T09:54:09Z", d.toString());
+            LocalDateTime d = mysql.queryAsLocalDateTime("select last_updated from encounter_type_changes where uuid = '1e2a509c-7c9f-11e9-8f9e-2a86e4085a59'");
+            Assertions.assertEquals("2022-02-05T09:54:09", d.toString());
         }
 
         // First execution should be an initial load
@@ -199,8 +199,8 @@ public class SqlServerImportJobTest extends BasePetlTest {
         verifyRowCount("encounter_type_changes", 3);
         verifyRowCount("encounter_types", 62);
         Assertions.assertEquals(62, sqlServer.querySingleValue("select count(*) from encounter_types where message = 'initial-load'", Integer.class));
-        Instant endingWatermark = sqlServer.queryUtcInstant("select ending_watermark from petl_incremental_update_log where table_name = 'encounter_types'");
-        Assertions.assertEquals("2022-02-05T09:54:09Z", endingWatermark.toString());
+        LocalDateTime endingWatermark = sqlServer.queryAsLocalDateTime("select ending_watermark from petl_incremental_update_log where table_name = 'encounter_types'");
+        Assertions.assertEquals("2022-02-05T09:54:09", endingWatermark.toString());
 
         // Update MySQL to indicate that a few more encounter type changes have happened since
         // One of these should be at the exact watermark date.  And one should be one of the previous records
@@ -211,12 +211,12 @@ public class SqlServerImportJobTest extends BasePetlTest {
 
         // Verify state
         {
-            Instant d = mysql.queryUtcInstant("select last_updated from encounter_type_changes where uuid = 'aa61d509-6e76-4036-a65d-7813c0c3b752'");
-            Assertions.assertEquals("2022-02-05T09:54:09Z", d.toString());
+            LocalDateTime d = mysql.queryAsLocalDateTime("select last_updated from encounter_type_changes where uuid = 'aa61d509-6e76-4036-a65d-7813c0c3b752'");
+            Assertions.assertEquals("2022-02-05T09:54:09", d.toString());
         }
         {
-            Instant d = mysql.queryUtcInstant("select last_updated from encounter_type_changes where uuid = 'fdee591e-78ba-11e9-8f9e-2a86e4085a59'");
-            Assertions.assertEquals("2022-02-05T09:54:10Z", d.toString());
+            LocalDateTime d = mysql.queryAsLocalDateTime("select last_updated from encounter_type_changes where uuid = 'fdee591e-78ba-11e9-8f9e-2a86e4085a59'");
+            Assertions.assertEquals("2022-02-05T09:54:10", d.toString());
         }
 
         // We now re-run the job
@@ -231,14 +231,14 @@ public class SqlServerImportJobTest extends BasePetlTest {
         Assertions.assertEquals(59, sqlServer.querySingleValue("select count(*) from encounter_types where message = 'initial-load'", Integer.class));
         Assertions.assertEquals(3, sqlServer.querySingleValue("select count(*) from encounter_types where message = 'incremental-load'", Integer.class));
 
-        endingWatermark = sqlServer.queryUtcInstant("select max(ending_watermark) from petl_incremental_update_log where table_name = 'encounter_types'");
-        Assertions.assertEquals("2022-02-05T09:54:10Z", endingWatermark.toString());
+        endingWatermark = sqlServer.queryAsLocalDateTime("select max(ending_watermark) from petl_incremental_update_log where table_name = 'encounter_types'");
+        Assertions.assertEquals("2022-02-05T09:54:10", endingWatermark.toString());
     }
 
     @Test
     public void testSqlServerDatetime() throws Exception {
-        String sql = "SELECT cast('2022-02-05T09:54:09.112Z' as datetime2(3));";
-        Instant instant = getSqlServerDatasource().queryUtcInstant(sql);
-        Assertions.assertEquals("2022-02-05T09:54:09.112Z", instant.toString());
+        String sql = "SELECT cast('2022-02-05T09:54:09.112' as datetime2(3));";
+        LocalDateTime instant = getSqlServerDatasource().queryAsLocalDateTime(sql);
+        Assertions.assertEquals("2022-02-05T09:54:09.112", instant.toString());
     }
 }

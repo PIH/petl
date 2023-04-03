@@ -189,22 +189,15 @@ public class SqlUtils {
     /**
      * @return an expression that will represent the given date in sql server
      */
-    public static String sqlServerDate(Instant instant) {
+    public static String sqlServerDate(LocalDateTime instant) {
         return instant == null ? "null" : ("cast('" + instant + "' as datetime)");
     }
 
     /**
      * @return an expression that will represent the given date in mysql
      */
-    public static String mysqlDate(Instant instant) {
+    public static String mysqlDate(LocalDateTime instant) {
         return instant == null ? "null" : ("cast('" + instant + "' as datetime)");
-    }
-
-    /**
-     * @return the given LocalDateTime as an Instant at UTC
-     */
-    public static Instant toUTCInstant(LocalDateTime datetime) {
-        return datetime == null ? null : datetime.toInstant(ZoneOffset.UTC);
     }
 
     //********** CONVENIENCE METHODS **************
