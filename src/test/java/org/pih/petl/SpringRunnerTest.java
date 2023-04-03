@@ -40,5 +40,6 @@ public class SpringRunnerTest {
         Assert.assertNotNull(applicationConfig);
         Assert.assertNotNull(applicationConfig.getJobDir());
         Assert.assertNotNull(applicationConfig.getDataSourceDir());
+        Assert.assertTrue(applicationConfig.getEnv().containsKey("user.timezone"));
     }
 }
