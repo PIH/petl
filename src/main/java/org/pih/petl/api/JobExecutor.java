@@ -79,12 +79,14 @@ public class JobExecutor {
     public void executeInParallel(List<JobExecutionTask> tasks) throws InterruptedException, ExecutionException {
         List<JobExecutionResult> finalResults = new ArrayList<>();
         List<JobExecutionTask> tasksToSchedule = new ArrayList<>(tasks);
+        log.debug("Executing " + tasksToSchedule.size() + " tasks in parallel");
         while (tasksToSchedule.size() > 0) {
             List<Future<JobExecutionResult>> futures = new ArrayList<>();
             for (JobExecutionTask task : tasksToSchedule) {
                 JobExecution execution = task.getJobExecution();
                 etlService.saveJobExecution(execution);
                 if (task.getAttemptNum() == 1) {
+                    log.debug("First attempt at " + task + " submitting to executor service for execution");
                     futures.add(executorService.submit(task));
                     execution.setStatus(JobExecutionStatus.QUEUED);
                     etlService.saveJobExecution(execution);
@@ -92,6 +94,7 @@ public class JobExecutor {
                 }
                 else {
                     ErrorHandling errorHandling = task.getJobExecution().getJobConfig().getErrorHandling();
+                    log.debug("Retry attempt at " + task + ", scheduling for re-execution: " + errorHandling);
                     futures.add(executorService.schedule(task, errorHandling.getRetryInterval(), errorHandling.getRetryIntervalUnit()));
                     execution.setStatus(JobExecutionStatus.RETRY_QUEUED);
                     etlService.saveJobExecution(execution);
@@ -102,7 +105,8 @@ public class JobExecutor {
                 JobExecutionResult result = future.get();
                 JobExecutionTask task = result.getJobExecutionTask();
                 JobExecution execution = task.getJobExecution();
-                if (result.isSuccessful() || task.getAttemptNum() >= task.getJobExecution().getJobConfig().getErrorHandling().getMaxAttempts()) {
+                int maxAttempts = task.getJobExecution().getJobConfig().getErrorHandling().getMaxAttempts();
+                if (result.isSuccessful() || task.getAttemptNum() >= maxAttempts) {
                     finalResults.add(result);
                     tasksToSchedule.remove(task);
                     execution.setCompleted(new Date());
@@ -114,6 +118,7 @@ public class JobExecutor {
                     }
                 }
                 else {
+                    log.info("Task failed, but will retry.  Attempt: " + task.getAttemptNum() + "; max attempts: " + maxAttempts);
                     task.incrementAttemptNum();
                     execution.setStatus(JobExecutionStatus.FAILED_WILL_RETRY);
                     execution.setErrorMessageFromException(result.getException());
@@ -137,6 +142,9 @@ public class JobExecutor {
      * Execute a List of jobs in series.  A failure will terminate immediately and subsequent jobs will not run
      */
     public void executeInSeries(List<JobExecutionTask> tasks) throws InterruptedException, ExecutionException {
+
+        log.debug("Executing " + tasks.size() + " tasks in series");
+
         // First, ensure all job executions are saved so that they can be tracked and re-initiated as needed
         for (JobExecutionTask task : tasks) {
             JobExecution execution = task.getJobExecution();
@@ -157,6 +165,7 @@ public class JobExecutor {
                 JobExecutionResult result = futureResult.get(); // This blocks until result is available
                 ErrorHandling errorHandling = task.getJobExecution().getJobConfig().getErrorHandling();
                 while (!result.isSuccessful() && task.getAttemptNum() < errorHandling.getMaxAttempts()) {
+                    log.info("Task failed, but will retry.  Attempt: " + task.getAttemptNum() + "; max attempts: " + errorHandling.getMaxAttempts());
                     task.incrementAttemptNum();
                     execution.setStatus(JobExecutionStatus.RETRY_QUEUED);
                     etlService.saveJobExecution(execution);

@@ -298,6 +298,7 @@ public class SqlServerImportJob implements PetlJob {
                                     try {
                                         resultSet = ((PreparedStatement) statement).executeQuery();
                                         if (resultSet != null) {
+                                            log.trace("Setting up bulk copy connection");
                                             Connection sqlServerConnection = getAsSqlServerConnection(targetConnection);
                                             SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(sqlServerConnection);
                                             SQLServerBulkCopyOptions bco = new SQLServerBulkCopyOptions();
@@ -306,10 +307,14 @@ public class SqlServerImportJob implements PetlJob {
                                             bco.setBulkCopyTimeout(timeout);
                                             bulkCopy.setBulkCopyOptions(bco);
                                             bulkCopy.setDestinationTableName(tableToBulkInsertInto);
+                                            log.info("Performing up bulk copy operation");
                                             bulkCopy.writeToServer(resultSet);
+                                            log.trace("Bulk copy operation completed successfully");
                                         } else {
                                             throw new PetlException("Invalid SQL extraction, no result set found");
                                         }
+                                    } catch (Exception e) {
+                                        log.error("An error occurred during bulk copy operation", e);
                                     } finally {
                                         DbUtils.closeQuietly(resultSet);
                                     }
@@ -320,9 +325,14 @@ public class SqlServerImportJob implements PetlJob {
                                 DbUtils.closeQuietly(statement);
                             }
                         }
-                        log.debug("Import Completed Sucessfully");
+                        log.debug("Import Completed Successfully");
                     } finally {
-                        sourceConnection.rollback();
+                        try {
+                            sourceConnection.rollback();
+                        }
+                        catch (Exception e) {
+                            log.debug("An error occurred during source connection rollback", e);
+                        }
                         sourceConnection.setAutoCommit(originalSourceAutoCommit);
                         targetConnection.setAutoCommit(originalTargetAutocommit);
                     }
