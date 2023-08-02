@@ -315,6 +315,7 @@ public class SqlServerImportJob implements PetlJob {
                                         }
                                     } catch (Exception e) {
                                         log.error("An error occurred during bulk copy operation", e);
+                                        throw e;
                                     } finally {
                                         DbUtils.closeQuietly(resultSet);
                                     }
@@ -333,8 +334,18 @@ public class SqlServerImportJob implements PetlJob {
                         catch (Exception e) {
                             log.debug("An error occurred during source connection rollback", e);
                         }
-                        sourceConnection.setAutoCommit(originalSourceAutoCommit);
-                        targetConnection.setAutoCommit(originalTargetAutocommit);
+                        try {
+                            sourceConnection.setAutoCommit(originalSourceAutoCommit);
+                        }
+                        catch (Exception e) {
+                            log.debug("An error occurred setting the source connection autocommit", e);
+                        }
+                        try {
+                            targetConnection.setAutoCommit(originalTargetAutocommit);
+                        }
+                        catch (Exception e) {
+                            log.debug("An error occurred setting the target connection autocommit", e);
+                        }
                     }
                 }
             }
