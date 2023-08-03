@@ -48,7 +48,10 @@ public class JobExecutionRestController {
         if (execution.getStatus() != JobExecutionStatus.SUCCEEDED) {
             JobConfig config = execution.getJobConfig();
             execution.setStarted(new Date());
+            execution.setCompleted(null);
+            execution.setErrorMessage(null);
             execution.setStatus(JobExecutionStatus.IN_PROGRESS);
+            execution = etlService.saveJobExecution(execution);
 
             // If this is a job pipeline or an iterating job that has already had it's child jobs scheduled,
             // then just ensure that these child jobs are executed and successful, and mark parent as successful if so
@@ -70,7 +73,6 @@ public class JobExecutionRestController {
                     }
                     if (successful) {
                         execution.setStatus(JobExecutionStatus.SUCCEEDED);
-                        execution.setErrorMessage(null);
                     } else {
                         execution.setStatus(JobExecutionStatus.FAILED);
                     }
