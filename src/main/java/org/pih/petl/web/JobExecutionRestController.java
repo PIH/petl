@@ -49,25 +49,34 @@ public class JobExecutionRestController {
             JobConfig config = execution.getJobConfig();
             execution.setStarted(new Date());
             execution.setStatus(JobExecutionStatus.IN_PROGRESS);
+
+            // If this is a job pipeline or an iterating job that has already had it's child jobs scheduled,
+            // then just ensure that these child jobs are executed and successful, and mark parent as successful if so
             if ("job-pipeline".equals(config.getType()) || "iterating-job".equals(config.getType())) {
-                boolean successful = true;
-                for (JobExecution childJobExecution : etlService.getChildExecutions(execution)) {
-                    if (childJobExecution.getStatus() != JobExecutionStatus.SUCCEEDED) {
-                        childJobExecution = executeIfIncomplete(childJobExecution);
-                        successful = successful && childJobExecution.getStatus() == JobExecutionStatus.SUCCEEDED;
-                        if ("job-pipeline".equals(config.getType()) && !successful) {
-                            break;
+                List<JobExecution> existingChildExecutions = etlService.getChildExecutions(execution);
+                if (existingChildExecutions == null || existingChildExecutions.isEmpty()) {
+                    execution = etlService.executeJob(execution);
+                }
+                else {
+                    boolean successful = true;
+                    for (JobExecution childJobExecution : etlService.getChildExecutions(execution)) {
+                        if (childJobExecution.getStatus() != JobExecutionStatus.SUCCEEDED) {
+                            childJobExecution = executeIfIncomplete(childJobExecution);
+                            successful = successful && childJobExecution.getStatus() == JobExecutionStatus.SUCCEEDED;
+                            if ("job-pipeline".equals(config.getType()) && !successful) {
+                                break;
+                            }
                         }
                     }
+                    if (successful) {
+                        execution.setStatus(JobExecutionStatus.SUCCEEDED);
+                        execution.setErrorMessage(null);
+                    } else {
+                        execution.setStatus(JobExecutionStatus.FAILED);
+                    }
+                    execution.setCompleted(new Date());
+                    execution = etlService.saveJobExecution(execution);
                 }
-                if (successful) {
-                    execution.setStatus(JobExecutionStatus.SUCCEEDED);
-                    execution.setErrorMessage(null);
-                } else {
-                    execution.setStatus(JobExecutionStatus.FAILED);
-                }
-                execution.setCompleted(new Date());
-                execution = etlService.saveJobExecution(execution);
             } else {
                 execution = etlService.executeJob(execution);
             }
