@@ -254,6 +254,7 @@ public class SqlServerImportJob implements PetlJob {
             // Get bulk load configuration
             int batchSize = configReader.getInt(100, "load", "bulkCopy", "batchSize");
             int timeout = configReader.getInt(7200, "load", "bulkCopy", "timeout"); // 2h default
+            boolean testOnly = configReader.getBoolean(false, "load", "bulkCopy", "testOnly");
 
             try (Connection sourceConnection = sourceDatasource.openConnection()) {
                 try (Connection targetConnection = targetDatasource.openConnection()) {
@@ -298,18 +299,24 @@ public class SqlServerImportJob implements PetlJob {
                                     try {
                                         resultSet = ((PreparedStatement) statement).executeQuery();
                                         if (resultSet != null) {
-                                            log.trace("Setting up bulk copy connection");
-                                            Connection sqlServerConnection = getAsSqlServerConnection(targetConnection);
-                                            SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(sqlServerConnection);
-                                            SQLServerBulkCopyOptions bco = new SQLServerBulkCopyOptions();
-                                            bco.setKeepIdentity(true);
-                                            bco.setBatchSize(batchSize);
-                                            bco.setBulkCopyTimeout(timeout);
-                                            bulkCopy.setBulkCopyOptions(bco);
-                                            bulkCopy.setDestinationTableName(tableToBulkInsertInto);
-                                            log.info("Performing up bulk copy operation");
-                                            bulkCopy.writeToServer(resultSet);
-                                            log.trace("Bulk copy operation completed successfully");
+                                            if (testOnly) {
+                                                SqlUtils.testResultSet(resultSet);
+                                                throw new PetlException("Failed to load to SQL server due to testOnly mode");
+                                            }
+                                            else {
+                                                log.trace("Setting up bulk copy connection");
+                                                Connection sqlServerConnection = getAsSqlServerConnection(targetConnection);
+                                                SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(sqlServerConnection);
+                                                SQLServerBulkCopyOptions bco = new SQLServerBulkCopyOptions();
+                                                bco.setKeepIdentity(true);
+                                                bco.setBatchSize(batchSize);
+                                                bco.setBulkCopyTimeout(timeout);
+                                                bulkCopy.setBulkCopyOptions(bco);
+                                                bulkCopy.setDestinationTableName(tableToBulkInsertInto);
+                                                log.info("Performing up bulk copy operation");
+                                                bulkCopy.writeToServer(resultSet);
+                                                log.trace("Bulk copy operation completed successfully");
+                                            }
                                         } else {
                                             throw new PetlException("Invalid SQL extraction, no result set found");
                                         }

@@ -14,9 +14,10 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.pih.petl.job.config.TableColumn;
 
-import java.time.Instant;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -198,6 +199,43 @@ public class SqlUtils {
      */
     public static String mysqlDate(LocalDateTime instant) {
         return instant == null ? "null" : ("cast('" + instant + "' as datetime)");
+    }
+
+    /**
+     * The goal of this method is to test a result set for validity in JDBC
+     * This is useful if there are errors with the bulk load to sql server job in the data being passed across
+     * @param resultSet the ResultSet to test
+     * @throws SQLException
+     */
+    public static void testResultSet(ResultSet resultSet) throws SQLException {
+        int numRowsTotal = 0;
+        int numRowsWithError = 0;
+        ResultSetMetaData rsmd = resultSet.getMetaData();
+        while (resultSet.next()) {
+            numRowsTotal++;
+            boolean rowHasError = false;
+            StringBuilder row = new StringBuilder();
+            row.append("rowNum = ").append(numRowsTotal);
+            for (int i=1; i<=rsmd.getColumnCount(); i++) {
+                row.append(", ").append(rsmd.getColumnName(i)).append(" = ");
+                try {
+                    row.append(resultSet.getObject(i));
+                }
+                catch (Exception e) {
+                    rowHasError = true;
+                    row.append("***ERROR***");
+                }
+            }
+            if (rowHasError) {
+                numRowsWithError++;
+                log.error(row.toString());
+            }
+            else if (log.isDebugEnabled()) {
+                log.debug(row.toString());
+            }
+        }
+        log.warn("Number of rows total in extraction: " + numRowsTotal);
+        log.error("Number of rows with error in extraction: " + numRowsWithError);
     }
 
     //********** CONVENIENCE METHODS **************
