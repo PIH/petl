@@ -104,6 +104,14 @@ public class JobConfigReader {
         return appConfig.getEtlDataSource(path);
     }
 
+    public List<DataSource> getDataSources(String... keys) {
+        List<DataSource> ret = new ArrayList<>();
+        for (String path : getStringList(keys)) {
+            ret.add(appConfig.getEtlDataSource(path));
+        }
+        return ret;
+    }
+
     /**
      * Convenience to get the configuration of a given setting as a String
      */
