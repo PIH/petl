@@ -10,7 +10,6 @@ import org.pih.petl.api.EtlService;
 import org.pih.petl.api.JobExecution;
 import org.pih.petl.api.JobExecutionTask;
 import org.pih.petl.api.JobExecutor;
-import org.pih.petl.job.config.DataSource;
 import org.pih.petl.job.config.JobConfig;
 import org.pih.petl.job.config.JobConfigReader;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -63,8 +62,7 @@ public class RunMultipleJob implements PetlJob {
      */
     private List<String> startContainersIfNecessary(JobConfigReader configReader) {
         List<String> ret = new ArrayList<>();
-        for (DataSource dataSource : configReader.getDataSources("datasources")) {
-            String containerName = dataSource.getContainerName();
+        for (String containerName : configReader.getStringList("requiredContainers")) {
             if (StringUtils.isNotBlank(containerName)) {
                 log.info("Checking if container '" + containerName + "' is started");
                 try (DockerConnector docker = DockerConnector.open()) {
