@@ -34,6 +34,7 @@ public class DataSource {
     private String url; // Alternative to the above piecemeal settings
     private String user;
     private String password;
+    private String containerName; // If this database is in a docker container, can configure the container name here
 
     //***** CONSTRUCTORS *****
 
@@ -266,5 +267,13 @@ public class DataSource {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public String getContainerName() {
+        return containerName;
+    }
+
+    public void setContainerName(String containerName) {
+        this.containerName = containerName;
     }
 }
