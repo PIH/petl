@@ -539,6 +539,13 @@ Posting to a particular existing job execution endpoint will re-execute this job
 have a status other than SUCCEEDED.  The purpose of this is to enable re-executing a failed job or all of the failed jobs
 that are nested in a top-level job without needing to re-execute every job from scratch.
 
+**GET /status/datasource/{datasource-name}**
+
+Getting to this endpoint allows you to check the status of whether PETL can successfully connect to the given datasource.
+This `{datasource-name}` is expected to be a filename within the `${petl.datasourceDir}` less the `.yml` extension.
+So, assuming your PETL configuration had a`${server.port}` of `9109` and a `${petl.datasourceDir}` of `${petl.homeDir}/configuration/datasources/openmrs-db.yml`,
+this would be queried with:  `curl -X POST http://localhost:9109/status/datasource/openmrs-db`
+
 ### Example
 
 Scenario:  A long-running job has failed to execute because a particular sql statement at the end of the pipeline had a typo.  You push a change to this SQL script, and want to re-execute this, but don't want to start from scratch and re-execute the entire pipeline, which takes hours and was 95% completed.  You just want to re-execute the one failed job, and then if this succeeds, you want the entire job to be marked as successful.
