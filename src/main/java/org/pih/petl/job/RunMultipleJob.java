@@ -18,6 +18,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Encapsulates a particular ETL job configuration
@@ -97,6 +98,10 @@ public class RunMultipleJob implements PetlJob {
                             if (numSecondsToWait == 0) {
                                 throw new RuntimeException("Could not establish database connection to container " + containerName, exception);
                             }
+                            try {
+                                TimeUnit.SECONDS.sleep(1);
+                            }
+                            catch (InterruptedException ignored) {}
                         }
                     }
                     else {
