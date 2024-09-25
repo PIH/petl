@@ -79,6 +79,25 @@ public class RunMultipleJob implements PetlJob {
                             ret.add(containerName);
                             log.info("Container started");
                         }
+                        log.info("Testing for a successful database connection to  '" + containerName + "'");
+                        // Wait up to 1 minute for the container to return a valid connection
+                        int numSecondsToWait = 60;
+                        while (numSecondsToWait >= 0) {
+                            log.info("Waiting for connection for " + numSecondsToWait + " seconds");
+                            numSecondsToWait--;
+                            Exception exception = null;
+                            try {
+                                if (dataSource.testConnection()) {
+                                    break;
+                                }
+                            }
+                            catch (Exception e) {
+                                exception = e;
+                            }
+                            if (numSecondsToWait == 0) {
+                                throw new RuntimeException("Could not establish database connection to container " + containerName, exception);
+                            }
+                        }
                     }
                     else {
                         log.warn("No container named " + containerName + " found, skipping");
