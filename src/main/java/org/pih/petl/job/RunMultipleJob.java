@@ -40,7 +40,7 @@ public class RunMultipleJob implements PetlJob {
         JobExecutor jobExecutor = new JobExecutor(etlService, 1);
         List<String> containersStarted = new ArrayList<>();
         try {
-            containersStarted = startContainersIfNecessary(configReader);
+            startContainersIfNecessary(containersStarted, configReader);
             List<JsonNode> jobTemplates = configReader.getList("jobs");
             log.debug("Executing " + jobTemplates.size() + " jobs");
             List<JobExecutionTask> tasks = new ArrayList<>();
@@ -62,8 +62,7 @@ public class RunMultipleJob implements PetlJob {
      * starts any containers referenced in datasources that are not already started
      * @return a list of container names that were newly started
      */
-    private List<String> startContainersIfNecessary(JobConfigReader configReader) {
-        List<String> ret = new ArrayList<>();
+    private void startContainersIfNecessary(List<String> containersStarted, JobConfigReader configReader) {
         for (DataSource dataSource : configReader.getDataSources("datasources")) {
             String containerName = dataSource.getContainerName();
             if (StringUtils.isNotBlank(containerName)) {
@@ -77,7 +76,7 @@ public class RunMultipleJob implements PetlJob {
                         else {
                             log.info("Container '" + containerName + "' is not already running, starting it");
                             docker.startContainer(container);
-                            ret.add(containerName);
+                            containersStarted.add(containerName);
                             log.info("Container started");
                         }
                         log.info("Testing for a successful database connection to  '" + containerName + "'");
@@ -110,7 +109,6 @@ public class RunMultipleJob implements PetlJob {
                 }
             }
         }
-        return ret;
     }
 
     private void stopContainers(List<String> containersToStop) {
