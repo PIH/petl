@@ -3,6 +3,7 @@ package org.pih.petl;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.pih.petl.api.EtlService;
+import org.pih.petl.api.JobExecution;
 import org.pih.petl.api.JobExecutor;
 import org.pih.petl.api.JobScheduler;
 import org.pih.petl.api.ScheduledExecutionTask;
@@ -71,14 +72,21 @@ public class Application {
             List<String> startupJobs = petlConfig.getStartup().getJobs();
             log.info("STARTUP JOBS: " + startupJobs);
             if (!startupJobs.isEmpty()) {
-                JobExecutor jobExecutor = new JobExecutor(app.getEtlService(), petlConfig.getMaxConcurrentJobs());
-                try {
+                if (petlConfig.getStartup().isExecuteLatestIncompleteJobsOnly()) {
                     for (String job : startupJobs) {
-                        jobExecutor.executeJob(job);
+                        JobExecution execution = app.getEtlService().getLatestJobExecution(job);
+                        app.etlService.executeIfIncomplete(execution);
                     }
                 }
-                finally {
-                    jobExecutor.shutdown();
+                else {
+                    JobExecutor jobExecutor = new JobExecutor(app.getEtlService(), petlConfig.getMaxConcurrentJobs());
+                    try {
+                        for (String job : startupJobs) {
+                            jobExecutor.executeJob(job);
+                        }
+                    } finally {
+                        jobExecutor.shutdown();
+                    }
                 }
             }
         }
