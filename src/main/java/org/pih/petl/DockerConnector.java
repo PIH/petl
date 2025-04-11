@@ -17,6 +17,8 @@ import com.github.dockerjava.core.DockerClientImpl;
 import com.github.dockerjava.httpclient5.ApacheDockerHttpClient;
 import com.github.dockerjava.transport.DockerHttpClient;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 import java.io.Closeable;
 import java.time.Duration;
@@ -27,6 +29,8 @@ import java.util.List;
  * Utility methods useful for manipulating SQL statements
  */
 public class DockerConnector implements Closeable {
+
+    private static final Log log = LogFactory.getLog(DockerConnector.class);
 
     private final DockerClientConfig dockerClientConfig;
     private final DockerHttpClient dockerHttpClient;
@@ -64,6 +68,36 @@ public class DockerConnector implements Closeable {
             }
         }
         return null;
+    }
+
+    public static void stopContainers(List<String> containersToStop) {
+        if (containersToStop != null) {
+            for (String containerName : containersToStop) {
+                stopContainer(containerName);
+            }
+        }
+    }
+
+    public static boolean stopContainer(String containerName) {
+        boolean stopped = false;
+        log.info("Stopping previously started container " + containerName);
+        try (DockerConnector docker = DockerConnector.open()) {
+            Container container = docker.getContainer(containerName);
+            if (container != null) {
+                if (docker.isContainerRunning(container)) {
+                    docker.stopContainer(container);
+                    log.info("Container '" + containerName + "' stopped");
+                    stopped = true;
+                }
+                else {
+                    log.info("Container '" + containerName + "' is not running");
+                }
+            }
+        }
+        catch (Exception e) {
+            log.warn("Error stopping container " + containerName, e);
+        }
+        return stopped;
     }
 
     public boolean containerExists(String containerName) {

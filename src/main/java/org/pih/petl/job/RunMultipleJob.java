@@ -53,7 +53,7 @@ public class RunMultipleJob implements PetlJob {
             jobExecutor.executeInSeries(tasks);
         }
         finally {
-            stopContainers(containersStarted);
+            DockerConnector.stopContainers(containersStarted);
             jobExecutor.shutdown();
         }
     }
@@ -64,69 +64,8 @@ public class RunMultipleJob implements PetlJob {
      */
     private void startContainersIfNecessary(List<String> containersStarted, JobConfigReader configReader) {
         for (DataSource dataSource : configReader.getDataSources("datasources")) {
-            String containerName = dataSource.getContainerName();
-            if (StringUtils.isNotBlank(containerName)) {
-                log.info("Checking if container '" + containerName + "' is started");
-                try (DockerConnector docker = DockerConnector.open()) {
-                    Container container = docker.getContainer(containerName);
-                    if (container != null) {
-                        if (docker.isContainerRunning(container)) {
-                            log.info("Container '" + containerName + "' is already running");
-                        }
-                        else {
-                            log.info("Container '" + containerName + "' is not already running, starting it");
-                            docker.startContainer(container);
-                            containersStarted.add(containerName);
-                            log.info("Container started");
-                        }
-                        log.info("Testing for a successful database connection to  '" + containerName + "'");
-                        // Wait up to 1 minute for the container to return a valid connection
-                        int numSecondsToWait = 60;
-                        while (numSecondsToWait >= 0) {
-                            log.info("Waiting for connection for " + numSecondsToWait + " seconds");
-                            numSecondsToWait--;
-                            Exception exception = null;
-                            try {
-                                if (dataSource.testConnection()) {
-                                    break;
-                                }
-                            }
-                            catch (Exception e) {
-                                exception = e;
-                            }
-                            if (numSecondsToWait == 0) {
-                                throw new RuntimeException("Could not establish database connection to container " + containerName, exception);
-                            }
-                            try {
-                                TimeUnit.SECONDS.sleep(1);
-                            }
-                            catch (InterruptedException ignored) {}
-                        }
-                    }
-                    else {
-                        log.warn("No container named " + containerName + " found, skipping");
-                    }
-                }
-            }
-        }
-    }
-
-    private void stopContainers(List<String> containersToStop) {
-        if (containersToStop != null) {
-            for (String containerName : containersToStop) {
-                log.info("Stopping previously started container " + containerName);
-                try (DockerConnector docker = DockerConnector.open()) {
-                    Container container = docker.getContainer(containerName);
-                    if (container != null) {
-                        if (docker.isContainerRunning(container)) {
-                            docker.stopContainer(container);
-                            log.info("Container '" + containerName + "' stopped");
-                        }
-                        else {
-                            log.info("Container '" + containerName + "' is not running");
-                        }
-                    }
-                }
+            if (dataSource.startContainerIfNecessary()) {
+                containersStarted.add(dataSource.getContainerName());
             }
         }
     }

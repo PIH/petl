@@ -1,10 +1,12 @@
 package org.pih.petl.job.config;
 
+import com.github.dockerjava.api.model.Container;
 import org.apache.commons.dbutils.QueryRunner;
 import org.apache.commons.dbutils.handlers.ScalarHandler;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.pih.petl.DockerConnector;
 import org.pih.petl.PetlException;
 
 import java.sql.Connection;
@@ -18,6 +20,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Encapsulates a data source configuration
@@ -201,6 +204,62 @@ public class DataSource {
             }
             return sb.toString();
         }
+    }
+
+    /**
+     * If the datasource is configured with a Docker container name
+     * this will check if the container is already started.  If it is not, it will attempt to start it and connect to it
+     * If the result is that a new container is started and connected to successfully, this will return true
+     * If no container is defined or if the container is already started, it will return false
+     * If a connection to it fails, it will throw an exception
+     */
+    public boolean startContainerIfNecessary() {
+        boolean containerStarted = false;
+        String containerName = getContainerName();
+        if (StringUtils.isNotBlank(containerName)) {
+            log.info("Checking if container '" + containerName + "' is started");
+            try (DockerConnector docker = DockerConnector.open()) {
+                Container container = docker.getContainer(containerName);
+                if (container != null) {
+                    if (docker.isContainerRunning(container)) {
+                        log.info("Container '" + containerName + "' is already running");
+                    }
+                    else {
+                        log.info("Container '" + containerName + "' is not already running, starting it");
+                        docker.startContainer(container);
+                        containerStarted = true;
+                        log.info("Container started");
+                    }
+                    log.info("Testing for a successful database connection to  '" + containerName + "'");
+                    // Wait up to 1 minute for the container to return a valid connection
+                    int numSecondsToWait = 60;
+                    while (numSecondsToWait >= 0) {
+                        log.info("Waiting for connection for " + numSecondsToWait + " seconds");
+                        numSecondsToWait--;
+                        Exception exception = null;
+                        try {
+                            if (testConnection()) {
+                                break;
+                            }
+                        }
+                        catch (Exception e) {
+                            exception = e;
+                        }
+                        if (numSecondsToWait == 0) {
+                            throw new RuntimeException("Could not establish database connection to container " + containerName, exception);
+                        }
+                        try {
+                            TimeUnit.SECONDS.sleep(1);
+                        }
+                        catch (InterruptedException ignored) {}
+                    }
+                }
+                else {
+                    log.warn("No container named " + containerName + " found, skipping");
+                }
+            }
+        }
+        return containerStarted;
     }
 
     //***** PROPERTY ACCESS *****

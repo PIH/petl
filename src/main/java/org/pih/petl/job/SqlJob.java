@@ -4,6 +4,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.pih.petl.ApplicationConfig;
+import org.pih.petl.DockerConnector;
 import org.pih.petl.PetlException;
 import org.pih.petl.SqlUtils;
 import org.pih.petl.api.JobExecution;
@@ -38,34 +39,39 @@ public class SqlJob implements PetlJob {
         String delimiter = configReader.getString("delimiter");
 
         DataSource dataSource = configReader.getDataSource("datasource");
-        for (String sqlFile : configReader.getStringList("scripts")) {
-            log.debug("Executing Sql Script: " + sqlFile);
-            try (Connection targetConnection = dataSource.openConnection()) {
-                String sqlFileContents = configReader.getFileContentsAtPath(sqlFile);
-                if (StringUtils.isEmpty(delimiter)) {
-                    try (Statement statement = targetConnection.createStatement()) {
-                        log.trace("Executing: " + sqlFileContents);
-                        statement.execute(sqlFileContents);
-                    }
-                    catch(Exception e) {
-                        throw new PetlException("Error executing statement: " + sqlFileContents, e);
-                    }
-                }
-                else {
-                    List<String> stmts = SqlUtils.parseSqlIntoStatements(sqlFileContents, delimiter);
-                    log.trace("Parsed extract query into " + stmts.size() + " statements");
-                    for (String sqlStatement : stmts) {
-                        if (StringUtils.isNotEmpty(sqlStatement)) {
-                            try (Statement statement = targetConnection.createStatement()) {
-                                log.trace("Executing: " + sqlStatement);
-                                statement.execute(sqlStatement);
-                            }
-                            catch(Exception e) {
-                                throw new PetlException("Error executing statement: " + sqlStatement, e);
+        boolean containerStarted = dataSource.startContainerIfNecessary();
+        try {
+            for (String sqlFile : configReader.getStringList("scripts")) {
+                log.debug("Executing Sql Script: " + sqlFile);
+                try (Connection targetConnection = dataSource.openConnection()) {
+                    String sqlFileContents = configReader.getFileContentsAtPath(sqlFile);
+                    if (StringUtils.isEmpty(delimiter)) {
+                        try (Statement statement = targetConnection.createStatement()) {
+                            log.trace("Executing: " + sqlFileContents);
+                            statement.execute(sqlFileContents);
+                        } catch (Exception e) {
+                            throw new PetlException("Error executing statement: " + sqlFileContents, e);
+                        }
+                    } else {
+                        List<String> stmts = SqlUtils.parseSqlIntoStatements(sqlFileContents, delimiter);
+                        log.trace("Parsed extract query into " + stmts.size() + " statements");
+                        for (String sqlStatement : stmts) {
+                            if (StringUtils.isNotEmpty(sqlStatement)) {
+                                try (Statement statement = targetConnection.createStatement()) {
+                                    log.trace("Executing: " + sqlStatement);
+                                    statement.execute(sqlStatement);
+                                } catch (Exception e) {
+                                    throw new PetlException("Error executing statement: " + sqlStatement, e);
+                                }
                             }
                         }
                     }
                 }
+            }
+        }
+        finally {
+            if (containerStarted) {
+                DockerConnector.stopContainer(dataSource.getContainerName());
             }
         }
     }
