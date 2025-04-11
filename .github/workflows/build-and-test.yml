@@ -11,22 +11,11 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
     steps:
-
-      # Check out the code
-      - uses: actions/checkout@v2
-
-        # Set up Java 1.8 with Maven including a .m2/settings.xml file.  See https://github.com/actions/setup-java
-      - name: Set up JDK 1.8 and Maven settings file
-        uses: actions/setup-java@v1
+      - uses: actions/checkout@v4
+      - name: Set up JDK
+        uses: actions/setup-java@v4
         with:
-          java-version: 1.8
-          server-id: openmrs-repo-modules-pih-snapshots
-          server-username: BINTRAY_USERNAME
-          server-password: BINTRAY_PASSWORD
-
-      # Execute the Maven verify command to compile, test, and verify
+          distribution: 'temurin'
+          java-version: 8
       - name: Maven Verify
         run: mvn -B verify --file pom.xml
-        env:
-          BINTRAY_USERNAME: pih
-          BINTRAY_PASSWORD: ${{ secrets.BINTRAY_PASSWORD }}
