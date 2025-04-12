@@ -239,6 +239,7 @@ public class DataSource {
                         Exception exception = null;
                         try {
                             if (testConnection()) {
+                                log.info("Connection to '" + containerName + "' established");
                                 break;
                             }
                         }
