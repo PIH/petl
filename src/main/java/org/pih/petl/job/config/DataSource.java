@@ -217,29 +217,29 @@ public class DataSource {
         boolean containerStarted = false;
         String containerName = getContainerName();
         if (StringUtils.isNotBlank(containerName)) {
-            log.info("Checking if container '" + containerName + "' is started");
+            log.debug("Checking if container '" + containerName + "' is started");
             try (DockerConnector docker = DockerConnector.open()) {
                 Container container = docker.getContainer(containerName);
                 if (container != null) {
                     if (docker.isContainerRunning(container)) {
-                        log.info("Container '" + containerName + "' is already running");
+                        log.debug("Container '" + containerName + "' is already running");
                     }
                     else {
-                        log.info("Container '" + containerName + "' is not already running, starting it");
+                        log.debug("Container '" + containerName + "' is not already running, starting it");
                         docker.startContainer(container);
                         containerStarted = true;
-                        log.info("Container started");
+                        log.info("Container started: " + containerName);
                     }
-                    log.info("Testing for a successful database connection to  '" + containerName + "'");
+                    log.debug("Testing for a successful database connection to  '" + containerName + "'");
                     // Wait up to 1 minute for the container to return a valid connection
                     int numSecondsToWait = 60;
                     while (numSecondsToWait >= 0) {
-                        log.info("Waiting for connection for " + numSecondsToWait + " seconds");
+                        log.debug("Waiting for connection for " + numSecondsToWait + " seconds");
                         numSecondsToWait--;
                         Exception exception = null;
                         try {
                             if (testConnection()) {
-                                log.info("Connection to '" + containerName + "' established");
+                                log.debug("Connection to '" + containerName + "' established");
                                 break;
                             }
                         }
