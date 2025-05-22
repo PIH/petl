@@ -10,6 +10,25 @@
 
     <name>petl</name>
     <description>PIH ETL Framework</description>
+    <url>https://github.com/PIH/petl</url>
+
+    <developers>
+        <developer>
+            <name>Partners In Health</name>
+            <email>medinfo@pih.org</email>
+        </developer>
+    </developers>
+
+    <organization>
+        <name>Partners In Health</name>
+        <url>http://pih.org</url>
+    </organization>
+
+    <scm>
+        <connection>scm:git:https://github.com/PIH/petl.git</connection>
+        <developerConnection>scm:git:https://github.com/PIH/petl.git</developerConnection>
+        <url>scm:git:https://github.com/PIH/petl.git</url>
+    </scm>
 
     <parent>
         <groupId>org.springframework.boot</groupId>
@@ -229,6 +248,36 @@
                     <executable>false</executable>
                 </configuration>
             </plugin>
+            <!-- Plugin to generate sources JAR -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>3.3.1</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Plugin to generate javadoc JAR -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>3.11.2</version>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
         </plugins>
     </build>
 
