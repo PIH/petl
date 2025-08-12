@@ -271,7 +271,7 @@
             </plugin>
 
             <!-- Plugin to generate javadoc JAR -->
-          <!--  <plugin>
+            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <version>3.11.2</version>
@@ -283,7 +283,7 @@
                         </goals>
                     </execution>
                 </executions>
-            </plugin>-->
+            </plugin>
 
         </plugins>
     </build>
@@ -296,8 +296,8 @@
         </repository>
         <repository>
             <id>pentaho</id>
-            <name>Pentaho Omni</name>
-            <url>https://repo.orl.eng.hitachivantara.com/artifactory/pnt-mvn</url>
+            <name>Pentaho</name>
+            <url>https://hitachiedge1.jfrog.io/artifactory/pntpub-maven-release-cache/</url>
         </repository>
     </repositories>
     <pluginRepositories>
