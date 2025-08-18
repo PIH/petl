@@ -138,7 +138,8 @@ public class DataSource {
         try (Connection connection = openConnection()) {
             QueryRunner qr = new QueryRunner();
             String query = "select count(*) from " + table;
-            return qr.query(connection, query, new ScalarHandler<>());
+            Number rowCount = qr.query(connection, query, new ScalarHandler<>());
+            return rowCount.intValue();
         }
     }
 
