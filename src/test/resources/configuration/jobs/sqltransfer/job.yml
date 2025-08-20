@@ -1,0 +1,10 @@
+type: "sql-transfer"
+configuration:
+  extract:
+    datasource: "mysql-testcontainer.yml"
+    query:  "source.sql"
+
+  load:
+    datasource: "mysql-testcontainer-2.yml"
+    table: "encounter_types"
+    schema: "target.sql"

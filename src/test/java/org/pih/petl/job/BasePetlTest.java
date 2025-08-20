@@ -57,6 +57,10 @@ public abstract class BasePetlTest {
         return etlService.getApplicationConfig().getEtlDataSource("mysql-testcontainer.yml");
     }
 
+    public DataSource getTargetMySQLDatasource() {
+        return etlService.getApplicationConfig().getEtlDataSource("mysql-testcontainer-2.yml");
+    }
+
     public DataSource getSqlServerDatasource() {
         return etlService.getApplicationConfig().getEtlDataSource("sqlserver-testcontainer.yml");
     }
