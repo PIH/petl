@@ -23,7 +23,6 @@ jobs:
         server-id: central
         server-username: SONATYPE_USERNAME
         server-password: SONATYPE_PASSWORD
-        gpg-private-key: ${{ secrets.SONATYPE_GPG_PRIVATE_KEY }}
 
     # Set up git config
     - name: Setup Git Config
@@ -36,5 +35,6 @@ jobs:
       env:
         SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
         SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
+        MAVEN_GPG_KEY: ${{ secrets.SONATYPE_GPG_PRIVATE_KEY }}
         MAVEN_GPG_PASSPHRASE: ${{ secrets.SONATYPE_GPG_PASSPHRASE }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
