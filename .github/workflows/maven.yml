@@ -9,25 +9,14 @@ on:
 
 jobs:
   build:
-    strategy:
-      matrix:
-        platform: [ ubuntu-latest ]
-        java-version: [ 8 ]
-
-    runs-on: ${{ matrix.platform }}
-    env:
-      PLATFORM: ${{ matrix.platform }}
-      JAVA_VERSION: ${{ matrix.java-version }}
-
+    runs-on: [ ubuntu-latest ]
     steps:
     - uses: actions/checkout@v4
-    - name: Set up JDK
-      uses: actions/setup-java@v4
-      with:
-        distribution: 'temurin'
-        java-version: ${{ matrix.java-version }}
-        cache: 'maven'
-    - name: Build with Maven
-      id: build_with_maven
+    - name: Build Docker image
+      id: build_docker_image
       run: |
-        mvn clean install --batch-mode --file pom.xml
+        ./build-docker-image.sh
+    - name: Maven Build with Docker
+      id: run_docker_image
+      run: |
+        ./build.sh clean install
