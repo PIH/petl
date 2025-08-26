@@ -565,6 +565,10 @@ Scenario:  A long-running job has failed to execute because a particular sql sta
 
 The PETL project can be built and tested using the standard Maven commands (`mvn clean test`, `mvn clean install`).
 
+Note that the Pentaho libraries that this project still depends upon have been corrupted in the Pentaho maven repository
+and so these need to be installed manually in order for the build to succeed.  Prior to running the build, you can run the
+included `./create-local-maven-repo.sh` script.  One you have done so, the build should pass.
+
 Note that when running tests, PETL uses the testcontainers package (see https://www.testcontainers.org/) to
 fire up dockerized containers of MySQL and SQL Server.  This happens via including the testcontainers Maven package
 in the pom and by then using the "tc" prefix when setting up the connection information in the datasource
@@ -638,7 +642,11 @@ From the directory where you've created your `application.yml` file, run PETL vi
 
 # Releasing
 
-On each build, our Bamboo CI server deploys the Maven artifact to our Maven repo on Sonatype. So doing a release should be as simple as:
+On each build, a Github Actions workflow deploys the Maven artifact to our Maven repo on Sonatype. 
+
+
+
+So doing a release should be as simple as:
 
 * Changing the pom.xml to remove the snapshot from the version number (ie, to do the "2.1.0" release, change the
   version in the pom from "2.1.0-SNAPSHOT" to "2.1.0")
