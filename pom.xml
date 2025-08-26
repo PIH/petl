@@ -295,6 +295,11 @@
             <url>https://jcenter.bintray.com</url>
         </repository>
         <repository>
+            <id>openmrs-repo</id>
+            <name>OpenMRS Repository</name>
+            <url>https://openmrs.jfrog.io/artifactory/public</url>
+        </repository>
+        <repository>
             <id>pentaho</id>
             <name>Pentaho Omni</name>
             <url>file:///tmp/petl-local-maven-repo/.m2/repository</url>
