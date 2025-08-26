@@ -297,7 +297,7 @@
         <repository>
             <id>pentaho</id>
             <name>Pentaho Omni</name>
-            <url>https://repo.orl.eng.hitachivantara.com/artifactory/pnt-mvn</url>
+            <url>file:///tmp/petl-local-maven-repo/.m2/repository</url>
         </repository>
     </repositories>
     <pluginRepositories>
