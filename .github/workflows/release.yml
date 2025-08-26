@@ -23,6 +23,7 @@ jobs:
         server-id: central
         server-username: SONATYPE_USERNAME
         server-password: SONATYPE_PASSWORD
+        gpg-passphrase: MAVEN_GPG_PASSPHRASE
 
     # Set up git config
     - name: Setup Git Config
