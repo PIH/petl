@@ -52,6 +52,7 @@ public class EtlService {
      * extension, and checking if they represent valid job configuration files.  Each valid job configuration
      * will be returned in a Map keyed off of the job config path, relative to the configuration directory
      * eg. A job at ${PETL_JOB_DIR}/maternalhealth/deliveries.yml will be keyed at "maternalhealth/deliveries.yml"
+     * @return all configured jobs
      */
     public Map<String, JobConfig> getAllConfiguredJobs() {
         Map<String, JobConfig> m = new TreeMap<>();
@@ -94,6 +95,7 @@ public class EtlService {
 
     /**
      * @return the most recent Job Execution for the given Job Path
+     * @param jobPath the path
      */
     public JobExecution getLatestJobExecution(String jobPath) {
         List<JobExecution> l = jobExecutionRepository.findJobExecutionByJobPathOrderByStartedDesc(jobPath);
@@ -103,6 +105,10 @@ public class EtlService {
         return l.get(0);
     }
 
+    /**
+     * @param jobConfig the jobConfig
+     * @return the PetlJob
+     */
     public PetlJob getPetlJob(JobConfig jobConfig) {
         for (PetlJob petlJob : petlJobs) {
             Component component = petlJob.getClass().getAnnotation(Component.class);
@@ -115,6 +121,8 @@ public class EtlService {
 
     /**
      * Save the given job execution to the DB
+     * @param jobExecution the job execution to save
+     * @return JobExecution the saved job execution
      */
     @Transactional
     public JobExecution saveJobExecution(JobExecution jobExecution) {
@@ -123,18 +131,33 @@ public class EtlService {
         return jobExecution;
     }
 
+    /**
+     * @return a List of JobExecution
+     */
     public List<JobExecution> getJobExecutionsAtTopLevel() {
         return jobExecutionRepository.findJobExecutionsByJobPathIsNotNullOrderByInitiatedDesc();
     }
 
+    /**
+     * @param uuid the JobExecution uuid
+     * @return the JobExecution
+     */
     public JobExecution getJobExecution(String uuid) {
         return jobExecutionRepository.getJobExecutionByUuid(uuid);
     }
 
+    /**
+     * @param jobExecution the JobExecution for which to find child JobExecutions
+     * @return a List of child JobExecutions for the given JobExecution
+     */
     public List<JobExecution> getChildExecutions(JobExecution jobExecution) {
         return jobExecutionRepository.findJobExecutionsByParentExecutionUuidEqualsOrderBySequenceNum(jobExecution.getUuid());
     }
 
+    /**
+     * @param jobExecution the job to execute
+     * @return the JobExecution
+     */
     public JobExecution executeJob(JobExecution jobExecution) {
         JobExecutor jobExecutor = new JobExecutor(this, 1);
         try {
@@ -148,6 +171,8 @@ public class EtlService {
     /**
      * For the given job execution, if it is not successful, then try to execute it and any nested jobs that were
      * not successful, but do not re-run any nested jobs that were already completed successfully
+     * @param execution the JobExecution
+     * @return the JobExeuction
      */
     public JobExecution executeIfIncomplete(JobExecution execution) {
         if (execution.getStatus() != JobExecutionStatus.SUCCEEDED) {
@@ -205,6 +230,7 @@ public class EtlService {
 
     /**
      * Convenience method to allow access to the application configuration
+     * @return the ApplicationConfig
      */
     public ApplicationConfig getApplicationConfig() {
         return applicationConfig;

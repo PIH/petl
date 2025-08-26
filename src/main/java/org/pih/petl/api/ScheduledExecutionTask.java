@@ -17,7 +17,7 @@ import java.util.Date;
 import java.util.Map;
 
 /**
- * Schedulable task for loading all of the configurations
+ * Schedulable task for loading all the configurations
  */
 @Component
 public class ScheduledExecutionTask implements Job {
@@ -50,7 +50,7 @@ public class ScheduledExecutionTask implements Job {
      *  - If it has never been executed, then execute it
      *  - Else if it is currently executing ("completed" is null), then skip
      *  - Else, if there is a cron expression configured, check if next scheduled date following
-     *    last execution date is <= now, and if so, execute it
+     *    last execution date is &le; now, and if so, execute it
      */
     @Override
     public void execute(JobExecutionContext jobExecutionContext) throws JobExecutionException {

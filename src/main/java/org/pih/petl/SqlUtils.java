@@ -34,6 +34,8 @@ public class SqlUtils {
     private static final Pattern DELIMITER_PATTERN = Pattern.compile("^\\s*(--)?\\s*delimiter\\s*=?\\s*([^\\s]+)+\\s*.*$", Pattern.CASE_INSENSITIVE);
 
     /**
+     * @param sql to parse
+     * @param currentDelimiter the delimiter that separates out statements
      * @return a List of statements that are parsed out of the passed sql, ignoring comments, and respecting delimiter assignment
      */
     public static List<String> parseSqlIntoStatements(String sql, String currentDelimiter) {
@@ -96,6 +98,9 @@ public class SqlUtils {
 
     /**
      * Manipulates a base create table statement and adds additional columns
+     * @param schema the schema to add columns into
+     * @param extraColumns the extra columns to add
+     * @return the modified schema
      */
     public static String addExtraColumnsToSchema(String schema, List<TableColumn> extraColumns) {
         if (schema != null) {
@@ -113,6 +118,10 @@ public class SqlUtils {
 
     /**
      * Manipulates a base create table statement and adds in partition scheme
+     * @param schema the schema
+     * @param partitionScheme the partitionScheme
+     * @param partitionColumn the partitionColumn
+     * @return the modified schema
      */
     public static String addPartitionSchemeToSchema(String schema, String partitionScheme, String partitionColumn) {
         if (schema != null) {
@@ -129,6 +138,9 @@ public class SqlUtils {
 
     /**
      * Manipulates a base select statement and adds additional static column values to select at the end
+     * @param query the query
+     * @param extraColumns the extraColumns
+     * @return the modified column
      */
     public static String addExtraColumnsToSelect(String query, List<TableColumn> extraColumns) {
         StringBuilder extraColumnClause = new StringBuilder();
@@ -153,6 +165,8 @@ public class SqlUtils {
 
     /**
      * Returns the name of the table that the passed schema SQL is creating
+     * @param schemaSql the schemaSql for which to return the table
+     * @return the table name for the given schemaSql
      */
     public static String getTableName(String schemaSql) {
         StringBuilder ret = new StringBuilder();
@@ -167,6 +181,9 @@ public class SqlUtils {
 
     /**
      * This method takes a schema create table statement, and adds the given suffix to the table name it is creating
+     * @param schemaSql The schema sql
+     * @param suffix the suffix
+     * @return the modified schemaSql
      */
     public static String addSuffixToCreatedTablename(String schemaSql, String suffix) {
         StringBuilder ret = new StringBuilder();
@@ -179,6 +196,12 @@ public class SqlUtils {
         return ret.toString();
     }
 
+    /**
+     * @param sourceTable the source table
+     * @param destinationTable the destination table
+     * @param partitionNum the partition num
+     * @return the sql for a move partition statement sql
+     */
     public static String createMovePartitionStatement(String sourceTable, String destinationTable, String partitionNum) {
         StringBuilder sb = new StringBuilder();
         sb.append("TRUNCATE TABLE ").append(destinationTable).append(" WITH (PARTITIONS (").append(partitionNum).append("));");
@@ -189,6 +212,7 @@ public class SqlUtils {
 
     /**
      * @return an expression that will represent the given date in sql server
+     * @param instant the instant to convert to a sql server date
      */
     public static String sqlServerDate(LocalDateTime instant) {
         return instant == null ? "null" : ("cast('" + instant + "' as datetime)");
@@ -196,6 +220,7 @@ public class SqlUtils {
 
     /**
      * @return an expression that will represent the given date in mysql
+     * @param instant the instant to convert to a mysql date
      */
     public static String mysqlDate(LocalDateTime instant) {
         return instant == null ? "null" : ("cast('" + instant + "' as datetime)");
@@ -205,7 +230,7 @@ public class SqlUtils {
      * The goal of this method is to test a result set for validity in JDBC
      * This is useful if there are errors with the bulk load to sql server job in the data being passed across
      * @param resultSet the ResultSet to test
-     * @throws SQLException
+     * @throws SQLException the exception to return
      */
     public static void testResultSet(ResultSet resultSet) throws SQLException {
         int numRowsTotal = 0;

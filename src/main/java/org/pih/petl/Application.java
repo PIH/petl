@@ -41,6 +41,8 @@ public class Application {
 
     /**
      * Run the application
+     * @param args application arguments
+     * @throws Exception the exception
      */
 	public static void main(String[] args) throws Exception {
         log.info("Starting up PETL");
@@ -119,9 +121,15 @@ public class Application {
         return appConfig;
     }
 
+    /**
+     * @return the scheduler
+     */
     public JobScheduler getScheduler() {
         return scheduler;
     }
 
+    /**
+     * @return the etlService
+     */
     public EtlService getEtlService() { return etlService; }
 }

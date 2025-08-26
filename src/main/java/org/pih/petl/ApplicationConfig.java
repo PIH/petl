@@ -44,7 +44,10 @@ public class ApplicationConfig {
         this.petlConfig = petlConfig;
     }
 
-    public static final ObjectMapper getYamlMapper() {
+    /**
+     * @return the ObjectMapper
+     */
+    public static ObjectMapper getYamlMapper() {
         return new ObjectMapper(new YAMLFactory());
     }
 
@@ -72,6 +75,9 @@ public class ApplicationConfig {
     }
 
     /**
+     * @param propertyName the property name
+     * @param path the path
+     * @param required whether required
      * @return the File representing the PETL_HOME directory
      */
     public File getRequiredDirectory(String propertyName, String path, boolean required) {
@@ -98,6 +104,9 @@ public class ApplicationConfig {
         return dir;
     }
 
+    /**
+     * @return the petlConfig
+     */
     public PetlConfig getPetlConfig() {
         return petlConfig;
     }
@@ -123,12 +132,18 @@ public class ApplicationConfig {
         return getRequiredDirectory("petl.datasourceDir", petlConfig.getDatasourceDir(), true);
     }
 
+    /**
+     * @param path path
+     * @return config file
+     */
     public ConfigFile getJobConfigFile(String path) {
         return new ConfigFile(getJobDir(), path);
     }
 
     /**
      * Convenience method to retrieve a PETL Job Config with the given path
+     * @param path the path at which to retrieve the JobConfig
+     * @return JobConfig at the given path
      */
     public JobConfig getPetlJobConfig(String path) {
         ConfigFile configFile = getJobConfigFile(path);
@@ -138,6 +153,11 @@ public class ApplicationConfig {
         return getPetlJobConfig(configFile, new HashMap<>());
     }
 
+    /**
+     * @param configFile the config file
+     * @param parameters the parameters
+     * @return the JobConfig
+     */
     public JobConfig getPetlJobConfig(ConfigFile configFile, Map<String, String> parameters) {
         try {
             String fileContents = FileUtils.readFileToString(configFile.getConfigFile(), "UTF-8");
@@ -149,6 +169,12 @@ public class ApplicationConfig {
         }
     }
 
+    /**
+     * @param configFile the configFile
+     * @param parameters the parameters
+     * @param configNode the configNode
+     * @return the JobConfig
+     */
     public JobConfig getPetlJobConfig(ConfigFile configFile, Map<String, String> parameters, JsonNode configNode) {
         try {
             JobConfig config = getYamlMapper().treeToValue(configNode, JobConfig.class);
@@ -187,6 +213,8 @@ public class ApplicationConfig {
 
     /**
      * Convenience method to retrieve an EtlDataSource with the given path
+     * @param path the path
+     * @return DataSource at the given path
      */
     public DataSource getEtlDataSource(String path) {
         ConfigFile configFile = new ConfigFile(getDataSourceDir(), path);
@@ -203,6 +231,10 @@ public class ApplicationConfig {
         }
     }
 
+    /**
+     * @param jsonString the json string to parse
+     * @return the JsonNode from the given jsonString
+     */
     public JsonNode readJsonFromString(String jsonString) {
         try {
             return getYamlMapper().readTree(jsonString);

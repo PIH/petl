@@ -24,6 +24,10 @@ public class JobScheduler {
 
     /**
      * Schedules the given job class to execute at the given interval in seconds
+     * @param jobType the job type
+     * @param schedule the schedule builder
+     * @param delayMs the delay
+     * @throws SchedulerException if an error occurs
      */
     public void schedule(Class<? extends Job> jobType, ScheduleBuilder schedule, long delayMs) throws SchedulerException {
         Date start = new Date(System.currentTimeMillis() + delayMs);

@@ -47,6 +47,7 @@ public class DataSource {
 
     /**
      * Gets a new Connection to the Data Source represented by this configuration
+     * @return a connection to this DataSource
      */
     public Connection openConnection() {
         try {
@@ -60,7 +61,10 @@ public class DataSource {
         }
     }
 
-    public boolean testConnection() throws SQLException {
+    /**
+     * @return true if a connection is able to be successfully opened, false otherwise
+     */
+    public boolean testConnection(){
         try (Connection c = openConnection()) {
             DatabaseMetaData metadata = c.getMetaData();
             log.trace("Successfully connected to datasource: " + metadata.toString());
@@ -71,6 +75,10 @@ public class DataSource {
         }
     }
 
+    /**
+     * @param sql the sql update statement
+     * @throws SQLException if an error occurs
+     */
     public void executeUpdate(String sql) throws SQLException {
         try (Connection connection = openConnection()) {
             try (Statement statement = connection.createStatement()) {
@@ -79,6 +87,13 @@ public class DataSource {
         }
     }
 
+    /**
+     * @param sql the sql query statement
+     * @param  type the data type of the returned value
+     * @param <T> the datatype of the type
+     * @return the single value returned from the query
+     * @throws SQLException if an error occurs
+     */
     public <T> T querySingleValue(String sql, Class<T> type) throws SQLException {
         try (Connection connection = openConnection()) {
             try (PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -92,6 +107,11 @@ public class DataSource {
         }
     }
 
+    /**
+     * @param sql the sql query statement
+     * @throws SQLException if an error occurs
+     * @return the LocalDateTime returned from the given sql
+     */
     public LocalDateTime queryAsLocalDateTime(String sql) throws SQLException {
         try (Connection connection = openConnection()) {
             try (PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -105,18 +125,32 @@ public class DataSource {
         }
     }
 
+    /**
+     * @param tableName the name of the table to check
+     * @return true if the table exists, false otherwise
+     * @throws SQLException if an error occurs
+     */
     public boolean tableExists(String tableName) throws SQLException {
         try (Connection targetConnection = openConnection()) {
             return targetConnection.getMetaData().getTables(getDatabaseName(), null, tableName, new String[] {"TABLE"}).next();
         }
     }
 
+    /**
+     * @param tableName the name of the table to drop
+     * @throws SQLException if an error occurs
+     */
     public void dropTableIfExists(String tableName) throws SQLException {
         if (tableExists(tableName)) {
             executeUpdate("drop table " + tableName);
         }
     }
 
+    /**
+     * @param query the query to execute
+     * @return a boolean result from this query
+     * @throws SQLException if an error occurs
+     */
     public boolean getBooleanResult(String query) throws SQLException {
         try (Connection sourceConnection = openConnection()) {
             boolean originalSourceAutoCommit = sourceConnection.getAutoCommit();
@@ -134,6 +168,11 @@ public class DataSource {
         }
     }
 
+    /**
+     * @param table the table for which to return the total number of rows
+     * @return the total number of rows in the given table
+     * @throws SQLException if an error occurs
+     */
     public int rowCount(String table) throws SQLException {
         try (Connection connection = openConnection()) {
             QueryRunner qr = new QueryRunner();
@@ -143,6 +182,11 @@ public class DataSource {
         }
     }
 
+    /**
+     * @param tableName the table for which to return the columns
+     * @return the columns in the given table
+     * @throws SQLException if an error occurs
+     */
     public List<TableColumn> getTableColumns(String tableName) throws SQLException {
         List<TableColumn> ret = new ArrayList<>();
         List<String> sizedTypes = Arrays.asList("VARCHAR", "CHAR", "DECIMAL");
@@ -168,6 +212,9 @@ public class DataSource {
         return ret;
     }
 
+    /**
+     * @return the jdbc url of the datasource
+     */
     public String getJdbcUrl() {
         if (StringUtils.isNotBlank(url)) {
             return url;
@@ -213,6 +260,7 @@ public class DataSource {
      * If the result is that a new container is started and connected to successfully, this will return true
      * If no container is defined or if the container is already started, it will return false
      * If a connection to it fails, it will throw an exception
+     * @return true if a container was actually started
      */
     public boolean startContainerIfNecessary() {
         boolean containerStarted = false;
@@ -266,74 +314,128 @@ public class DataSource {
 
     //***** PROPERTY ACCESS *****
 
+    /**
+     * @return the configured database type
+     */
     public String getDatabaseType() {
         return databaseType;
     }
 
+    /**
+     * @param databaseType the databaseType to set
+     */
     public void setDatabaseType(String databaseType) {
         this.databaseType = databaseType;
     }
 
+    /**
+     * @return the configured host
+     */
     public String getHost() {
         return host;
     }
 
+    /**
+     * @param host the host to set
+     */
     public void setHost(String host) {
         this.host = host;
     }
 
+    /**
+     * @return the configured port
+     */
     public String getPort() {
         return port;
     }
 
+    /**
+     * @param port the port to set
+     */
     public void setPort(String port) {
         this.port = port;
     }
 
+    /**
+     * @return the configured database name
+     */
     public String getDatabaseName() {
         return databaseName;
     }
 
+    /**
+     * @param databaseName the databaseName to set
+     */
     public void setDatabaseName(String databaseName) {
         this.databaseName = databaseName;
     }
 
+    /**
+     * @return the configured options
+     */
     public String getOptions() {
         return options;
     }
 
+    /**
+     * @param options the options to set
+     */
     public void setOptions(String options) {
         this.options = options;
     }
 
+    /**
+     * @return the configured url
+     */
     public String getUrl() {
         return url;
     }
 
+    /**
+     * @param url the url to set
+     */
     public void setUrl(String url) {
         this.url = url;
     }
 
+    /**
+     * @return the configured user
+     */
     public String getUser() {
         return user;
     }
 
+    /**
+     * @param user the user to set
+     */
     public void setUser(String user) {
         this.user = user;
     }
 
+    /**
+     * @return the configured password
+     */
     public String getPassword() {
         return password;
     }
 
+    /**
+     * @param password the password to set
+     */
     public void setPassword(String password) {
         this.password = password;
     }
 
+    /**
+     * @return the configured container name
+     */
     public String getContainerName() {
         return containerName;
     }
 
+    /**
+     * @param containerName the containerName to set
+     */
     public void setContainerName(String containerName) {
         this.containerName = containerName;
     }

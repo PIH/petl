@@ -40,6 +40,8 @@ public class JobExecutor {
      * Executes the given job, returning the relevant job execution that contains status of the job
      * This is intended to be how all top-level jobs are executed, whether executed at startup, or
      * via a scheduled execution.
+     * @param jobPath the job path
+     * @return JobExecution the JobExecution
      */
     public JobExecution executeJob(String jobPath) {
         JobConfig jobConfig = etlService.getApplicationConfig().getPetlJobConfig(jobPath);
@@ -51,6 +53,8 @@ public class JobExecutor {
 
     /**
      * Executes the given job, returning the relevant job execution that contains status of the job
+     * @param execution the JobExecution to execute
+     * @return JobExecution the execution
      */
     public JobExecution executeJob(JobExecution execution) {
         try {
@@ -75,6 +79,9 @@ public class JobExecutor {
 
     /**
      * Execute a List of jobs in parallel.
+     * @param tasks the List of JobExecutionTask
+     * @throws InterruptedException if interrupted
+     * @throws ExecutionException if there is an error
      */
     public void executeInParallel(List<JobExecutionTask> tasks) throws InterruptedException, ExecutionException {
         List<JobExecutionResult> finalResults = new ArrayList<>();
@@ -140,6 +147,9 @@ public class JobExecutor {
 
     /**
      * Execute a List of jobs in series.  A failure will terminate immediately and subsequent jobs will not run
+     * @param tasks the tasks to execute
+     * @throws InterruptedException if interrupted
+     * @throws ExecutionException if there is an error
      */
     public void executeInSeries(List<JobExecutionTask> tasks) throws InterruptedException, ExecutionException {
 

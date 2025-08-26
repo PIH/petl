@@ -195,6 +195,9 @@ public class AzureFileDataImportJob implements PetlJob {
 
     /**
      * Parses the input stream xml for the given query and returns this as a Batch of data
+     * @param content the content to parse
+     * @return the Batch
+     * @throws Exception if an error occurs
      */
     protected Batch parseXml(InputStream content) throws Exception {
         Batch batch = new Batch();
@@ -250,6 +253,8 @@ public class AzureFileDataImportJob implements PetlJob {
 
     /**
      * Outputs the XML returned from the entity with TRACE level logging as pretty-printed XML for debugging
+     * @param inputStream the InputStream to parse
+     * @throws Exception if an error occurs
      */
     protected void prettyPrintXml(InputStream inputStream) throws Exception {
         InputSource src = new InputSource(inputStream);
@@ -271,18 +276,30 @@ public class AzureFileDataImportJob implements PetlJob {
 
         public Batch() {}
 
+        /**
+         * @return blobs
+         */
         public List<Map<String, String>> getBlobs() {
             return blobs;
         }
 
+        /**
+         * @param blob blob to add
+         */
         public void addBlob(Map<String, String> blob) {
             blobs.add(blob);
         }
 
+        /**
+         * @return marker
+         */
         public String getMarker() {
             return marker;
         }
 
+        /**
+         * @param marker the marker
+         */
         public void setMarker(String marker) {
             this.marker = marker;
         }

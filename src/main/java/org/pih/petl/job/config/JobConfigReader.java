@@ -21,13 +21,18 @@ public class JobConfigReader {
 
     private ApplicationConfig appConfig;
     private JobConfig config;
-    
+
+    /**
+     * @param appConfig the application config
+     * @param config the job config
+     */
     public JobConfigReader(ApplicationConfig appConfig, JobConfig config) {
         this.appConfig = appConfig;
         this.config = config;
     }
 
     /**
+     * @param keys the nested keys to look up
      * @return the configuration setting at the nested level of configuration
      */
     public JsonNode get(String... keys) {
@@ -44,6 +49,11 @@ public class JobConfigReader {
         return ret;
     }
 
+    /**
+     * @param parameters the parameters
+     * @param keys the keys
+     * @return the JobConfig
+     */
     public JobConfig getJobConfig(Map<String, String> parameters, String... keys) {
         JsonNode jobConfig = get(keys);
         if (jobConfig == null) {
@@ -59,10 +69,18 @@ public class JobConfigReader {
         }
     }
 
+    /**
+     * @param configNode the configNode
+     * @return the JobConfig
+     */
     public JobConfig getJobConfig(JsonNode configNode) {
         return appConfig.getPetlJobConfig(config.getConfigFile(), config.getParameters(), configNode);
     }
 
+    /**
+     * @param keys the keys
+     * @return the file contents of the file indicated
+     */
     public String getFileContents(String... keys) {
         String path = getString(keys);
         if (StringUtils.isNotEmpty(path)) {
@@ -75,6 +93,10 @@ public class JobConfigReader {
         return null;
     }
 
+    /**
+     * @param keys the keys
+     * @return the file contents of the file indicated
+     */
     public String getRequiredFileContents(String... keys) {
         String fileContents = getFileContents(keys);
         if (StringUtils.isEmpty(fileContents)) {
@@ -83,6 +105,10 @@ public class JobConfigReader {
         return fileContents;
     }
 
+    /**
+     * @param filePath the path
+     * @return the file contents of the file indicated
+     */
     public String getFileContentsAtPath(String filePath) {
         ConfigFile configFile = appConfig.getJobConfigFile(filePath);
         if (!configFile.getConfigFile().exists()) {
@@ -96,6 +122,10 @@ public class JobConfigReader {
         }
     }
 
+    /**
+     * @param keys the keys
+     * @return the DataSource
+     */
     public DataSource getDataSource(String... keys) {
         String path = getString(keys);
         if (StringUtils.isEmpty(path)) {
@@ -104,6 +134,10 @@ public class JobConfigReader {
         return appConfig.getEtlDataSource(path);
     }
 
+    /**
+     * @param keys the keys
+     * @return the List of Datasources
+     */
     public List<DataSource> getDataSources(String... keys) {
         List<DataSource> ret = new ArrayList<>();
         for (String path : getStringList(keys)) {
@@ -114,6 +148,8 @@ public class JobConfigReader {
 
     /**
      * Convenience to get the configuration of a given setting as a String
+     * @param keys the keys
+     * @return the String at the keys
      */
     public String getString(String... keys) {
         return getString(get(keys));
@@ -121,6 +157,8 @@ public class JobConfigReader {
 
     /**
      * Convenience to get the configuration of a given setting as a String
+     * @param n the json node
+     * @return the string at the node
      */
     public String getString(JsonNode n) {
         if (n != null) {
@@ -129,6 +167,11 @@ public class JobConfigReader {
         return null;
     }
 
+    /**
+     * @param defaultValue the default value
+     * @param keys the keys
+     * @return the Integer at the keys or default value if null
+     */
     public Integer getInt(Integer defaultValue, String...keys) {
         JsonNode n = get(keys);
         if (n != null) {
@@ -147,6 +190,9 @@ public class JobConfigReader {
 
     /**
      * Convenience to get the configuration of a given setting as a String
+     * @param defaultValue the default value
+     * @param keys the keys
+     * @return the Boolean at the keys or the default value if null
      */
     public Boolean getBoolean(Boolean defaultValue, String... keys) {
         JsonNode n = get(keys);
@@ -163,24 +209,13 @@ public class JobConfigReader {
         return defaultValue;
     }
 
-    public <T> T getObject(Class<T> type, String... keys) {
-        JsonNode n = get(keys);
-        if (n != null) {
-            try {
-                return appConfig.getYamlMapper().treeToValue(n, type);
-            }
-            catch (Exception e) {
-                throw new PetlException("Unable to read " + arrayToString(keys) + " as " + type.getSimpleName());
-            }
-        }
-        return null;
-    }
-
     /**
      * Convenience to get the configuration of a given setting as a String
+     * @param keys the keys
+     * @return a List of JsonNode at the keys
      */
     public List<JsonNode> getList(String... keys) {
-        List<JsonNode> ret = new ArrayList();
+        List<JsonNode> ret = new ArrayList<>();
         JsonNode n = get(keys);
         if (n != null) {
             ArrayNode arrayNode = (ArrayNode)n;
@@ -191,23 +226,10 @@ public class JobConfigReader {
         return ret;
     }
 
-    public <T> List<T> getList(Class<T> type, String... keys) {
-        List<T> ret = new ArrayList<>();
-        for (JsonNode n : getList(keys)) {
-            try {
-                ret.add(appConfig.getYamlMapper().treeToValue(n, type));
-            }
-            catch (Exception e) {
-                throw new PetlException("Unable to read " + arrayToString(keys) + " as List of " + type.getSimpleName());
-            }
-        }
-        return ret;
-    }
-
-    public Map<String, String> getMap(String... keys) {
-        return getMap(get(keys));
-    }
-
+    /**
+     * @param n the node
+     * @return the Map at the node
+     */
     public Map<String, String> getMap(JsonNode n) {
         Map<String, String> m = new LinkedHashMap<>();
         if (n != null) {
@@ -222,6 +244,8 @@ public class JobConfigReader {
 
     /**
      * Convenience to get the configuration of a given setting as a String
+     * @param keys the keys
+     * @return the List of String at the keys
      */
     public List<String> getStringList(String... keys) {
         List<String> ret = new ArrayList<>();
@@ -233,6 +257,7 @@ public class JobConfigReader {
 
     /**
      * Converts the YML specified within the configuration element into a properties format for the PetlJob
+     * @return the config as Properties
      */
     public Properties getAsProperties() {
         Properties p = new Properties();

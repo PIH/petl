@@ -377,6 +377,8 @@ public class SqlServerImportJob implements PetlJob {
 
     /**
      * @return a connection for the given connection.  This allows mocking to occur in unit tests as needed
+     * @param connection the connection
+     * @throws SQLException if an error occurs
      */
     public Connection getAsSqlServerConnection(Connection connection) throws SQLException {
         if (connection.isWrapperFor(ISQLServerConnection.class)) {
