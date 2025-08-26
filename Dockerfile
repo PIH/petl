@@ -7,7 +7,7 @@ ENV HOME="/var/maven"
 ENV MAVEN_HOME="/var/maven"
 ENV MAVEN_OPTS="-Duser.home=/var/maven"
 
-ADD m2 /var/maven/.m2
+ADD target/docker-build/.m2 /var/maven/.m2
 
 WORKDIR /data
 
