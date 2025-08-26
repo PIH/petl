@@ -31,7 +31,7 @@ jobs:
         git config user.email "github-action@users.noreply.github.com"
 
     - name: Deploy release
-      run: mvn -B release:prepare release:perform -DskipTests -Prelease --file pom.xml
+      run: mvn -B release:prepare release:perform -Dgpg.signer=bc -DskipTests -Prelease --file pom.xml
       env:
         SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
         SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
