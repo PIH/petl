@@ -24,7 +24,6 @@ jobs:
         server-username: SONATYPE_USERNAME
         server-password: SONATYPE_PASSWORD
         gpg-private-key: ${{ secrets.SONATYPE_GPG_PRIVATE_KEY }}
-        gpg-passphrase: SONATYPE_GPG_PASSPHRASE
 
     # Set up git config
     - name: Setup Git Config
@@ -33,9 +32,9 @@ jobs:
         git config user.email "github-action@users.noreply.github.com"
 
     - name: Deploy release
-      run: mvn -B release:prepare release:perform -Prelease --file pom.xml
+      run: mvn -B release:prepare release:perform -DskipTests -Prelease --file pom.xml
       env:
         SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
         SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
-        SONATYPE_GPG_PASSPHRASE: ${{ secrets.SONATYPE_GPG_PASSPHRASE }}
+        MAVEN_GPG_PASSPHRASE: ${{ secrets.SONATYPE_GPG_PASSPHRASE }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
