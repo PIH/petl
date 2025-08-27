@@ -347,7 +347,7 @@
                         <configuration>
                             <tagNameFormat>@{project.version}</tagNameFormat>
                             <projectVersionPolicyId>SemVerVersionPolicy</projectVersionPolicyId>
-                            <arguments>-DskipTests -Dmaven.javadoc.skip=true</arguments>
+                            <arguments>-DskipTests</arguments>
                         </configuration>
                     </plugin>
                     <plugin>
