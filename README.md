@@ -642,19 +642,21 @@ From the directory where you've created your `application.yml` file, run PETL vi
 
 # Releasing
 
-On each build, a Github Actions workflow deploys the Maven artifact to our Maven repo on Sonatype. 
+There are 2 github actions configured in this repository that are responsible for building, testing, and deploying artifacts
 
+### deploy.yml
 
+This builds, including running all tests, on each push to the master branch.  This can also be run on-demand.
+If successful, this will publish the built snapshot to the Sonatype Maven repository
 
-So doing a release should be as simple as:
+### release.yml
 
-* Changing the pom.xml to remove the snapshot from the version number (ie, to do the "2.1.0" release, change the
-  version in the pom from "2.1.0-SNAPSHOT" to "2.1.0")
-  
-* Commit the change and let the Bamboo job run.  Afterwards the new release (ie petl-2.1.0.jar) should appear in Maven Central: https://central.sonatype.com/
+This is run on demand only in order to publish a non-snapshot release to Maven.  This does not run any tests prior to publishing.
+This uses the Maven release plugin to build the non-snapshot version of the current version, tag this in github, 
+publish this to the Sonatype Maven repository, and then update the version ih the pom to the next snapshot version.
 
-* Once this is confirmed, change the version number to the next snapshot (ie change "2.1.0" to "2.2.0-SNAPSHOT") so 
-  that subsequent commits won't overwrite the "2.1.0" jar
+NOTE: This returns as successful as long as the deployed artifacts are staged and validated successfully on Sonatype.
+It may take somewhat more time for these artifacts to be published and available for downloading.
   
 * Update the "petl_version" variable in Puppet to deploy the version of Petl you want to release on each server
 
