@@ -23,7 +23,6 @@ jobs:
         server-id: central
         server-username: SONATYPE_USERNAME
         server-password: SONATYPE_PASSWORD
-        gpg-passphrase: MAVEN_GPG_PASSPHRASE
 
     # Set up git config
     - name: Setup Git Config
@@ -31,11 +30,15 @@ jobs:
         git config user.name "Github Action"
         git config user.email "github-action@users.noreply.github.com"
 
+    - name: Import GPG Key
+      run: echo "${{ secrets.SONATYPE_GPG_PRIVATE_KEY }}" | base64 --decode | gpg --import
+      env:
+        GPG_PASSPHRASE: ${{ secrets.SONATYPE_GPG_PASSPHRASE }}
+
     - name: Deploy release
-      run: mvn -B release:prepare release:perform -Prelease --file pom.xml
+      run: mvn -B release:prepare release:perform -Prelease -Dgpg.passphraseEnvName=MAVEN_GPG_PASSPHRASE --file pom.xml
       env:
         SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
         SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
-        MAVEN_GPG_KEY: ${{ secrets.SONATYPE_GPG_PRIVATE_KEY }}
         MAVEN_GPG_PASSPHRASE: ${{ secrets.SONATYPE_GPG_PASSPHRASE }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
