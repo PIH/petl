@@ -4,7 +4,7 @@
 
     <groupId>org.pih</groupId>
     <artifactId>petl</artifactId>
-    <version>3.7.1-SNAPSHOT</version>
+    <version>3.7.1</version>
     <packaging>jar</packaging>
 
     <name>petl</name>
@@ -34,7 +34,7 @@
         <connection>scm:git:https://github.com/PIH/petl.git</connection>
         <developerConnection>scm:git:https://github.com/PIH/petl.git</developerConnection>
         <url>scm:git:https://github.com/PIH/petl.git</url>
-      <tag>HEAD</tag>
+      <tag>3.7.1</tag>
   </scm>
 
     <parent>
