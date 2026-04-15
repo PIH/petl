@@ -170,7 +170,7 @@ public class SqlTransferJob implements PetlJob {
                                         log.trace("This is the last statement, treat it as the extraction query");
 
                                         sqlStatement = SqlUtils.addExtraColumnsToSelect(sqlStatement, extraColumns);
-                                        log.trace("Executing SQL extraction");
+                                        log.debug("Executing SQL extraction");
                                         log.trace(sqlStatement);
 
                                         statement = sourceConnection.prepareStatement(
@@ -185,15 +185,17 @@ public class SqlTransferJob implements PetlJob {
                                                     SqlUtils.testResultSet(resultSet);
                                                     throw new PetlException("Failed to load to SQL server due to testOnly mode");
                                                 } else {
+                                                    log.debug("Retrieved resultset. Processing in batches of " + batchSize);
                                                     ResultSetMetaData metaData = resultSet.getMetaData();
                                                     int numPending = 0;
                                                     int numCompleted = 0;
+                                                    long lastLogTime = System.currentTimeMillis();
                                                     while (resultSet.next()) {
                                                         if (targetStatement == null) {
                                                             StringBuilder targetColumns = new StringBuilder();
                                                             StringBuilder targetValues = new StringBuilder();
                                                             for (int i = 1; i <= metaData.getColumnCount(); i++) {
-                                                                targetColumns.append(targetColumns.length() == 0 ? "" : ",").append(metaData.getColumnName(i));
+                                                                targetColumns.append(targetColumns.length() == 0 ? "" : ",").append(metaData.getColumnLabel(i));
                                                                 targetValues.append(targetValues.length() == 0 ? "" : ",").append("?");
                                                             }
                                                             targetStatement = targetConnection.prepareStatement("insert into " + targetTable + " (" + targetColumns + ") values (" + targetValues + ");");
@@ -205,15 +207,19 @@ public class SqlTransferJob implements PetlJob {
                                                         targetStatement.addBatch();
                                                         numPending++;
                                                         if (numPending % batchSize == 0) {
-                                                            log.trace("Executing batch of size " + numPending + " -> " + targetTable);
                                                             targetStatement.executeBatch();
                                                             targetConnection.commit();
                                                             numCompleted += numPending;
                                                             numPending = 0;
+                                                            log.trace("Loaded " + numCompleted + " rows from " + targetTable);
+                                                            long batchTime = System.currentTimeMillis();
+                                                            if (batchTime - lastLogTime > 1000*60*60) {
+                                                                log.debug("Loaded " + numCompleted + " rows from " + targetTable);
+                                                                lastLogTime = batchTime;
+                                                            }
                                                         }
                                                     }
                                                     if (numPending > 0) {
-                                                        log.trace("Executing final batch of size " + numPending + " -> " + targetTable);
                                                         targetStatement.executeBatch();
                                                         targetConnection.commit();
                                                         numCompleted += numPending;
