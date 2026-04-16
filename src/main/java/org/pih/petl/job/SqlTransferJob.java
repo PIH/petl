@@ -176,6 +176,9 @@ public class SqlTransferJob implements PetlJob {
                                         statement = sourceConnection.prepareStatement(
                                                 sqlStatement, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY
                                         );
+                                        if ("mysql".equals(sourceDatasource.getDatabaseType())) {
+                                            statement.setFetchSize(Integer.MIN_VALUE);
+                                        }
                                         ResultSet resultSet = null;
                                         PreparedStatement targetStatement = null;
                                         try {
