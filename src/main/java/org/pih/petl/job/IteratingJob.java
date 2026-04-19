@@ -42,7 +42,8 @@ public class IteratingJob implements PetlJob {
             int sequenceNum = 1;
             for (JsonNode iteration : iterations) {
                 Map<String, String> iterationVars = configReader.getMap(iteration);
-                for (String paramName : iterationVars.keySet()) {
+                List<String> paramNames = new ArrayList<>(iterationVars.keySet());
+                for (String paramName : paramNames) {
                     String paramValue = iterationVars.get(paramName);
                     iterationVars.put(paramName, StrSubstitutor.replace(paramValue, jobExecution.getJobConfig().getParameters()));
                 }

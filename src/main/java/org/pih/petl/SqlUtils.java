@@ -33,6 +33,8 @@ public class SqlUtils {
 	// Regular expression to identify a change in the delimiter.  This ignores spaces, allows delimiter in comment, allows an equals-sign
     private static final Pattern DELIMITER_PATTERN = Pattern.compile("^\\s*(--)?\\s*delimiter\\s*=?\\s*([^\\s]+)+\\s*.*$", Pattern.CASE_INSENSITIVE);
 
+    private static final Pattern CREATE_TABLE_PATTERN = Pattern.compile("(?i)create\\s+table\\s+(\\S+)");
+
     /**
      * @param sql to parse
      * @param currentDelimiter the delimiter that separates out statements
@@ -106,11 +108,12 @@ public class SqlUtils {
         if (schema != null) {
             if (extraColumns != null && !extraColumns.isEmpty()) {
                 schema = schema.trim();
-                schema = schema.substring(0, schema.lastIndexOf(")"));
+                StringBuilder sb = new StringBuilder(schema.substring(0, schema.lastIndexOf(")")));
                 for (TableColumn extraColumn : extraColumns) {
-                    schema += ", " + extraColumn.getName() + " " + extraColumn.getType();
+                    sb.append(", ").append(extraColumn.getName()).append(" ").append(extraColumn.getType());
                 }
-                schema += ")";
+                sb.append(")");
+                schema = sb.toString();
             }
         }
         return schema;
@@ -169,12 +172,9 @@ public class SqlUtils {
      * @return the table name for the given schemaSql
      */
     public static String getTableName(String schemaSql) {
-        StringBuilder ret = new StringBuilder();
-        for (String word : schemaSql.split("\\s")) {
-            if (ret.toString().trim().toLowerCase().endsWith("create table")) {
-                return word;
-            }
-            ret.append(word).append(" ");
+        Matcher matcher = CREATE_TABLE_PATTERN.matcher(schemaSql);
+        if (matcher.find()) {
+            return matcher.group(1);
         }
         throw new PetlException("No table name found in the given schema sql: " + schemaSql);
     }
@@ -186,14 +186,12 @@ public class SqlUtils {
      * @return the modified schemaSql
      */
     public static String addSuffixToCreatedTablename(String schemaSql, String suffix) {
-        StringBuilder ret = new StringBuilder();
-        for (String word : schemaSql.split("\\s")) {
-            if (ret.toString().trim().toLowerCase().endsWith("create table")) {
-                word = word + suffix;
-            }
-            ret.append(word).append(" ");
+        Matcher matcher = CREATE_TABLE_PATTERN.matcher(schemaSql);
+        if (matcher.find()) {
+            String tableName = matcher.group(1);
+            return schemaSql.substring(0, matcher.start(1)) + tableName + suffix + schemaSql.substring(matcher.end(1));
         }
-        return ret.toString();
+        return schemaSql;
     }
 
     /**

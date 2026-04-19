@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.annotation.PostConstruct;
 import java.io.File;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -19,6 +20,7 @@ import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -36,6 +38,19 @@ public class EtlService {
 
     @Autowired
     List<PetlJob> petlJobs;
+
+    private Map<String, PetlJob> petlJobsByType;
+
+    @PostConstruct
+    public void init() {
+        petlJobsByType = new HashMap<>();
+        for (PetlJob petlJob : petlJobs) {
+            Component component = petlJob.getClass().getAnnotation(Component.class);
+            if (component != null && component.value() != null) {
+                petlJobsByType.put(component.value(), petlJob);
+            }
+        }
+    }
 
     @Autowired
     public EtlService(
@@ -98,11 +113,7 @@ public class EtlService {
      * @param jobPath the path
      */
     public JobExecution getLatestJobExecution(String jobPath) {
-        List<JobExecution> l = jobExecutionRepository.findJobExecutionByJobPathOrderByStartedDesc(jobPath);
-        if (l == null || l.isEmpty()) {
-            return null;
-        }
-        return l.get(0);
+        return jobExecutionRepository.findFirstByJobPathOrderByStartedDesc(jobPath);
     }
 
     /**
@@ -110,13 +121,11 @@ public class EtlService {
      * @return the PetlJob
      */
     public PetlJob getPetlJob(JobConfig jobConfig) {
-        for (PetlJob petlJob : petlJobs) {
-            Component component = petlJob.getClass().getAnnotation(Component.class);
-            if (component != null && jobConfig.getType().equals(component.value())) {
-                return petlJob;
-            }
+        PetlJob petlJob = petlJobsByType.get(jobConfig.getType());
+        if (petlJob == null) {
+            throw new PetlException("Unknown job type: " + jobConfig.getType());
         }
-        throw new PetlException("Unknown job type: " + jobConfig.getType());
+        return petlJob;
     }
 
     /**
@@ -192,7 +201,7 @@ public class EtlService {
                 }
                 else {
                     boolean successful = true;
-                    for (JobExecution childJobExecution : getChildExecutions(execution)) {
+                    for (JobExecution childJobExecution : existingChildExecutions) {
                         if (childJobExecution.getStatus() != JobExecutionStatus.SUCCEEDED) {
                             childJobExecution = executeIfIncomplete(childJobExecution);
                             successful = successful && childJobExecution.getStatus() == JobExecutionStatus.SUCCEEDED;
@@ -220,12 +229,9 @@ public class EtlService {
      * Update all jobs with null date completed to have date completed = NOW
      * (Used on startup to make sure hung jobs are rerun at next scheduled interval)
      */
+    @Transactional
     public void markHungJobsAsRun() {
-        for (JobExecution jobExecution : jobExecutionRepository.findJobExecutionsByCompletedIsNull()) {
-            jobExecution.setCompleted(new Date());
-            jobExecution.setStatus(JobExecutionStatus.ABORTED);
-            jobExecutionRepository.save(jobExecution);
-        }
+        jobExecutionRepository.markAllHungJobsAborted(new Date(), JobExecutionStatus.ABORTED);
     }
 
     /**

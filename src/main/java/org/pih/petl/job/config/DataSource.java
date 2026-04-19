@@ -29,6 +29,12 @@ public class DataSource {
 
     private static Log log = LogFactory.getLog(DataSource.class);
 
+    static {
+        try { Class.forName("com.mysql.cj.jdbc.Driver"); } catch (ClassNotFoundException ignored) {}
+        try { Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver"); } catch (ClassNotFoundException ignored) {}
+        try { Class.forName("org.h2.Driver"); } catch (ClassNotFoundException ignored) {}
+    }
+
     private String databaseType;
     private String host;
     private String port;
@@ -51,9 +57,6 @@ public class DataSource {
      */
     public Connection openConnection() {
         try {
-            Class.forName("com.mysql.cj.jdbc.Driver");
-            Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-            Class.forName("org.h2.Driver");
             return DriverManager.getConnection(getJdbcUrl(), getUser(), getPassword());
         }
         catch (Exception e) {
@@ -132,7 +135,9 @@ public class DataSource {
      */
     public boolean tableExists(String tableName) throws SQLException {
         try (Connection targetConnection = openConnection()) {
-            return targetConnection.getMetaData().getTables(getDatabaseName(), null, tableName, new String[] {"TABLE"}).next();
+            try (ResultSet rs = targetConnection.getMetaData().getTables(getDatabaseName(), null, tableName, new String[] {"TABLE"})) {
+                return rs.next();
+            }
         }
     }
 
@@ -141,8 +146,14 @@ public class DataSource {
      * @throws SQLException if an error occurs
      */
     public void dropTableIfExists(String tableName) throws SQLException {
-        if (tableExists(tableName)) {
-            executeUpdate("drop table " + tableName);
+        try (Connection connection = openConnection()) {
+            try (ResultSet rs = connection.getMetaData().getTables(getDatabaseName(), null, tableName, new String[]{"TABLE"})) {
+                if (rs.next()) {
+                    try (Statement stmt = connection.createStatement()) {
+                        stmt.executeUpdate("drop table " + tableName);
+                    }
+                }
+            }
         }
     }
 
@@ -157,9 +168,9 @@ public class DataSource {
             sourceConnection.setAutoCommit(false);
             try (Statement statement = sourceConnection.createStatement()) {
                 statement.execute(query);
-                ResultSet resultSet = statement.getResultSet();
-                resultSet.next();
-                return resultSet.getBoolean(1);
+                try (ResultSet resultSet = statement.getResultSet()) {
+                    return resultSet != null && resultSet.next() && resultSet.getBoolean(1);
+                }
             }
             finally {
                 sourceConnection.rollback();
@@ -173,12 +184,12 @@ public class DataSource {
      * @return the total number of rows in the given table
      * @throws SQLException if an error occurs
      */
-    public int rowCount(String table) throws SQLException {
+    public long rowCount(String table) throws SQLException {
         try (Connection connection = openConnection()) {
             QueryRunner qr = new QueryRunner();
             String query = "select count(*) from " + table;
             Number rowCount = qr.query(connection, query, new ScalarHandler<>());
-            return rowCount.intValue();
+            return rowCount.longValue();
         }
     }
 
@@ -191,22 +202,23 @@ public class DataSource {
         List<TableColumn> ret = new ArrayList<>();
         List<String> sizedTypes = Arrays.asList("VARCHAR", "CHAR", "DECIMAL");
         try (Connection targetConnection = openConnection()) {
-            ResultSet rs = targetConnection.getMetaData().getColumns(getDatabaseName(), null, tableName, null);
-            while (rs.next()) {
-                String name = rs.getString("COLUMN_NAME");
-                String type = rs.getString("TYPE_NAME");
-                if (sizedTypes.contains(type.toUpperCase())) {
-                    String size = rs.getString("COLUMN_SIZE");
-                    if (StringUtils.isNotEmpty(size)) {
-                        type += "(" + size;
-                        String decimalDigits = rs.getString("DECIMAL_DIGITS");
-                        if (StringUtils.isNotEmpty(decimalDigits)) {
-                            type += "," + decimalDigits;
+            try (ResultSet rs = targetConnection.getMetaData().getColumns(getDatabaseName(), null, tableName, null)) {
+                while (rs.next()) {
+                    String name = rs.getString("COLUMN_NAME");
+                    String type = rs.getString("TYPE_NAME");
+                    if (sizedTypes.contains(type.toUpperCase())) {
+                        String size = rs.getString("COLUMN_SIZE");
+                        if (StringUtils.isNotEmpty(size)) {
+                            type += "(" + size;
+                            String decimalDigits = rs.getString("DECIMAL_DIGITS");
+                            if (StringUtils.isNotEmpty(decimalDigits)) {
+                                type += "," + decimalDigits;
+                            }
+                            type += ")";
                         }
-                        type += ")";
                     }
+                    ret.add(new TableColumn(name, type, null));
                 }
-                ret.add(new TableColumn(name, type, null));
             }
         }
         return ret;
@@ -301,7 +313,10 @@ public class DataSource {
                         try {
                             TimeUnit.SECONDS.sleep(1);
                         }
-                        catch (InterruptedException ignored) {}
+                        catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                            break;
+                        }
                     }
                 }
                 else {

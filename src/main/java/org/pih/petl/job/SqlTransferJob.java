@@ -23,10 +23,10 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.Statement;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * PetlJob that can stream rows from a source SQL DB and load these in bulk into a target DB
@@ -36,7 +36,7 @@ public class SqlTransferJob implements PetlJob {
 
     private final Log log = LogFactory.getLog(getClass());
 
-    private final Map<String, Object> tableMonitors = new HashMap<>();
+    private final Map<String, Object> tableMonitors = new ConcurrentHashMap<>();
 
     @Autowired
     ApplicationConfig applicationConfig;

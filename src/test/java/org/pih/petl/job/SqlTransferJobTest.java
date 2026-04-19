@@ -37,11 +37,11 @@ public class SqlTransferJobTest extends BasePetlTest {
     public void testJob() throws Exception {
         executeJob("job.yml");
         Assert.assertTrue(getTargetMySQLDatasource().tableExists("encounter_types"));
-        Assert.assertEquals(62, getTargetMySQLDatasource().rowCount("encounter_types"));
+        Assert.assertEquals(62L, getTargetMySQLDatasource().rowCount("encounter_types"));
 
         // by default, table should be dropped and recreated on each run, so consecutive runs should return the same result
         executeJob("job.yml");
         Assert.assertTrue(getTargetMySQLDatasource().tableExists("encounter_types"));
-        Assert.assertEquals(62, getTargetMySQLDatasource().rowCount("encounter_types"));
+        Assert.assertEquals(62L, getTargetMySQLDatasource().rowCount("encounter_types"));
     }
 }
