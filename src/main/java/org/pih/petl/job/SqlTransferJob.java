@@ -188,7 +188,7 @@ public class SqlTransferJob implements PetlJob {
                                                     SqlUtils.testResultSet(resultSet);
                                                     throw new PetlException("Failed to load to SQL server due to testOnly mode");
                                                 } else {
-                                                    log.debug("Retrieved resultset. Processing in batches of " + batchSize);
+                                                    log.info("Retrieved resultset. Processing in batches of " + batchSize);
                                                     ResultSetMetaData metaData = resultSet.getMetaData();
                                                     int numPending = 0;
                                                     int numCompleted = 0;
@@ -214,10 +214,9 @@ public class SqlTransferJob implements PetlJob {
                                                             targetConnection.commit();
                                                             numCompleted += numPending;
                                                             numPending = 0;
-                                                            log.trace("Loaded " + numCompleted + " rows from " + targetTable);
                                                             long batchTime = System.currentTimeMillis();
-                                                            if (batchTime - lastLogTime > 1000*60*60) {
-                                                                log.debug("Loaded " + numCompleted + " rows from " + targetTable);
+                                                            if (batchTime - lastLogTime > 60000) {
+                                                                log.info("Loaded " + numCompleted + " rows to " + targetTable);
                                                                 lastLogTime = batchTime;
                                                             }
                                                         }
@@ -227,7 +226,7 @@ public class SqlTransferJob implements PetlJob {
                                                         targetConnection.commit();
                                                         numCompleted += numPending;
                                                     }
-                                                    log.trace("Successfully transferred " + numCompleted + " rows into table: " + targetTable);
+                                                    log.info("Successfully transferred " + numCompleted + " rows to table: " + targetTable);
                                                 }
                                             } else {
                                                 throw new PetlException("Invalid SQL extraction, no result set found");
