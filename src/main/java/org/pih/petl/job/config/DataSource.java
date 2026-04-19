@@ -57,19 +57,7 @@ public class DataSource {
      */
     public Connection openConnection() {
         try {
-            Connection conn = DriverManager.getConnection(getJdbcUrl(), getUser(), getPassword());
-            if ("mysql".equalsIgnoreCase(databaseType)) {
-                // Prevent MySQL from killing long-running streaming connections.
-                // net_write_timeout: how long MySQL will block waiting for the client to read
-                // from the socket (relevant when the JVM is busy writing to the target DB).
-                // net_read_timeout: how long MySQL will wait for the client to send data.
-                // Both default to 60s on MySQL 5.6 which is easily exceeded during large
-                // ETL transfers, causing the connection to be silently killed mid-stream.
-                try (Statement stmt = conn.createStatement()) {
-                    stmt.execute("SET SESSION net_write_timeout=3600, net_read_timeout=3600");
-                }
-            }
-            return conn;
+            return DriverManager.getConnection(getJdbcUrl(), getUser(), getPassword());
         }
         catch (Exception e) {
             throw new PetlException("An error occured trying to open a connection to the database", e);
