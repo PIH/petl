@@ -241,7 +241,7 @@ public class DataSource {
                 }
                 else {
                     sb.append("autoReconnect=true");
-                    sb.append("&sessionVariables=default_storage_engine%3DInnoDB");
+                    sb.append("&sessionVariables=default_storage_engine%3DInnoDB,net_write_timeout%3D3600,net_read_timeout%3D3600");
                     sb.append("&useUnicode=true");
                     sb.append("&characterEncoding=UTF-8");
                 }

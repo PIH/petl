@@ -134,7 +134,7 @@ public class SqlTransferJob implements PetlJob {
                 }
 
                 // Get bulk load configuration
-                int batchSize = configReader.getInt(100, "load", "bulkCopy", "batchSize");
+                int batchSize = configReader.getInt(1000, "load", "bulkCopy", "batchSize");
                 boolean testOnly = configReader.getBoolean(false, "load", "bulkCopy", "testOnly");
 
                 try (Connection sourceConnection = sourceDatasource.openConnection()) {
