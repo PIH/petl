@@ -44,11 +44,13 @@ public class ApplicationConfig {
         this.petlConfig = petlConfig;
     }
 
+    private static final ObjectMapper YAML_MAPPER = new ObjectMapper(new YAMLFactory());
+
     /**
      * @return the ObjectMapper
      */
     public static ObjectMapper getYamlMapper() {
-        return new ObjectMapper(new YAMLFactory());
+        return YAML_MAPPER;
     }
 
     private Map<String, String> env = null;

@@ -11,7 +11,9 @@ import javax.persistence.Entity;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
 import javax.persistence.Id;
+import javax.persistence.Index;
 import javax.persistence.Lob;
+import javax.persistence.Table;
 import java.util.Date;
 import java.util.UUID;
 
@@ -19,6 +21,11 @@ import java.util.UUID;
  * Represents an ETL job execution and the status of this
  */
 @Entity(name = "petl_job_execution")
+@Table(name = "petl_job_execution", indexes = {
+    @Index(columnList = "job_path, started"),
+    @Index(columnList = "parent_execution_uuid, sequence_num"),
+    @Index(columnList = "completed")
+})
 public class JobExecution {
 
     @Id
@@ -116,25 +123,25 @@ public class JobExecution {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append("Job " + "(" + uuid + "): " + status);
+        sb.append("Job (").append(uuid).append("): ").append(status);
         if (jobPath != null) {
-            sb.append(", path: " + jobPath);
+            sb.append(", path: ").append(jobPath);
         }
         if (description != null) {
-            sb.append(", description: " + description);
+            sb.append(", description: ").append(description);
         }
         if (initiated != null) {
-            sb.append(", initiated: " + initiated);
+            sb.append(", initiated: ").append(initiated);
         }
         if (started != null) {
-            sb.append(", started: " + started);
+            sb.append(", started: ").append(started);
             if (completed != null) {
-                sb.append(", completed: " + completed);
-                sb.append(", duration: " + getDurationAsString());
+                sb.append(", completed: ").append(completed);
+                sb.append(", duration: ").append(getDurationAsString());
             }
         }
         if (errorMessage != null) {
-            sb.append(" ERROR: " + errorMessage);
+            sb.append(" ERROR: ").append(errorMessage);
         }
         return sb.toString();
     }

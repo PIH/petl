@@ -27,10 +27,10 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * PetlJob that can load into SQL Server table
@@ -40,7 +40,7 @@ public class SqlServerImportJob implements PetlJob {
 
     private final Log log = LogFactory.getLog(getClass());
 
-    private final Map<String, Object> tableMonitors = new HashMap<>();
+    private final Map<String, Object> tableMonitors = new ConcurrentHashMap<>();
 
     @Autowired
     ApplicationConfig applicationConfig;

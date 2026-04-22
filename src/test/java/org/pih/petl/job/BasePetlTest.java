@@ -83,7 +83,7 @@ public abstract class BasePetlTest {
         }
     }
 
-    public void verifyRowCount(String table, int expectedRows) throws Exception {
+    public void verifyRowCount(String table, long expectedRows) throws Exception {
         Assert.assertEquals(expectedRows, getSqlServerDatasource().rowCount(table));
     }
 

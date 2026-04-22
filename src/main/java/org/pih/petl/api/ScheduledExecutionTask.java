@@ -15,6 +15,7 @@ import org.springframework.stereotype.Component;
 import javax.annotation.PreDestroy;
 import java.util.Date;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Schedulable task for loading all the configurations
@@ -24,8 +25,8 @@ public class ScheduledExecutionTask implements Job {
 
     private static final Log log = LogFactory.getLog(ScheduledExecutionTask.class);
 
-    private static boolean enabled = true;
-    private static boolean inProgress = false;
+    private static final AtomicBoolean enabled = new AtomicBoolean(true);
+    private static final AtomicBoolean inProgress = new AtomicBoolean(false);
 
     final EtlService etlService;
     final JobExecutor jobExecutor;
@@ -54,9 +55,8 @@ public class ScheduledExecutionTask implements Job {
      */
     @Override
     public void execute(JobExecutionContext jobExecutionContext) throws JobExecutionException {
-        if (enabled && !inProgress) {
+        if (enabled.get() && inProgress.compareAndSet(false, true)) {
             try {
-                inProgress = true;
                 Date currentDate = jobExecutionContext.getFireTime();
                 log.trace("Executing Task: " + currentDate);
                 Map<String, JobConfig> jobs = etlService.getAllConfiguredJobs();
@@ -107,7 +107,7 @@ public class ScheduledExecutionTask implements Job {
                 log.error("An error occured while executing a scheduled job.  Aborting all remaining jobs.", e);
             }
             finally {
-                inProgress = false;
+                inProgress.set(false);
             }
         }
         else {
@@ -116,10 +116,10 @@ public class ScheduledExecutionTask implements Job {
     }
 
     public static boolean isEnabled() {
-        return enabled;
+        return enabled.get();
     }
 
-    public static void setEnabled(boolean enabled) {
-        ScheduledExecutionTask.enabled = enabled;
+    public static void setEnabled(boolean value) {
+        enabled.set(value);
     }
 }

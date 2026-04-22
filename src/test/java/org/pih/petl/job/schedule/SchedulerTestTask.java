@@ -15,7 +15,7 @@ public class SchedulerTestTask implements Job {
 
     private static final Log log = LogFactory.getLog(SchedulerTestTask.class);
 
-    public static long numExecutions;
+    public static volatile long numExecutions;
 
     @Override
     public void execute(JobExecutionContext jobExecutionContext) throws JobExecutionException {
