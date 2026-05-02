@@ -9,8 +9,12 @@ import org.pentaho.di.core.KettleEnvironment;
 import org.pentaho.di.core.Result;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.logging.LogLevel;
+import org.pentaho.di.core.parameters.NamedParams;
 import org.pentaho.di.job.Job;
 import org.pentaho.di.job.JobMeta;
+import org.pentaho.di.repository.Repository;
+import org.pentaho.di.trans.Trans;
+import org.pentaho.di.trans.TransMeta;
 import org.pih.petl.ApplicationConfig;
 import org.pih.petl.PetlException;
 import org.pih.petl.api.JobExecution;
@@ -23,7 +27,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.List;
 import java.util.Properties;
-import java.util.Set;
 
 /**
  * This class is responsible for running a Pentaho Kettle PetlJob
@@ -67,13 +70,27 @@ public class PentahoJob implements PetlJob {
         System.setProperty("KETTLE_HOME", jobDir.getAbsolutePath());
 
         try {
-            // Configure kettle.properties with PIH_PENTAHO_HOME which we acquire from the configuration
             File srcDir = new File(configuration.getProperty(PIH_PENTAHO_HOME, jobFile.getParent()));
             if (!srcDir.exists()) {
                 throw new PetlException("Unable to initialize kettle environment.  Unable to find: " + srcDir);
             }
+
+            log.debug("CONFIGURATION:");
+            for (String property : configuration.stringPropertyNames()) {
+                String propertyValue = configuration.getProperty(property);
+                if (property.toLowerCase().contains("password")) {
+                    propertyValue = "************";
+                }
+                log.debug(property + " = " + propertyValue);
+            }
+
+            // Write kettle.properties containing PIH_PENTAHO_HOME plus every value from the YAML
+            // configuration block. KettleEnvironment.init() auto-loads kettle.properties into
+            // JVM-scoped variables, so transforms and jobs see all configured values via ${...}
+            // substitution without any explicit "load configuration" step.
             try {
                 Properties kettleProperties = new Properties();
+                kettleProperties.putAll(configuration);
                 kettleProperties.put("PIH_PENTAHO_HOME", srcDir.getAbsolutePath());
                 kettleProperties.store(new FileWriter(new File(kettleDir, "kettle.properties")), null);
                 log.debug("Wrote kettle.properties to " + kettleDir);
@@ -82,7 +99,6 @@ public class PentahoJob implements PetlJob {
                 throw new PetlException("Unable to initialize kettle.  Error writing to kettle.properties.", e);
             }
 
-            // Initialize the Kettle environment
             try {
                 log.debug("Initializing Kettle Environment");
                 log.debug("KETTLE_HOME = " + System.getProperty("KETTLE_HOME"));
@@ -99,61 +115,48 @@ public class PentahoJob implements PetlJob {
                 throw new PetlException("Unable to initialize kettle environment.", e);
             }
 
-            log.debug("CONFIGURATION:");
+            // Load file, log level, and set named parameters based on configuration properties.
+            // Dispatch by extension: .kjb -> JobMeta/Job, .ktr -> TransMeta/Trans.
 
-            Set<String> propertyNames = configuration.stringPropertyNames();
-            for (String property : propertyNames) {
-                String propertyValue = configuration.getProperty(property);
-                if (property.toLowerCase().contains("password")) {
-                    propertyValue = "************";
-                }
-                log.debug(property + " = " + propertyValue);
+            String fileName = jobFile.getName().toLowerCase();
+            boolean isTransform = fileName.endsWith(".ktr");
+            boolean isJob = fileName.endsWith(".kjb");
+            if (!isTransform && !isJob) {
+                throw new PetlException("Pentaho file must end in .kjb or .ktr: " + jobFile.getName());
             }
 
-            // Write passed configuration properties to pih-kettle.properties
-
-            try {
-                configuration.store(new FileWriter(new File(kettleDir, "pih-kettle.properties")), null);
-                log.debug("Wrote pih-kettle.properties to " + kettleDir);
-            }
-            catch (IOException e) {
-                throw new PetlException("Unable to initialize kettle.  Error writing to pih-kettle.properties.", e);
-            }
-
-            // Load job path, log level, and set named parameters based on configuration properties
-
-            JobMeta jobMeta = new JobMeta(jobFile.getAbsolutePath(), null);
+            NamedParams meta = isTransform
+                    ? new TransMeta(jobFile.getAbsolutePath(), (Repository) null)
+                    : new JobMeta(jobFile.getAbsolutePath(), null);
 
             log.debug("Petl Job parameters: ");
-            String[] declaredParameters = jobMeta.listParameters();
-            for (int i = 0; i < declaredParameters.length; i++) {
-                String parameterName = declaredParameters[i];
-                String parameterValue = jobMeta.getParameterDefault(parameterName);
-                if (configuration.containsKey(parameterName)) {
-                    parameterValue = configuration.getProperty(parameterName);
-                }
-                log.debug(parameterName + " -> " + parameterValue);
-                jobMeta.setParameterValue(parameterName, parameterValue);
-            }
+            applyParameters(meta, configuration);
 
             String logLevelConfig = configuration.getProperty(JOB_LOG_LEVEL, "MINIMAL");
             LogLevel logLevel = LogLevel.valueOf(logLevelConfig);
             log.debug("PetlJob log level: " + logLevel);
-
-            Job job = new Job(null, jobMeta);
-            job.setLogLevel(logLevel);
 
             StopWatch stopWatch = new StopWatch();
             stopWatch.start();
 
             log.debug("Starting PetlJob Execution...");
 
-            job.start();  // Start the job thread, which will execute asynchronously
-            job.waitUntilFinished(); // Wait until the job thread is finished
+            Result result;
+            if (isTransform) {
+                Trans trans = new Trans((TransMeta) meta);
+                trans.setLogLevel(logLevel);
+                trans.execute(null);
+                trans.waitUntilFinished();
+                result = trans.getResult();
+            } else {
+                Job job = new Job(null, (JobMeta) meta);
+                job.setLogLevel(logLevel);
+                job.start();
+                job.waitUntilFinished();
+                result = job.getResult();
+            }
 
             stopWatch.stop();
-
-            Result result = job.getResult();
 
             log.debug("***************");
             log.debug("PetlJob executed in:  " + stopWatch);
@@ -183,5 +186,17 @@ public class PentahoJob implements PetlJob {
         File f = new File(parent, dirName);
         f.mkdirs();
         return f;
+    }
+
+    private void applyParameters(NamedParams meta, Properties configuration) throws KettleException {
+        String[] declaredParameters = meta.listParameters();
+        for (String parameterName : declaredParameters) {
+            String parameterValue = meta.getParameterDefault(parameterName);
+            if (configuration.containsKey(parameterName)) {
+                parameterValue = configuration.getProperty(parameterName);
+            }
+            log.debug(parameterName + " -> " + parameterValue);
+            meta.setParameterValue(parameterName, parameterValue);
+        }
     }
 }
