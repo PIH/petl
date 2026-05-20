@@ -51,17 +51,29 @@ The working directory (e.g. `~/environments/petl-runner/`) is specified via `--w
 │   ├── mariadb118_<compose+dump-hash>/
 │   └── target_sqlserver_2026-05-20T10-15-00/   # one target data dir per execution
 └── executions/
-    └── 2026-05-20T10-15-00/
-        ├── execution.json           # metadata, git refs, jar hash, data dir refs, status
-        ├── source-docker-compose.yml
-        ├── target-docker-compose.yml
-        ├── matrix.yml               # snapshot copy if matrix run
-        ├── target/                  # copied Maven build output from --etl-src
-        ├── application.yml          # generated PETL config for this execution
-        ├── job-changes.patch        # if etl-src had uncommitted changes
-        ├── untracked/               # copies of untracked files from etl-src
-        ├── petl.log                 # full PETL stdout/stderr
-        └── run.json                 # job tree, timings, row counts
+    ├── matrices/                # matrix run records
+    │   └── 2026-05-20T10-00-00_db-comparison/
+    │       ├── matrix.yml       # snapshot of the matrix definition that was run
+    │       └── matrix-run.json  # start time, status, list of execution timestamps
+    ├── 2026-05-20T10-00-00_mysql56-original/
+    ├── 2026-05-20T11-15-00_mysql84-original/
+    └── 2026-05-20T12-30-00_mariadb118-mysql-upgrade/
+```
+
+Each execution directory (whether from a single run or a matrix combination) has the same structure:
+
+```
+executions/2026-05-20T10-00-00_mysql56-original/
+├── execution.json           # metadata, git refs, jar hash, data dir refs, matrix_run_id if applicable
+├── source-docker-compose.yml
+├── target-docker-compose.yml
+├── jobs/                    # copied from Maven build output of --etl-src
+├── datasources/             # copied from Maven build output of --etl-src
+├── application.yml          # generated PETL config for this execution
+├── job-changes.patch        # if etl-src had uncommitted changes
+├── untracked/               # copies of untracked files from etl-src
+├── petl.log                 # full PETL stdout/stderr
+└── run.json                 # job tree, timings, row counts
 ```
 
 ### Source data directory naming
@@ -95,17 +107,23 @@ petl-runner run \
 petl-runner matrix matrices/db-comparison.yml
 ```
 
-### Summarize an execution
+Runs all combinations sequentially. Each combination produces its own timestamped execution directory. A matrix run record is created under `executions/matrices/` grouping them.
+
+### Summarize an execution or matrix run
 
 ```
-petl-runner summarize [execution-timestamp]   # defaults to most recent
+petl-runner summarize [execution-timestamp|matrix-run-id]   # defaults to most recent
 ```
+
+When given a matrix run id, shows all combinations side by side.
 
 ### Compare executions
 
 ```
-petl-runner compare [run1] [run2] ...         # defaults to last 2
+petl-runner compare [run1|matrix-run-id] [run2|matrix-run-id] ...   # defaults to last 2
 ```
+
+Accepts individual execution timestamps, matrix run ids (expands to all combinations), or a mix of both.
 
 ### On-demand checksum
 
@@ -149,7 +167,7 @@ combinations:
     dump: dumps/kgh-2026-05-17.sql
 ```
 
-Any field that is the same across all combinations can be set as a default in `petl-runner.yml` and omitted from individual entries.
+Any field that is the same across all combinations can be set as a default in `petl-runner.yml` and omitted from individual entries. Each combination becomes its own execution directory; the matrix definition is snapshotted once into the matrix run record under `executions/matrices/`, not copied into each individual execution.
 
 ---
 
@@ -168,11 +186,12 @@ Any field that is the same across all combinations can be set as a default in `p
    Else: create data dir, start source container, load dump from file
 8. Create new empty target data dir for this execution; start target container
 9. Run `mvn clean package` in `--etl-src` directory
-10. Copy Maven `target/` output into execution directory
+10. Copy `jobs/` and `datasources/` from the Maven build output into the execution directory
 11. Generate `application.yml` into execution directory wiring:
     - Source datasource (host/port/credentials from source docker-compose)
     - Target datasource (host/port/credentials from target docker-compose)
-    - Job directory pointing at copied `target/` output
+    - `petl.jobDir` pointing at `<execution-dir>/jobs`
+    - `petl.datasourceDir` pointing at `<execution-dir>/datasources`
     - `petl.homeDir` pointing at execution directory
 12. Invoke `java -jar <petl-jar>` with generated config, streaming output to `petl.log`
 13. On completion (success or failure): query target DB for row counts per table, parse `petl.log` into job tree, write `run.json`
@@ -202,7 +221,7 @@ The execution directory captures everything needed to understand exactly what co
 | Dirty git repo | Commit hash + `job-changes.patch` + copied untracked files |
 | Not a git repo | Full directory copy |
 
-The copied Maven `target/` output is always present regardless — this is the exact artifact that ran.
+The copied `jobs/` and `datasources/` directories are always present regardless — these are the exact artifacts that ran.
 
 ---
 
@@ -322,6 +341,10 @@ Shows all executions with label, timestamp, status, and duration.
 
 Removes the execution directory. If the execution's target data dir is not referenced by any other execution, offers to remove it at the same time rather than leaving it orphaned.
 
+### `petl-runner execution clean --matrix <matrix-run-id>`
+
+Removes the matrix run record and offers to remove all of its execution directories (and any exclusively-referenced target data dirs) in one operation.
+
 ---
 
 ## Error Handling
@@ -330,4 +353,4 @@ Removes the execution directory. If the execution's target data dir is not refer
 - **Dump load failure**: report error, remove partially-created data dir
 - **Maven build failure**: report and stop; do not proceed to run
 - **PETL failure**: captured in `petl.log` and reflected in `run.json` status; still capture row counts and partial job tree from whatever ran
-- **Matrix mode**: on any combination failure, record the failure in that execution's `run.json`, then continue with remaining combinations
+- **Matrix mode**: on any combination failure, record the failure in that execution's `run.json` and in the matrix run record, then continue with remaining combinations; the matrix run record status reflects the worst outcome across all combinations
