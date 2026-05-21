@@ -36,7 +36,7 @@ public class IteratingJob implements PetlJob {
         log.debug("Executing IteratingJob");
         JobConfigReader configReader = new JobConfigReader(etlService.getApplicationConfig(), jobExecution.getJobConfig());
         int maxConcurrentJobs = configReader.getInt(1, "maxConcurrentJobs");
-        JobExecutor jobExecutor = new JobExecutor(etlService, maxConcurrentJobs);
+        JobExecutor jobExecutor = new JobExecutor(etlService, maxConcurrentJobs, etlService.getRunMonitor());
         try {
             List<JsonNode> iterations = configReader.getList("iterations");
             List<JobExecutionTask> iterationTasks = new ArrayList<>();

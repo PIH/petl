@@ -37,7 +37,7 @@ public class RunMultipleJob implements PetlJob {
     @Override
     public void execute(final JobExecution jobExecution) throws Exception {
         JobConfigReader configReader = new JobConfigReader(etlService.getApplicationConfig(), jobExecution.getJobConfig());
-        JobExecutor jobExecutor = new JobExecutor(etlService, 1);
+        JobExecutor jobExecutor = new JobExecutor(etlService, 1, etlService.getRunMonitor());
         List<String> containersStarted = new ArrayList<>();
         try {
             startContainersIfNecessary(containersStarted, configReader);

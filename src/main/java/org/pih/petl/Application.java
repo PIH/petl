@@ -81,7 +81,7 @@ public class Application {
                     }
                 }
                 else {
-                    JobExecutor jobExecutor = new JobExecutor(app.getEtlService(), petlConfig.getMaxConcurrentJobs());
+                    JobExecutor jobExecutor = new JobExecutor(app.getEtlService(), petlConfig.getMaxConcurrentJobs(), app.getEtlService().getRunMonitor());
                     try {
                         for (String job : startupJobs) {
                             jobExecutor.executeJob(job);

@@ -7,6 +7,8 @@ import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
 import org.springframework.stereotype.Component;
 
+import java.util.concurrent.atomic.AtomicLong;
+
 /**
  * Schedulable task for loading all of the configurations
  */
@@ -15,11 +17,11 @@ public class SchedulerTestTask implements Job {
 
     private static final Log log = LogFactory.getLog(SchedulerTestTask.class);
 
-    public static volatile long numExecutions;
+    public static final AtomicLong numExecutions = new AtomicLong(0);
 
     @Override
     public void execute(JobExecutionContext jobExecutionContext) throws JobExecutionException {
-        numExecutions++;
-        log.debug("Executing Task: " + " #" + numExecutions);
+        long n = numExecutions.incrementAndGet();
+        log.debug("Executing Task: " + " #" + n);
     }
 }

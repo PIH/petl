@@ -37,6 +37,9 @@ public class EtlService {
     final JobExecutionRepository jobExecutionRepository;
 
     @Autowired
+    RunMonitor runMonitor;
+
+    @Autowired
     List<PetlJob> petlJobs;
 
     private Map<String, PetlJob> petlJobsByType;
@@ -168,7 +171,7 @@ public class EtlService {
      * @return the JobExecution
      */
     public JobExecution executeJob(JobExecution jobExecution) {
-        JobExecutor jobExecutor = new JobExecutor(this, 1);
+        JobExecutor jobExecutor = new JobExecutor(this, 1, runMonitor);
         try {
             return jobExecutor.executeJob(jobExecution);
         }
@@ -240,5 +243,9 @@ public class EtlService {
      */
     public ApplicationConfig getApplicationConfig() {
         return applicationConfig;
+    }
+
+    public RunMonitor getRunMonitor() {
+        return runMonitor;
     }
 }
