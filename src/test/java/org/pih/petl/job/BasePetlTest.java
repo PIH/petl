@@ -26,7 +26,7 @@ public abstract class BasePetlTest {
     EtlService etlService;
 
     public JobExecution executeJob(String jobPath) {
-        JobExecutor executor = new JobExecutor(etlService, 1);
+        JobExecutor executor = new JobExecutor(etlService, 1, etlService.getRunMonitor());
         return executor.executeJob(jobPath);
     }
 

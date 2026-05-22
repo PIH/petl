@@ -34,7 +34,11 @@ public class JobExecutionTask implements Callable<JobExecutionResult> {
         jobExecution.setStarted(new Date());
         jobExecution.setStatus(JobExecutionStatus.IN_PROGRESS);
         etlService.saveJobExecution(jobExecution);
-         try {
+        RunMonitor monitor = etlService.getRunMonitor();
+        if (monitor != null) {
+            monitor.onJobStart(jobExecution, etlService);
+        }
+        try {
              log.info(jobExecution);
              log.info("Job (" + jobExecution.getUuid() + "): " + jobExecution.getJobConfig());
              PetlJob petlJob = etlService.getPetlJob(jobExecution.getJobConfig());

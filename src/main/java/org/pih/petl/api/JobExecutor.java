@@ -25,10 +25,12 @@ public class JobExecutor {
 
     private final EtlService etlService;
     private final ScheduledExecutorService executorService;
+    private final RunMonitor runMonitor;
 
-    public JobExecutor(EtlService etlService, Integer maxConcurrentJobs) {
+    public JobExecutor(EtlService etlService, Integer maxConcurrentJobs, RunMonitor runMonitor) {
         this.etlService = etlService;
         this.executorService = Executors.newScheduledThreadPool(maxConcurrentJobs);
+        this.runMonitor = runMonitor;
     }
 
     public void shutdown() {
@@ -83,6 +85,12 @@ public class JobExecutor {
             execution.setCompleted(new Date());
             etlService.saveJobExecution(execution);
             log.info(execution);
+            if (runMonitor != null) {
+                runMonitor.onJobComplete(execution, etlService);
+            }
+            if (execution.getParentExecutionUuid() == null) {
+                RunSummaryLogger.print(execution, etlService);
+            }
         }
         return execution;
     }
@@ -142,6 +150,9 @@ public class JobExecutor {
                 }
                 etlService.saveJobExecution(execution);
                 log.info(execution);
+                if (runMonitor != null) {
+                    runMonitor.onJobComplete(execution, etlService);
+                }
             }
         }
         List<Throwable> errors = new ArrayList<>();
@@ -207,6 +218,9 @@ public class JobExecutor {
             }
             etlService.saveJobExecution(execution);
             log.info(execution);
+            if (runMonitor != null) {
+                runMonitor.onJobComplete(execution, etlService);
+            }
         }
         if (failedResult != null) {
             throw new PetlException("An error occurred executing one or more jobs", failedResult.getException());

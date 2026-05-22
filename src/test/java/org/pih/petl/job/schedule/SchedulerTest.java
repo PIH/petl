@@ -43,7 +43,7 @@ public class SchedulerTest {
 
     @Test
     public void testSimpleJobThatOutputsLoggingMessage() throws Exception {
-        SchedulerTestTask.numExecutions = 0;
+        SchedulerTestTask.numExecutions.set(0);
         // 10ms interval avoids Quartz's misfire threshold under CPU contention; smart-policy
         // with a finite repeat count was occasionally dropping fires when paired with a 1ms
         // interval and a busy-wait observer.
@@ -53,9 +53,9 @@ public class SchedulerTest {
                 .withMisfireHandlingInstructionNowWithExistingCount();
         scheduler.schedule(SchedulerTestTask.class, schedule, 0);
         long maxTimeToWait = System.currentTimeMillis() + 30_000;
-        while (SchedulerTestTask.numExecutions < 5 && System.currentTimeMillis() < maxTimeToWait) {
+        while (SchedulerTestTask.numExecutions.get() < 5 && System.currentTimeMillis() < maxTimeToWait) {
             Thread.sleep(25);
         }
-        Assert.assertEquals(5, SchedulerTestTask.numExecutions);
+        Assert.assertEquals(5, SchedulerTestTask.numExecutions.get());
     }
 }

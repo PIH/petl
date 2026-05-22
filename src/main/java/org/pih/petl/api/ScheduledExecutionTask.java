@@ -34,7 +34,7 @@ public class ScheduledExecutionTask implements Job {
     @Autowired
     public ScheduledExecutionTask(EtlService etlService) {
         this.etlService = etlService;
-        this.jobExecutor = new JobExecutor(etlService, etlService.getApplicationConfig().getPetlConfig().getMaxConcurrentJobs());
+        this.jobExecutor = new JobExecutor(etlService, etlService.getApplicationConfig().getPetlConfig().getMaxConcurrentJobs(), etlService.getRunMonitor());
     }
 
     @PreDestroy

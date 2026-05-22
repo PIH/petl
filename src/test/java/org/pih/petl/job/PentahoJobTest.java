@@ -29,21 +29,21 @@ public class PentahoJobTest {
 
     @Test
     public void testSimpleJobThatOutputsLoggingMessage() {
-        JobExecutor executor = new JobExecutor(etlService, 1);
+        JobExecutor executor = new JobExecutor(etlService, 1, etlService.getRunMonitor());
         JobExecution execution = executor.executeJob("job.yml");
         Assert.assertNull(execution.getErrorMessage());
     }
 
     @Test
     public void testSimpleTransformExecutes() {
-        JobExecutor executor = new JobExecutor(etlService, 1);
+        JobExecutor executor = new JobExecutor(etlService, 1, etlService.getRunMonitor());
         JobExecution execution = executor.executeJob("transform.yml");
         Assert.assertNull(execution.getErrorMessage());
     }
 
     @Test
     public void testJobThatFailsResultsInAFailedPetlJobExecution() {
-        JobExecutor executor = new JobExecutor(etlService, 1);
+        JobExecutor executor = new JobExecutor(etlService, 1, etlService.getRunMonitor());
         Throwable exception = null;
         try {
             executor.executeJob("failing-job.yml");
