@@ -1,0 +1,35 @@
+services:
+
+  mysql:
+    image: library/mysql:8.4
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+    command: "mysqld \
+              --character-set-server=utf8 \
+              --collation-server=utf8_general_ci \
+              --max_allowed_packet=1G \
+              --innodb-buffer-pool-size=6G \
+              --innodb-buffer-pool-instances=6 \
+              --tmp-table-size=512M \
+              --max-heap-table-size=512M \
+              --sort-buffer-size=4M \
+              --join-buffer-size=4M \
+              --innodb-read-io-threads=8 \
+              --user=mysql \
+              --server-id=1 \
+              --skip-log-bin \
+              --mysql_native_password=ON \
+              --restrict_fk_on_non_standard_key=OFF \
+              --sql_mode=STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION"
+    volumes:
+      - "mysql_data:/var/lib/mysql"
+    ports:
+      - "3308:3306"
+
+volumes:
+  mysql_data:
+
+networks:
+  default:
+    name: "openmrs"
+    external: "true"
