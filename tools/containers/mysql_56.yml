@@ -1,0 +1,27 @@
+services:
+
+  mysql:
+    image: library/mysql:5.6
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+    command: "mysqld \
+              --character-set-server=utf8 \
+              --collation-server=utf8_general_ci \
+              --max_allowed_packet=1G \
+              --innodb-buffer-pool-size=2G \
+              --user=mysql \
+              --server-id=1 \
+              --net_write_timeout=3600 \
+              --net_read_timeout=3600"
+    volumes:
+      - "mysql_data:/var/lib/mysql"
+    ports:
+      - "3308:3306"
+
+volumes:
+  mysql_data:
+
+networks:
+  default:
+    name: "openmrs"
+    external: "true"
