@@ -2,7 +2,7 @@ name: Build and push PETL runtime image
 
 on:
   push:
-    branches: [main]
+    branches: [master]
     paths:
       - "Dockerfile.runtime"
       - "docker-entrypoint.sh"
@@ -16,13 +16,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Setup Local Maven Repository
+        id: setup_local_maven_repository
+        run: |
+          ./create-local-maven-repo.sh
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "8"
 
       - name: Build jar
-        run: mvn -B clean package -DskipTests
+        run: mvn -B clean package -DskipTests -Dmaven.source.skip=true -Dmaven.javadoc.skip=true
 
       - name: Extract version
         id: version
