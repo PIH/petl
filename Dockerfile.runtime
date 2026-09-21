@@ -1,6 +1,6 @@
 FROM eclipse-temurin:8-jre
 
-RUN mkdir -p /home/petl/bin /home/petl/data /home/petl/work
+RUN mkdir -p /home/petl/bin /home/petl/data /home/petl/work /home/petl/config/jobs /home/petl/config/datasources
 
 COPY target/petl-*.jar /home/petl/bin/petl.jar
 COPY docker-entrypoint.sh /docker-entrypoint.sh
