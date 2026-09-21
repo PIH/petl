@@ -1,0 +1,10 @@
+FROM eclipse-temurin:8-jre
+
+RUN mkdir -p /home/petl/bin /home/petl/data /home/petl/work
+
+COPY target/petl-*.jar /home/petl/bin/petl.jar
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+
+WORKDIR /home/petl/bin
+ENTRYPOINT ["/docker-entrypoint.sh"]
