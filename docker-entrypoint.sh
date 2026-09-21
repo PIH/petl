@@ -22,11 +22,20 @@ bootstrap_petl_mysql_user() {
         return 0
     fi
     echo "Bootstrapping PETL MySQL user '${PETL_MYSQL_USER}'..."
-    mysql -h "${PETL_MYSQL_HOST}" -P "${PETL_MYSQL_PORT:-3306}" -uroot -p"${PETL_MYSQL_ROOT_PASSWORD}" <<-SQL
-CREATE USER IF NOT EXISTS '${PETL_MYSQL_USER}'@'%' IDENTIFIED BY '${PETL_MYSQL_PASSWORD}';
-GRANT ALL PRIVILEGES ON *.* TO '${PETL_MYSQL_USER}'@'%';
-FLUSH PRIVILEGES;
-SQL
+
+    EXISTING_USER_COUNT=$(mysql -h "${PETL_MYSQL_HOST}" -P "${PETL_MYSQL_PORT:-3306}" -uroot -p"${PETL_MYSQL_ROOT_PASSWORD}" -N -e \
+        "SELECT COUNT(*) FROM mysql.user WHERE user = '${PETL_MYSQL_USER}' AND host = '%';")
+
+    if [ "${EXISTING_USER_COUNT}" -eq 0 ]; then
+        echo "PETL MySQL user '${PETL_MYSQL_USER}' not found, creating"
+        mysql -h "${PETL_MYSQL_HOST}" -P "${PETL_MYSQL_PORT:-3306}" -uroot -p"${PETL_MYSQL_ROOT_PASSWORD}" -e \
+            "CREATE USER '${PETL_MYSQL_USER}'@'%' IDENTIFIED BY '${PETL_MYSQL_PASSWORD}';"
+    else
+        echo "PETL MySQL user '${PETL_MYSQL_USER}' already exists, not re-creating"
+    fi
+
+    mysql -h "${PETL_MYSQL_HOST}" -P "${PETL_MYSQL_PORT:-3306}" -uroot -p"${PETL_MYSQL_ROOT_PASSWORD}" -e \
+        "GRANT ALL PRIVILEGES ON *.* TO '${PETL_MYSQL_USER}'@'%'; FLUSH PRIVILEGES;"
 }
 
 MAX_RETRIES="${PETL_MAX_RETRIES:-0}"
