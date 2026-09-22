@@ -6,8 +6,17 @@ if [ -z "$JOBS" ]; then
     JOBS="${PETL_FULL_REFRESH_JOBS:-}"
 fi
 
+# $1: space-separated job names. $2: "true" to add executeLatestIncompleteJobsOnly, which
+# tells petl to skip re-running any job (or job-pipeline/iterating-job child job) that
+# already succeeded on a prior attempt, per its own persisted job-execution history --
+# mirrors the legacy Puppet resubmit-latest-failed-job.sh.erb behavior.
 build_spring_application_json() {
-    json='{"petl":{"startup":{"exitAutomatically":"true","jobs":['
+    incomplete_only="${2:-false}"
+    json='{"petl":{"startup":{"exitAutomatically":"true"'
+    if [ "$incomplete_only" = "true" ]; then
+        json="${json},\"executeLatestIncompleteJobsOnly\":\"true\""
+    fi
+    json="${json},\"jobs\":["
     sep=""
     for job in $1; do
         json="${json}${sep}\"${job}\""
@@ -52,19 +61,21 @@ esac
 ATTEMPT=0
 LOG_FILE=/tmp/petl-run.log
 
-export SPRING_APPLICATION_JSON
-SPRING_APPLICATION_JSON=$(build_spring_application_json "$JOBS")
-
-# Note: this retries by re-running the FULL job list on every attempt. The
-# legacy Puppet retry mechanism (resubmit-latest-failed-job.sh.erb) only
-# re-ran jobs that hadn't completed, via an executeLatestIncompleteJobsOnly
-# flag. We intentionally don't replicate that here: partial retry requires
-# understanding petl's own job-tracking semantics in depth, and a full
-# re-run is still correct, just potentially slower.
+# The first attempt runs the full job list. Every retry after that passes
+# executeLatestIncompleteJobsOnly, so petl skips whatever already succeeded (per its
+# own persisted job-execution history at $PETL_HOME/data) and only re-runs what
+# didn't -- see build_spring_application_json above.
 while true; do
     bootstrap_petl_mysql_user
 
     ATTEMPT=$((ATTEMPT + 1))
+    if [ "$ATTEMPT" -eq 1 ]; then
+        SPRING_APPLICATION_JSON=$(build_spring_application_json "$JOBS" false)
+    else
+        SPRING_APPLICATION_JSON=$(build_spring_application_json "$JOBS" true)
+    fi
+    export SPRING_APPLICATION_JSON
+
     echo "Executing PETL (attempt ${ATTEMPT}) with configuration:"
     echo "$SPRING_APPLICATION_JSON"
 
