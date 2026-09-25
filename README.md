@@ -313,7 +313,7 @@ configuration:
     bulkCopy:
       batchSize: 100 # Optional, default is 100.  You can increase or decrease the number of records in each batch with this
       timeout: 7200 # Optional, default is 7200 (2 hours).  You can increase or decrease the timeout of the operation with this
-      progressIntervalSeconds: 300 # Optional, default is 300 (5 minutes).  How often to log progress while a bulk copy is running
+      progressIntervalSeconds: 300 # Optional, default is 300 (5 minutes).  How often to log progress while an import is running
 ```
    
 NOTE:
@@ -525,9 +525,11 @@ At the default `INFO` level, PETL logs:
 * When each job starts, succeeds, or fails, with its duration and attempt number if retries are configured
 * For failures, a one-line summary of the cause, including the SQL error code and SQLState for database errors.
   The stack trace is logged once, by the job in which the failure occurred, and not by parent jobs or on retry attempts.
-* For `sqlserver-bulk-import` jobs, a summary with the number of rows imported and the time spent in each phase
-  (setup, context, query to first row, bulk copy, finalize).  Bulk copies also log progress periodically while running.
-  The approximate row count in these progress lines requires the `VIEW DATABASE STATE` permission on the target database.
+* For `sqlserver-bulk-import` jobs, a summary with the number of rows imported and the time spent in each phase:
+  setup, lock wait (waiting for another import of the same table), staging setup, incremental prep, extract prep
+  (statements in the extract query before the final select), query to first row, bulk copy, and finalize.
+  Imports also log progress periodically while running, with the current phase.  During a bulk copy, this includes
+  the approximate number of rows loaded, which requires the `VIEW DATABASE STATE` permission on the target database.
 * For `sql-execution` jobs, the time taken by each script, and any individual statement that takes over 60 seconds
 * Every 5 minutes while a run is in progress, the number of jobs complete, failed, and in progress
 * For connection failures, the database host and the underlying driver error

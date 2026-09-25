@@ -42,6 +42,7 @@ public class SqlServerImportJob implements PetlJob {
 
     private final Log log = LogFactory.getLog(getClass());
 
+    private final Map<String, Object> stagingMonitors = new ConcurrentHashMap<>();
     private final Map<String, Object> tableMonitors = new ConcurrentHashMap<>();
 
     @Autowired
@@ -60,6 +61,8 @@ public class SqlServerImportJob implements PetlJob {
 
         List<String> containersStarted = new ArrayList<>();
         String source = configReader.getString("extract", "datasource");
+        int progressIntervalSeconds = configReader.getInt(300, "load", "bulkCopy", "progressIntervalSeconds");
+        ImportProgressMonitor progressMonitor = new ImportProgressMonitor(timer, progressIntervalSeconds);
         try {
             // Get source datasource
             DataSource sourceDatasource = configReader.getDataSource("extract", "datasource");
@@ -213,18 +216,40 @@ public class SqlServerImportJob implements PetlJob {
                 incrementalDeleteStatement = sqlServerWatermarks + incrementalDeleteStatement;
             }
 
+            String tableToBulkInsertInto = usePartitioning ? targetTable + "_" + partitionValue : targetTable;
+            Object stagingMonitor = stagingMonitors.computeIfAbsent(tableToBulkInsertInto, k -> new Object());
             Object tableMonitor = tableMonitors.computeIfAbsent(targetTable, k -> new Object());
-            synchronized (tableMonitor) {
 
-                String tableToBulkInsertInto = targetTable;
-
+            // Only one import at a time may load a given staging table (partitioned imports) or target table (otherwise).
+            // Partitioned imports into the same target table run concurrently, only holding the target table lock while
+            // checking its schema, reading its existing data for incremental loads, and switching in their partition
+            timer.start("lock wait");
+            synchronized (stagingMonitor) {
+                Integer rowsBeforeImport = null;
                 if (usePartitioning) {
-                    tableToBulkInsertInto = targetTable + "_" + partitionValue;
-                    targetDatasource.dropTableIfExists(tableToBulkInsertInto);
-                    String partitionSchema = SqlUtils.addSuffixToCreatedTablename(targetSchema, "_" + partitionValue);
-                    targetDatasource.executeUpdate(partitionSchema);
-                    dropAndRecreateIfSchemasDiffer(targetDatasource, targetTable, tableToBulkInsertInto, targetSchema);
+                    synchronized (tableMonitor) {
+                        timer.start("staging setup");
+                        targetDatasource.dropTableIfExists(tableToBulkInsertInto);
+                        String partitionSchema = SqlUtils.addSuffixToCreatedTablename(targetSchema, "_" + partitionValue);
+                        targetDatasource.executeUpdate(partitionSchema);
+                        dropAndRecreateIfSchemasDiffer(targetDatasource, targetTable, tableToBulkInsertInto, targetSchema);
+
+                        // If we are doing incremental loading, we first need to pre-populate the partition table with existing data
+                        if (incremental && previousWatermark != null) {
+                            timer.start("incremental prep");
+                            log.debug("Inserting existing values from target table");
+                            String insertSql = "insert into " + tableToBulkInsertInto + " select * from " + targetTable + " where " + partitionColumn + " = " + partitionValue;
+                            log.trace(insertSql);
+                            targetDatasource.executeUpdate(insertSql);
+                            logNumberOfRows("After Insert:", targetDatasource, tableToBulkInsertInto);
+                            log.debug("Deleting values that have changed since the last watermark");
+                            log.trace(incrementalDeleteStatement);
+                            targetDatasource.executeUpdate(incrementalDeleteStatement);
+                            rowsBeforeImport = logNumberOfRows("After Delete:", targetDatasource, tableToBulkInsertInto);
+                        }
+                    }
                 } else {
+                    timer.start("staging setup");
                     if (StringUtils.isNotEmpty(targetSchema)) {
                         if (dropAndRecreate) {
                             log.debug("Dropping existing table: " + tableToBulkInsertInto);
@@ -240,136 +265,121 @@ public class SqlServerImportJob implements PetlJob {
                         log.debug("No target schema specified");
                     }
                 }
-
-                // If we are doing incremental loading, we first need to pre-populate the partition table with existing data
-                Integer rowsBeforeImport = null;
-                if (incremental) {
-                    if (previousWatermark != null) {
-                        timer.start("incremental prep");
-                        log.debug("Inserting existing values from target table");
-                        String insertSql = "insert into " + tableToBulkInsertInto + " select * from " + targetTable + " where " + partitionColumn + " = " + partitionValue;
-                        log.trace(insertSql);
-                        targetDatasource.executeUpdate(insertSql);
-                        logNumberOfRows("After Insert:", targetDatasource, tableToBulkInsertInto);
-                        log.debug("Deleting values that have changed since the last watermark");
-                        log.trace(incrementalDeleteStatement);
-                        targetDatasource.executeUpdate(incrementalDeleteStatement);
-                        rowsBeforeImport = logNumberOfRows("After Delete:", targetDatasource, tableToBulkInsertInto);
-                    } else {
-                        log.info("No previous watermark found, performing full load up to watermark " + newWatermark);
-                    }
+                if (incremental && previousWatermark == null) {
+                    log.info("No previous watermark found, performing full load up to watermark " + newWatermark);
                 }
 
-                // Get bulk load configuration
-                int batchSize = configReader.getInt(100, "load", "bulkCopy", "batchSize");
-                int timeout = configReader.getInt(7200, "load", "bulkCopy", "timeout"); // 2h default
-                boolean testOnly = configReader.getBoolean(false, "load", "bulkCopy", "testOnly");
-                int progressIntervalSeconds = configReader.getInt(300, "load", "bulkCopy", "progressIntervalSeconds");
+                    // Get bulk load configuration
+                    int batchSize = configReader.getInt(100, "load", "bulkCopy", "batchSize");
+                    int timeout = configReader.getInt(7200, "load", "bulkCopy", "timeout"); // 2h default
+                    boolean testOnly = configReader.getBoolean(false, "load", "bulkCopy", "testOnly");
 
-                try (Connection sourceConnection = sourceDatasource.openConnection()) {
-                    try (Connection targetConnection = targetDatasource.openConnection()) {
+                    try (Connection sourceConnection = sourceDatasource.openConnection()) {
+                        try (Connection targetConnection = targetDatasource.openConnection()) {
 
-                        boolean originalSourceAutoCommit = sourceConnection.getAutoCommit();
-                        boolean originalTargetAutocommit = targetConnection.getAutoCommit();
+                            boolean originalSourceAutoCommit = sourceConnection.getAutoCommit();
+                            boolean originalTargetAutocommit = targetConnection.getAutoCommit();
 
-                        try {
-                            sourceConnection.setAutoCommit(false); // We intend to rollback changes to source after querying DB
-                            targetConnection.setAutoCommit(true);  // We want to commit to target as we go, to query status
+                            try {
+                                sourceConnection.setAutoCommit(false); // We intend to rollback changes to source after querying DB
+                                targetConnection.setAutoCommit(true);  // We want to commit to target as we go, to query status
 
-                            // Now execute a bulk import
-                            log.debug("Executing import");
+                                // Now execute a bulk import
+                                log.debug("Executing import");
 
-                            // Parse the source query into statements
-                            List<String> stmts = SqlUtils.parseSqlIntoStatements(sourceQuery, ";");
-                            log.trace("Parsed extract query into " + stmts.size() + " statements");
+                                // Parse the source query into statements
+                                List<String> stmts = SqlUtils.parseSqlIntoStatements(sourceQuery, ";");
+                                log.trace("Parsed extract query into " + stmts.size() + " statements");
 
-                            // Iterate over each statement, and execute.  The final statement is expected to select the data out.
-                            for (Iterator<String> sqlIterator = stmts.iterator(); sqlIterator.hasNext(); ) {
-                                String sqlStatement = sqlIterator.next();
-                                Statement statement = null;
-                                try {
-                                    log.trace("Executing: " + sqlStatement);
-                                    StopWatch sw = new StopWatch();
-                                    sw.start();
-                                    if (sqlIterator.hasNext()) {
-                                        timer.start("context");
-                                        statement = sourceConnection.createStatement();
-                                        statement.execute(sqlStatement);
-                                        log.trace("Statement executed");
-                                    } else {
-                                        log.trace("This is the last statement, treat it as the extraction query");
+                                // Iterate over each statement, and execute.  The final statement is expected to select the data out.
+                                for (Iterator<String> sqlIterator = stmts.iterator(); sqlIterator.hasNext(); ) {
+                                    String sqlStatement = sqlIterator.next();
+                                    Statement statement = null;
+                                    try {
+                                        log.trace("Executing: " + sqlStatement);
+                                        StopWatch sw = new StopWatch();
+                                        sw.start();
+                                        if (sqlIterator.hasNext()) {
+                                            timer.start("extract prep");
+                                            statement = sourceConnection.createStatement();
+                                            statement.execute(sqlStatement);
+                                            log.trace("Statement executed");
+                                        } else {
+                                            log.trace("This is the last statement, treat it as the extraction query");
 
-                                        sqlStatement = SqlUtils.addExtraColumnsToSelect(sqlStatement, extraColumns);
-                                        log.trace("Executing SQL extraction");
-                                        log.trace(sqlStatement);
+                                            sqlStatement = SqlUtils.addExtraColumnsToSelect(sqlStatement, extraColumns);
+                                            log.trace("Executing SQL extraction");
+                                            log.trace(sqlStatement);
 
-                                        statement = sourceConnection.prepareStatement(
-                                                sqlStatement, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY
-                                        );
-                                        if ("mysql".equals(sourceDatasource.getDatabaseType())) {
-                                            statement.setFetchSize(Integer.MIN_VALUE);
-                                        }
-
-                                        ResultSet resultSet = null;
-                                        try {
-                                            timer.start("query to first row");
-                                            resultSet = ((PreparedStatement) statement).executeQuery();
-                                            if (resultSet != null) {
-                                                if (testOnly) {
-                                                    SqlUtils.testResultSet(resultSet);
-                                                    throw new PetlException("Failed to load to SQL server due to testOnly mode");
-                                                } else {
-                                                    log.trace("Setting up bulk copy connection");
-                                                    Connection sqlServerConnection = getAsSqlServerConnection(targetConnection);
-                                                    SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(sqlServerConnection);
-                                                    SQLServerBulkCopyOptions bco = new SQLServerBulkCopyOptions();
-                                                    bco.setKeepIdentity(true);
-                                                    bco.setBatchSize(batchSize);
-                                                    bco.setBulkCopyTimeout(timeout);
-                                                    bulkCopy.setBulkCopyOptions(bco);
-                                                    bulkCopy.setDestinationTableName(tableToBulkInsertInto);
-                                                    log.debug("Starting bulk copy into " + tableToBulkInsertInto + " (batch size: " + batchSize + ", timeout: " + timeout + "s)");
-                                                    timer.start("bulk copy");
-                                                    String progressTable = tableToBulkInsertInto;
-                                                    try (BulkCopyProgressMonitor ignored = new BulkCopyProgressMonitor(
-                                                            tableToBulkInsertInto, () -> approximateRowCount(targetDatasource, progressTable), progressIntervalSeconds)) {
-                                                        bulkCopy.writeToServer(resultSet);
-                                                    }
-                                                    log.trace("Bulk copy operation completed successfully");
-                                                }
-                                            } else {
-                                                throw new PetlException("Invalid SQL extraction, no result set found");
+                                            statement = sourceConnection.prepareStatement(
+                                                    sqlStatement, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY
+                                            );
+                                            if ("mysql".equals(sourceDatasource.getDatabaseType())) {
+                                                statement.setFetchSize(Integer.MIN_VALUE);
                                             }
-                                        } finally {
-                                            DbUtils.closeQuietly(resultSet);
+
+                                            ResultSet resultSet = null;
+                                            try {
+                                                timer.start("query to first row");
+                                                resultSet = ((PreparedStatement) statement).executeQuery();
+                                                if (resultSet != null) {
+                                                    if (testOnly) {
+                                                        SqlUtils.testResultSet(resultSet);
+                                                        throw new PetlException("Failed to load to SQL server due to testOnly mode");
+                                                    } else {
+                                                        log.trace("Setting up bulk copy connection");
+                                                        Connection sqlServerConnection = getAsSqlServerConnection(targetConnection);
+                                                        SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(sqlServerConnection);
+                                                        SQLServerBulkCopyOptions bco = new SQLServerBulkCopyOptions();
+                                                        bco.setKeepIdentity(true);
+                                                        bco.setBatchSize(batchSize);
+                                                        bco.setBulkCopyTimeout(timeout);
+                                                        bulkCopy.setBulkCopyOptions(bco);
+                                                        bulkCopy.setDestinationTableName(tableToBulkInsertInto);
+                                                        log.debug("Starting bulk copy into " + tableToBulkInsertInto + " (batch size: " + batchSize + ", timeout: " + timeout + "s)");
+                                                        timer.start("bulk copy");
+                                                        progressMonitor.setRowCounter(tableToBulkInsertInto, () -> approximateRowCount(targetDatasource, tableToBulkInsertInto));
+                                                        try {
+                                                            bulkCopy.writeToServer(resultSet);
+                                                        }
+                                                        finally {
+                                                            progressMonitor.setRowCounter(null, null);
+                                                        }
+                                                        log.trace("Bulk copy operation completed successfully");
+                                                    }
+                                                } else {
+                                                    throw new PetlException("Invalid SQL extraction, no result set found");
+                                                }
+                                            } finally {
+                                                DbUtils.closeQuietly(resultSet);
+                                            }
                                         }
+                                        sw.stop();
+                                        log.trace("Statement executed in: " + sw);
+                                    } finally {
+                                        DbUtils.closeQuietly(statement);
                                     }
-                                    sw.stop();
-                                    log.trace("Statement executed in: " + sw);
-                                } finally {
-                                    DbUtils.closeQuietly(statement);
                                 }
-                            }
-                            log.debug("Import Completed Successfully");
-                        } finally {
-                            try {
-                                sourceConnection.rollback();
-                            } catch (Exception e) {
-                                log.debug("An error occurred during source connection rollback", e);
-                            }
-                            try {
-                                sourceConnection.setAutoCommit(originalSourceAutoCommit);
-                            } catch (Exception e) {
-                                log.debug("An error occurred setting the source connection autocommit", e);
-                            }
-                            try {
-                                targetConnection.setAutoCommit(originalTargetAutocommit);
-                            } catch (Exception e) {
-                                log.debug("An error occurred setting the target connection autocommit", e);
+                                log.debug("Import Completed Successfully");
+                            } finally {
+                                try {
+                                    sourceConnection.rollback();
+                                } catch (Exception e) {
+                                    log.debug("An error occurred during source connection rollback", e);
+                                }
+                                try {
+                                    sourceConnection.setAutoCommit(originalSourceAutoCommit);
+                                } catch (Exception e) {
+                                    log.debug("An error occurred setting the source connection autocommit", e);
+                                }
+                                try {
+                                    targetConnection.setAutoCommit(originalTargetAutocommit);
+                                } catch (Exception e) {
+                                    log.debug("An error occurred setting the target connection autocommit", e);
+                                }
                             }
                         }
                     }
-                }
 
                 Integer rowsImported = null;
                 if (usePartitioning) {
@@ -378,15 +388,19 @@ public class SqlServerImportJob implements PetlJob {
                     if (rowsAfterImport != null) {
                         rowsImported = rowsAfterImport - (rowsBeforeImport == null ? 0 : rowsBeforeImport);
                     }
-                    log.debug("Moving partition " + partitionValue + " from " + tableToBulkInsertInto + " to " + targetTable);
-                    targetDatasource.executeUpdate(SqlUtils.createMovePartitionStatement(tableToBulkInsertInto, targetTable, partitionValue));
-                    log.debug("Dropping table: " + tableToBulkInsertInto);
-                    targetDatasource.dropTableIfExists(tableToBulkInsertInto);
+                    timer.start("lock wait");
+                    synchronized (tableMonitor) {
+                        timer.start("finalize");
+                        log.debug("Moving partition " + partitionValue + " from " + tableToBulkInsertInto + " to " + targetTable);
+                        targetDatasource.executeUpdate(SqlUtils.createMovePartitionStatement(tableToBulkInsertInto, targetTable, partitionValue));
+                        log.debug("Dropping table: " + tableToBulkInsertInto);
+                        targetDatasource.dropTableIfExists(tableToBulkInsertInto);
 
-                    if (newWatermark != null) {
-                        log.debug("Updating watermark for " + targetTable + " partition " + partitionValue + " from " + previousWatermark + " to " + newWatermark);
-                        log.trace(updateWatermarkStatement);
-                        targetDatasource.executeUpdate(updateWatermarkStatement);
+                        if (newWatermark != null) {
+                            log.debug("Updating watermark for " + targetTable + " partition " + partitionValue + " from " + previousWatermark + " to " + newWatermark);
+                            log.trace(updateWatermarkStatement);
+                            targetDatasource.executeUpdate(updateWatermarkStatement);
+                        }
                     }
                 }
                 timer.stop();
@@ -400,6 +414,7 @@ public class SqlServerImportJob implements PetlJob {
             throw e;
         }
         finally {
+            progressMonitor.close();
             DockerConnector.stopContainers(containersStarted);
         }
     }
