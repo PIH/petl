@@ -31,14 +31,15 @@ public class JobExecutionTask implements Callable<JobExecutionResult> {
     @Override
     public JobExecutionResult call() {
         JobExecutionResult result = new JobExecutionResult(this);
-        jobExecution.setStarted(new Date());
-        jobExecution.setStatus(JobExecutionStatus.IN_PROGRESS);
-        etlService.saveJobExecution(jobExecution);
-        RunMonitor monitor = etlService.getRunMonitor();
-        if (monitor != null) {
-            monitor.onJobStart(jobExecution, etlService);
-        }
         try {
+             // Saving is inside the try so that a failure is returned as a failed result, subject to retry
+             jobExecution.setStarted(new Date());
+             jobExecution.setStatus(JobExecutionStatus.IN_PROGRESS);
+             etlService.saveJobExecution(jobExecution);
+             RunMonitor monitor = etlService.getRunMonitor();
+             if (monitor != null) {
+                 monitor.onJobStart(jobExecution, etlService);
+             }
              log.info(jobExecution);
              log.info("Job (" + jobExecution.getUuid() + "): " + jobExecution.getJobConfig());
              PetlJob petlJob = etlService.getPetlJob(jobExecution.getJobConfig());

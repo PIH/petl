@@ -8,6 +8,7 @@ import org.pih.petl.PetlException;
 import org.pih.petl.job.PetlJob;
 import org.pih.petl.job.config.JobConfig;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,6 +33,9 @@ import java.util.TreeMap;
 public class EtlService {
 
     private static final Log log = LogFactory.getLog(EtlService.class);
+
+    private static final int SAVE_MAX_ATTEMPTS = 5;
+    private static final long SAVE_RETRY_DELAY_MILLIS = 500;
 
     final ApplicationConfig applicationConfig;
     final JobExecutionRepository jobExecutionRepository;
@@ -132,19 +136,42 @@ public class EtlService {
     }
 
     /**
-     * Save the given job execution to the DB
+     * Save the given job execution to the DB, retrying if the save is chosen as a deadlock victim or cannot
+     * acquire a lock.  This is intentionally not @Transactional, so that each attempt runs in its own transaction.
      * @param jobExecution the job execution to save
      * @return JobExecution the saved job execution
      */
-    @Transactional
     public JobExecution saveJobExecution(JobExecution jobExecution) {
-        JobExecution saved = jobExecutionRepository.save(jobExecution);
+        JobExecution saved = saveWithRetry(jobExecution);
         log.debug(saved);
         if (runMonitor != null) {
             // Callers typically continue to update the instance they passed in, so track that one
             runMonitor.onSave(jobExecution);
         }
         return saved;
+    }
+
+    private JobExecution saveWithRetry(JobExecution jobExecution) {
+        int attempt = 1;
+        while (true) {
+            try {
+                return jobExecutionRepository.save(jobExecution);
+            }
+            catch (PessimisticLockingFailureException e) {
+                if (attempt >= SAVE_MAX_ATTEMPTS) {
+                    throw e;
+                }
+                log.warn("Unable to save job execution due to lock conflict, retrying (attempt " + attempt + "): " + e.getMessage());
+                try {
+                    Thread.sleep(SAVE_RETRY_DELAY_MILLIS * attempt);
+                }
+                catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    throw e;
+                }
+                attempt++;
+            }
+        }
     }
 
     /**
