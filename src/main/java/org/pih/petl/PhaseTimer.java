@@ -5,14 +5,15 @@ import java.util.Map;
 
 /**
  * Tracks the time spent in each named phase of a job.  Starting a phase ends the current phase.
- * Time is accumulated if a phase is started more than once.
+ * Time is accumulated if a phase is started more than once.  Phases are started and stopped by the job's thread,
+ * and the current phase may be read from other threads, eg. to log progress.
  */
 public class PhaseTimer {
 
     private final long createdMillis = System.currentTimeMillis();
     private final Map<String, Long> phaseMillis = new LinkedHashMap<>();
-    private String currentPhase;
-    private long currentPhaseStart;
+    private volatile String currentPhase;
+    private volatile long currentPhaseStart;
 
     public void start(String phase) {
         stop();
@@ -33,6 +34,13 @@ public class PhaseTimer {
      */
     public String getCurrentPhase() {
         return currentPhase;
+    }
+
+    /**
+     * @return how long the current phase has been in progress, or 0 if none
+     */
+    public long getCurrentPhaseMillis() {
+        return currentPhase == null ? 0 : System.currentTimeMillis() - currentPhaseStart;
     }
 
     public long getTotalMillis() {

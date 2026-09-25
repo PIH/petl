@@ -93,6 +93,17 @@ public class SqlServerImportJobTest extends BasePetlTest {
     }
 
     @Test
+    public void testLoadingFromMySQLWithPartitionsInParallel() throws Exception {
+        executeJob("jobWithPartitionsInParallel.yml");
+        verifyTableExists("encounter_types");
+        verifyRowCount("encounter_types", 22);
+        assertSqlServerCount("select count(*) from encounter_types where partition_num = 1", 7);
+        assertSqlServerCount("select count(*) from encounter_types where partition_num = 2", 4);
+        assertSqlServerCount("select count(*) from encounter_types where partition_num = 3", 7);
+        assertSqlServerCount("select count(*) from encounter_types where partition_num = 4", 4);
+    }
+
+    @Test
     public void testLoadingFromMySQLWithPartitionsAndSchemaChange() throws Exception {
         executeJob("jobWithPartitionsAndSchemaChange.yml");
         verifyTableExists("encounter_types");
