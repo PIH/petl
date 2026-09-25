@@ -19,6 +19,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -49,11 +50,22 @@ public class RunMonitor {
 
     private static final long FLUSH_INTERVAL_SECONDS = 5;
     private static final long REFRESH_INTERVAL_MILLIS = 30000;
+    private static final int MAX_RELEASED_ROOTS = 100;
 
     private final ScheduledExecutorService refreshTimer = Executors.newSingleThreadScheduledExecutor();
 
     private final Map<String, JobExecution> executions = new ConcurrentHashMap<>();
     private final Set<String> loadedRoots = ConcurrentHashMap.newKeySet();
+
+    // Recently completed runs, so that repeat notifications for them do not reload them from the database
+    private final Set<String> releasedRoots = Collections.synchronizedSet(Collections.newSetFromMap(
+            new LinkedHashMap<String, Boolean>() {
+                @Override
+                protected boolean removeEldestEntry(Map.Entry<String, Boolean> eldest) {
+                    return size() > MAX_RELEASED_ROOTS;
+                }
+            }
+    ));
 
     private volatile String activeRootUuid;
     private volatile boolean dirty;
@@ -77,6 +89,12 @@ public class RunMonitor {
      */
     public void onSave(JobExecution execution) {
         try {
+            if (releasedRoots.contains(execution.getUuid())) {
+                if (isTerminal(execution.getStatus())) {
+                    return;
+                }
+                releasedRoots.remove(execution.getUuid()); // A completed run is being resumed
+            }
             executions.put(execution.getUuid(), execution);
             dirty = true;
         }
@@ -102,7 +120,7 @@ public class RunMonitor {
         try {
             appendToRunLog(execution, RunSummaryLogger.formatDuration(execution));
             String rootUuid = activate(execution, etlService);
-            if (execution.getParentExecutionUuid() == null) {
+            if (rootUuid != null && execution.getParentExecutionUuid() == null) {
                 // Flush this specific run, as a concurrent run may have since become active
                 flushStatusFile(rootUuid, true);
             }
@@ -114,9 +132,12 @@ public class RunMonitor {
 
     /**
      * Makes the run containing this execution the one reported in the status file
-     * @return the uuid of the root execution of the run
+     * @return the uuid of the root execution of the run, or null if the run has already completed and been released
      */
     private String activate(JobExecution execution, EtlService etlService) {
+        if (releasedRoots.contains(execution.getUuid()) && isTerminal(execution.getStatus())) {
+            return null;
+        }
         executions.putIfAbsent(execution.getUuid(), execution);
         JobExecution root = findRoot(execution, etlService);
         if (loadedRoots.add(root.getUuid())) {
@@ -203,6 +224,7 @@ public class RunMonitor {
         }
         executions.remove(root.getUuid());
         loadedRoots.remove(root.getUuid());
+        releasedRoots.add(root.getUuid());
         if (activeRootUuid == null || root.getUuid().equals(activeRootUuid)) {
             activeRootUuid = null;
             for (String uuid : loadedRoots) {

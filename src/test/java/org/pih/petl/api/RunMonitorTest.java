@@ -175,6 +175,55 @@ public class RunMonitorTest {
         Assert.assertTrue(trackedExecutions().containsKey(runB.getUuid()));
     }
 
+    @Test
+    public void shouldNotReloadRunOnRepeatCompletionNotification() throws Exception {
+        when(etlService.getChildExecutions(any())).thenReturn(Collections.emptyList());
+
+        JobExecution root = execution("root", null, null);
+        root.setStatus(JobExecutionStatus.IN_PROGRESS);
+        runMonitor.onSave(root);
+        runMonitor.onJobStart(root, etlService);
+        JobExecution child = execution("child-1", root, 1);
+        child.setStatus(JobExecutionStatus.SUCCEEDED);
+        runMonitor.onSave(child);
+
+        // JobExecutor notifies completion of a top-level job twice: from executeInSeries and from executeJob
+        root.setStatus(JobExecutionStatus.SUCCEEDED);
+        runMonitor.onSave(root);
+        runMonitor.onJobComplete(root, etlService);
+        runMonitor.onSave(root);
+        runMonitor.onJobComplete(root, etlService);
+
+        verify(etlService, times(1)).getChildExecutions(any());
+        Assert.assertTrue(trackedExecutions().isEmpty());
+        Assert.assertTrue(readStatusFile().contains("child-1"));
+    }
+
+    @Test
+    public void shouldTrackCompletedRunAgainWhenResumed() throws Exception {
+        when(etlService.getChildExecutions(any())).thenReturn(Collections.emptyList());
+
+        JobExecution root = execution("root", null, null);
+        root.setStatus(JobExecutionStatus.IN_PROGRESS);
+        runMonitor.onSave(root);
+        runMonitor.onJobStart(root, etlService);
+        root.setStatus(JobExecutionStatus.FAILED);
+        runMonitor.onSave(root);
+        runMonitor.onJobComplete(root, etlService);
+        Assert.assertTrue(trackedExecutions().isEmpty());
+
+        // Resuming the failed run saves it as in progress, and its children are then reported again
+        root.setStatus(JobExecutionStatus.IN_PROGRESS);
+        runMonitor.onSave(root);
+        JobExecution child = execution("child-resumed", root, 1);
+        child.setStatus(JobExecutionStatus.IN_PROGRESS);
+        runMonitor.onSave(child);
+        runMonitor.onJobStart(child, etlService);
+        runMonitor.flushStatusFile(root.getUuid(), true);
+        Assert.assertTrue(readStatusFile().contains("child-resumed"));
+        Assert.assertEquals(root.getUuid(), ReflectionTestUtils.getField(runMonitor, "activeRootUuid"));
+    }
+
     @SuppressWarnings("unchecked")
     private Map<String, JobExecution> trackedExecutions() {
         return (Map<String, JobExecution>) ReflectionTestUtils.getField(runMonitor, "executions");
