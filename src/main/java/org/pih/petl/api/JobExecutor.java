@@ -89,7 +89,12 @@ public class JobExecutor {
                 runMonitor.onJobComplete(execution, etlService);
             }
             if (execution.getParentExecutionUuid() == null) {
-                RunSummaryLogger.print(execution, etlService);
+                try {
+                    RunSummaryLogger.print(execution, etlService);
+                }
+                catch (Throwable t) {
+                    log.warn("Unable to print run summary: " + t.getMessage());
+                }
             }
         }
         return execution;
