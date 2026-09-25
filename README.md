@@ -313,6 +313,7 @@ configuration:
     bulkCopy:
       batchSize: 100 # Optional, default is 100.  You can increase or decrease the number of records in each batch with this
       timeout: 7200 # Optional, default is 7200 (2 hours).  You can increase or decrease the timeout of the operation with this
+      progressIntervalSeconds: 300 # Optional, default is 300 (5 minutes).  How often to log progress while a bulk copy is running
 ```
    
 NOTE:
@@ -515,6 +516,26 @@ Example configuration:
 ```
 
 # Monitoring Jobs and REST API
+
+## Logging
+
+Each log line includes the job it belongs to (the job path or description), as jobs may run concurrently on multiple threads.
+At the default `INFO` level, PETL logs:
+
+* When each job starts, succeeds, or fails, with its duration and attempt number if retries are configured
+* For failures, a one-line summary of the cause, including the SQL error code and SQLState for database errors.
+  The stack trace is logged once, by the job in which the failure occurred, and not by parent jobs or on retry attempts.
+* For `sqlserver-bulk-import` jobs, a summary with the number of rows imported and the time spent in each phase
+  (setup, context, query to first row, bulk copy, finalize).  Bulk copies also log progress periodically while running.
+  The approximate row count in these progress lines requires the `VIEW DATABASE STATE` permission on the target database.
+* For `sql-execution` jobs, the time taken by each script, and any individual statement that takes over 60 seconds
+* Every 5 minutes while a run is in progress, the number of jobs complete, failed, and in progress
+* For connection failures, the database host and the underlying driver error
+* At the end of a top-level job, a run summary with the status of each job, the slowest jobs, heap memory usage, and any errors
+
+`DEBUG` adds job configuration and status transitions, and `TRACE` adds the SQL statements executed.
+The log line format can be changed with the `logging.pattern.console` and `logging.pattern.file` properties.
+
 
 A basic REST API exists that enables one to view job executions and to re-execute failed executions.  The designed use cases are as follows:
 Note that this REST API exists at the port configured as the server.port in application.yml.

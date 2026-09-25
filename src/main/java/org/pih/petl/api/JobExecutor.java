@@ -2,7 +2,8 @@ package org.pih.petl.api;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.pih.petl.PetlException;
+import org.pih.petl.JobFailedException;
+import org.pih.petl.LogUtils;
 import org.pih.petl.job.config.ErrorHandling;
 import org.pih.petl.job.config.JobConfig;
 
@@ -69,8 +70,11 @@ public class JobExecutor {
      * @return JobExecution the execution
      */
     public JobExecution executeJob(JobExecution execution) {
+        if (execution.getParentExecutionUuid() == null) {
+            LogUtils.resetPeakHeapUsage(); // So that peak usage in the run summary reflects this run
+        }
         try {
-            log.info(execution);
+            log.debug(execution);
             executeInSeries(Collections.singletonList(new JobExecutionTask(etlService, execution)));
             execution.setStatus(JobExecutionStatus.SUCCEEDED);
             execution.setErrorMessage(null);
@@ -78,13 +82,13 @@ public class JobExecutor {
         catch (Throwable t) {
             execution.setErrorMessageFromException(t);
             execution.setStatus(JobExecutionStatus.FAILED);
-            log.error(execution, t);
-            throw(new PetlException("Job Execution Failed: " + execution, t));
+            log.debug(execution);
+            throw(new JobFailedException("Job Execution Failed: " + execution, t));
         }
         finally {
             execution.setCompleted(new Date());
             etlService.saveJobExecution(execution);
-            log.info(execution);
+            log.debug(execution);
             if (runMonitor != null) {
                 runMonitor.onJobComplete(execution, etlService);
             }
@@ -120,7 +124,7 @@ public class JobExecutor {
                     futures.add(executorService.submit(task));
                     execution.setStatus(JobExecutionStatus.QUEUED);
                     etlService.saveJobExecution(execution);
-                    log.info(execution);
+                    log.debug(execution);
                 }
                 else {
                     ErrorHandling errorHandling = task.getJobExecution().getJobConfig().getErrorHandling();
@@ -128,7 +132,7 @@ public class JobExecutor {
                     futures.add(executorService.schedule(task, errorHandling.getRetryInterval(), errorHandling.getRetryIntervalUnit()));
                     execution.setStatus(JobExecutionStatus.RETRY_QUEUED);
                     etlService.saveJobExecution(execution);
-                    log.info(execution);
+                    log.debug(execution);
                 }
             }
             for (Future<JobExecutionResult> future : futures) {
@@ -148,13 +152,13 @@ public class JobExecutor {
                     }
                 }
                 else {
-                    log.info("Task failed, but will retry.  Attempt: " + task.getAttemptNum() + "; max attempts: " + maxAttempts);
+                    log.debug("Task failed, but will retry.  Attempt: " + task.getAttemptNum() + "; max attempts: " + maxAttempts);
                     task.incrementAttemptNum();
                     execution.setStatus(JobExecutionStatus.FAILED_WILL_RETRY);
                     execution.setErrorMessageFromException(result.getException());
                 }
                 etlService.saveJobExecution(execution);
-                log.info(execution);
+                log.debug(execution);
                 if (runMonitor != null) {
                     runMonitor.onJobComplete(execution, etlService);
                 }
@@ -167,7 +171,7 @@ public class JobExecutor {
             }
         }
         if (errors.size() > 0) {
-            throw new PetlException("Errors occurred in " + errors.size() + " / " + finalResults.size() + " jobs");
+            throw new JobFailedException(errors.size() + " of " + finalResults.size() + " jobs failed", errors.get(0));
         }
     }
 
@@ -196,16 +200,16 @@ public class JobExecutor {
                 Future<JobExecutionResult> futureResult = executorService.submit(task);
                 execution.setStatus(JobExecutionStatus.QUEUED);
                 etlService.saveJobExecution(execution);
-                log.info(execution);
+                log.debug(execution);
 
                 JobExecutionResult result = futureResult.get(); // This blocks until result is available
                 ErrorHandling errorHandling = task.getJobExecution().getJobConfig().getErrorHandling();
                 while (!result.isSuccessful() && task.getAttemptNum() < errorHandling.getMaxAttempts()) {
-                    log.info("Task failed, but will retry.  Attempt: " + task.getAttemptNum() + "; max attempts: " + errorHandling.getMaxAttempts());
+                    log.debug("Task failed, but will retry.  Attempt: " + task.getAttemptNum() + "; max attempts: " + errorHandling.getMaxAttempts());
                     task.incrementAttemptNum();
                     execution.setStatus(JobExecutionStatus.RETRY_QUEUED);
                     etlService.saveJobExecution(execution);
-                    log.info(execution);
+                    log.debug(execution);
                     result = executorService.schedule(task, errorHandling.getRetryInterval(), errorHandling.getRetryIntervalUnit()).get();
                 }
                 execution.setCompleted(new Date());
@@ -222,13 +226,13 @@ public class JobExecutor {
                 execution.setStatus(JobExecutionStatus.ABORTED);
             }
             etlService.saveJobExecution(execution);
-            log.info(execution);
+            log.debug(execution);
             if (runMonitor != null) {
                 runMonitor.onJobComplete(execution, etlService);
             }
         }
         if (failedResult != null) {
-            throw new PetlException("An error occurred executing one or more jobs", failedResult.getException());
+            throw new JobFailedException(RunSummaryLogger.label(failedResult.getJobExecutionTask().getJobExecution()) + " failed", failedResult.getException());
         }
     }
 }

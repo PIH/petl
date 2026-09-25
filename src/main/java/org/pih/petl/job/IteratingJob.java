@@ -53,6 +53,7 @@ public class IteratingJob implements PetlJob {
                 iterationTasks.add(new JobExecutionTask(etlService, childExecution));
                 log.debug("Adding iteration task: " + iterationVars);
             }
+            log.info("Running " + iterationTasks.size() + " jobs (maxConcurrentJobs: " + maxConcurrentJobs + ")");
             // When maxConcurrentJobs is 1, run strictly serially so iteration order is guaranteed
             if (maxConcurrentJobs == 1) {
                 jobExecutor.executeInSeries(iterationTasks);

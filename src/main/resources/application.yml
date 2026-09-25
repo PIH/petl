@@ -3,6 +3,10 @@ logging:
   level:
     root: "WARN"
     org.pih: "INFO"
+  # petlJob identifies the job that each log line belongs to, as jobs run concurrently on multiple threads
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %5p [%t] [%X{petlJob}] %c{0} - %m%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} %5p [%t] [%X{petlJob}] %c{0} - %m%n"
 
 spring:
   datasource:

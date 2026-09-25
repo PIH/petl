@@ -7,6 +7,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.pih.petl.DockerConnector;
+import org.pih.petl.LogUtils;
 import org.pih.petl.PetlException;
 
 import java.sql.Connection;
@@ -60,7 +61,7 @@ public class DataSource {
             return DriverManager.getConnection(getJdbcUrl(), getUser(), getPassword());
         }
         catch (Exception e) {
-            throw new PetlException("An error occured trying to open a connection to the database", e);
+            throw new PetlException("An error occurred trying to open a connection to " + describe(), e);
         }
     }
 
@@ -68,14 +69,32 @@ public class DataSource {
      * @return true if a connection is able to be successfully opened, false otherwise
      */
     public boolean testConnection(){
+        return getConnectionError() == null;
+    }
+
+    /**
+     * @return null if a connection is able to be successfully opened, otherwise a summary of why it could not be
+     */
+    public String getConnectionError() {
         try (Connection c = openConnection()) {
             DatabaseMetaData metadata = c.getMetaData();
             log.trace("Successfully connected to datasource: " + metadata.toString());
-            return true;
+            return null;
         }
         catch (Exception e) {
-            return false;
+            // openConnection wraps the driver exception, which is what describes the problem
+            return LogUtils.summarizeException(e.getCause() != null ? e.getCause() : e);
         }
+    }
+
+    /**
+     * @return a description of the database this datasource connects to, for logging.  This excludes credentials.
+     */
+    public String describe() {
+        if (StringUtils.isNotBlank(url)) {
+            return databaseType == null ? "custom url" : databaseType + " custom url";
+        }
+        return databaseType + " " + host + ":" + port + "/" + databaseName;
     }
 
     /**

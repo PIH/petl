@@ -13,7 +13,10 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -222,6 +225,27 @@ public class RunMonitorTest {
         runMonitor.flushStatusFile(root.getUuid(), true);
         Assert.assertTrue(readStatusFile().contains("child-resumed"));
         Assert.assertEquals(root.getUuid(), ReflectionTestUtils.getField(runMonitor, "activeRootUuid"));
+    }
+
+    @Test
+    public void shouldBuildProgressMessageFromLeafJobs() {
+        JobExecution root = execution("root", null, null);
+        root.setStatus(JobExecutionStatus.IN_PROGRESS);
+        JobExecution site = execution("site", root, 1);
+        site.setStatus(JobExecutionStatus.IN_PROGRESS);
+        JobExecution[] tables = {
+                execution("t1", site, 1), execution("t2", site, 2), execution("t3", site, 3), execution("t4", site, 4)
+        };
+        tables[0].setStatus(JobExecutionStatus.SUCCEEDED);
+        tables[1].setStatus(JobExecutionStatus.FAILED);
+        tables[2].setStatus(JobExecutionStatus.IN_PROGRESS);
+        tables[3].setStatus(JobExecutionStatus.QUEUED);
+        Map<String, List<JobExecution>> childIndex = new HashMap<>();
+        childIndex.put(root.getUuid(), Collections.singletonList(site));
+        childIndex.put(site.getUuid(), Arrays.asList(tables));
+
+        String message = runMonitor.buildProgressMessage(root, childIndex);
+        Assert.assertTrue(message, message.startsWith("Run progress: 2 of 4 jobs complete (1 succeeded, 1 failed), 1 in progress, after "));
     }
 
     @SuppressWarnings("unchecked")

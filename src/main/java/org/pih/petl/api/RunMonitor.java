@@ -3,6 +3,7 @@ package org.pih.petl.api;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.pih.petl.ApplicationConfig;
+import org.pih.petl.LogUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -50,6 +51,7 @@ public class RunMonitor {
 
     private static final long FLUSH_INTERVAL_SECONDS = 5;
     private static final long REFRESH_INTERVAL_MILLIS = 30000;
+    private static final long PROGRESS_LOG_INTERVAL_MILLIS = 5 * 60 * 1000;
     private static final int MAX_RELEASED_ROOTS = 100;
 
     private final ScheduledExecutorService refreshTimer = Executors.newSingleThreadScheduledExecutor();
@@ -70,13 +72,19 @@ public class RunMonitor {
     private volatile String activeRootUuid;
     private volatile boolean dirty;
     private volatile long lastWriteMillis;
+    private String progressRootUuid;
+    private long lastProgressLogMillis;
 
     @Autowired
     private ApplicationConfig applicationConfig;
 
     @PostConstruct
     public void init() {
-        refreshTimer.scheduleWithFixedDelay(() -> flushStatusFile(activeRootUuid, false), FLUSH_INTERVAL_SECONDS, FLUSH_INTERVAL_SECONDS, TimeUnit.SECONDS);
+        refreshTimer.scheduleWithFixedDelay(() -> {
+            String rootUuid = activeRootUuid;
+            logProgressIfDue(rootUuid);
+            flushStatusFile(rootUuid, false);
+        }, FLUSH_INTERVAL_SECONDS, FLUSH_INTERVAL_SECONDS, TimeUnit.SECONDS);
     }
 
     @PreDestroy
@@ -198,6 +206,63 @@ public class RunMonitor {
         catch (Throwable t) {
             log.warn("Run monitor failed to update " + STATUS_LOG + ": " + t.getMessage());
         }
+    }
+
+    /**
+     * Periodically logs the progress of the active run, so that it can be followed in the main log
+     */
+    synchronized void logProgressIfDue(String rootUuid) {
+        try {
+            JobExecution root = (rootUuid == null ? null : executions.get(rootUuid));
+            if (root == null || isTerminal(root.getStatus())) {
+                return;
+            }
+            long now = System.currentTimeMillis();
+            if (!rootUuid.equals(progressRootUuid)) {
+                progressRootUuid = rootUuid;
+                lastProgressLogMillis = now;
+            }
+            else if (now - lastProgressLogMillis >= PROGRESS_LOG_INTERVAL_MILLIS) {
+                lastProgressLogMillis = now;
+                String previousJobContext = LogUtils.setJobContext(RunSummaryLogger.label(root));
+                try {
+                    log.info(buildProgressMessage(root, buildChildIndex()));
+                }
+                finally {
+                    LogUtils.setJobContext(previousJobContext);
+                }
+            }
+        }
+        catch (Throwable t) {
+            log.warn("Run monitor failed to log progress: " + t.getMessage());
+        }
+    }
+
+    /**
+     * @return the progress of the run, counting leaf jobs (those that do the work, rather than group other jobs).
+     * The total grows as parent jobs start and create their child jobs.
+     */
+    String buildProgressMessage(JobExecution root, Map<String, List<JobExecution>> childIndex) {
+        List<JobExecution> descendants = new ArrayList<>();
+        collectDescendants(root, childIndex, descendants);
+        int total = 0, succeeded = 0, failed = 0, inProgress = 0;
+        for (JobExecution d : descendants) {
+            if (getChildren(d, childIndex).isEmpty()) {
+                total++;
+                JobExecutionStatus status = d.getStatus();
+                if (status == JobExecutionStatus.SUCCEEDED) {
+                    succeeded++;
+                }
+                else if (status == JobExecutionStatus.FAILED || status == JobExecutionStatus.ABORTED) {
+                    failed++;
+                }
+                else if (status == JobExecutionStatus.IN_PROGRESS) {
+                    inProgress++;
+                }
+            }
+        }
+        return String.format("Run progress: %,d of %,d jobs complete (%,d succeeded, %,d failed), %,d in progress, after %s",
+                succeeded + failed, total, succeeded, failed, inProgress, RunSummaryLogger.formatDuration(root));
     }
 
     private void releaseOtherCompletedRuns(String excludedRootUuid) {
