@@ -3,6 +3,7 @@ package org.pih.petl.api;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.pih.petl.JobFailedException;
+import org.pih.petl.LogUtils;
 import org.pih.petl.job.config.ErrorHandling;
 import org.pih.petl.job.config.JobConfig;
 
@@ -69,6 +70,9 @@ public class JobExecutor {
      * @return JobExecution the execution
      */
     public JobExecution executeJob(JobExecution execution) {
+        if (execution.getParentExecutionUuid() == null) {
+            LogUtils.resetPeakHeapUsage(); // So that peak usage in the run summary reflects this run
+        }
         try {
             log.debug(execution);
             executeInSeries(Collections.singletonList(new JobExecutionTask(etlService, execution)));

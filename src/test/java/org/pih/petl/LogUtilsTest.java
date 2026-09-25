@@ -52,6 +52,12 @@ public class LogUtilsTest {
     }
 
     @Test
+    public void shouldDescribeHeapUsage() {
+        LogUtils.resetPeakHeapUsage();
+        Assert.assertTrue(LogUtils.describeHeapUsage().matches("[0-9,]+ MB used, [0-9,]+ MB peak, [0-9,]+ MB max"));
+    }
+
+    @Test
     public void shouldSetAndRestoreJobContext() {
         Assert.assertNull(LogUtils.setJobContext("parent"));
         String previous = LogUtils.setJobContext("child");

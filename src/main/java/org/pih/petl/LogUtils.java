@@ -4,6 +4,10 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.slf4j.MDC;
 
+import java.lang.management.ManagementFactory;
+import java.lang.management.MemoryPoolMXBean;
+import java.lang.management.MemoryType;
+import java.lang.management.MemoryUsage;
 import java.sql.SQLException;
 
 /**
@@ -87,6 +91,33 @@ public class LogUtils {
             sb.append(", SQLState: ").append(sqlException.getSQLState()).append("]");
         }
         return sb.toString();
+    }
+
+    /**
+     * Resets the peak heap usage, so that it reflects usage from this point, eg. the start of a run
+     */
+    public static void resetPeakHeapUsage() {
+        for (MemoryPoolMXBean pool : ManagementFactory.getMemoryPoolMXBeans()) {
+            if (pool.getType() == MemoryType.HEAP) {
+                pool.resetPeakUsage();
+            }
+        }
+    }
+
+    /**
+     * @return current, peak, and maximum heap usage, eg. "1,234 MB used, 3,456 MB peak, 4,096 MB max".  The peak is
+     * approximate, as it sums the peak of each heap memory pool, which may not have occurred at the same time
+     */
+    public static String describeHeapUsage() {
+        MemoryUsage heap = ManagementFactory.getMemoryMXBean().getHeapMemoryUsage();
+        long peak = 0;
+        for (MemoryPoolMXBean pool : ManagementFactory.getMemoryPoolMXBeans()) {
+            if (pool.getType() == MemoryType.HEAP && pool.getPeakUsage() != null) {
+                peak += pool.getPeakUsage().getUsed();
+            }
+        }
+        long mb = 1024 * 1024;
+        return String.format("%,d MB used, %,d MB peak, %,d MB max", heap.getUsed() / mb, peak / mb, heap.getMax() / mb);
     }
 
     /**

@@ -1,5 +1,7 @@
 package org.pih.petl.api;
 
+import org.pih.petl.LogUtils;
+
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -45,6 +47,7 @@ public class RunSummaryLogger {
             sb.append(String.format("  %-12s%s%n", "Completed:", sdf.format(execution.getCompleted())));
         }
         sb.append(String.format("  %-12s%s%n", "Duration:", formatDuration(execution)));
+        sb.append(String.format("  %-12s%s%n", "Heap:", LogUtils.describeHeapUsage()));
 
         List<JobExecution> children = childLookup.apply(execution);
         if (!children.isEmpty()) {

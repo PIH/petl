@@ -57,10 +57,10 @@ public class SqlTransferJob implements PetlJob {
             if (sourceDatasource.startContainerIfNecessary()) {
                 containersStarted.add(sourceDatasource.getContainerName());
             }
-            if (!sourceDatasource.testConnection()) {
-                String msg = "Unable to connect to datasource: " + configReader.getString("extract", "datasource");
-                log.debug(msg);
-                throw new PetlException(msg);
+            String extractConnectionError = sourceDatasource.getConnectionError();
+            if (extractConnectionError != null) {
+                throw new PetlException("Unable to connect to datasource: " + configReader.getString("extract", "datasource") +
+                        " (" + sourceDatasource.describe() + "): " + extractConnectionError);
             }
 
             // Get any conditional, and execute against the source datasource.  If this returns false, skip execution
@@ -84,10 +84,10 @@ public class SqlTransferJob implements PetlJob {
             if (targetDatasource.startContainerIfNecessary()) {
                 containersStarted.add(targetDatasource.getContainerName());
             }
-            if (!targetDatasource.testConnection()) {
-                String msg = "Unable to connect to datasource: " + configReader.getString("load", "datasource");
-                log.debug(msg);
-                throw new PetlException(msg);
+            String loadConnectionError = targetDatasource.getConnectionError();
+            if (loadConnectionError != null) {
+                throw new PetlException("Unable to connect to datasource: " + configReader.getString("load", "datasource") +
+                        " (" + targetDatasource.describe() + "): " + loadConnectionError);
             }
 
             // Get target table name

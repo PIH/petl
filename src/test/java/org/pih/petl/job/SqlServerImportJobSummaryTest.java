@@ -12,14 +12,14 @@ public class SqlServerImportJobSummaryTest {
         timer.start("setup");
         timer.start("bulk copy");
         timer.stop();
-        String summary = SqlServerImportJob.importSummary("obs", "2", 123456, timer);
-        Assert.assertTrue(summary, summary.startsWith("Imported 123,456 rows into obs (partition 2) in "));
+        String summary = SqlServerImportJob.importSummary("openmrs-hinche.yml", "obs", "2", 123456, timer);
+        Assert.assertTrue(summary, summary.startsWith("Imported 123,456 rows from openmrs-hinche.yml into obs (partition 2) in "));
         Assert.assertTrue(summary, summary.contains("[setup: 0.0s, bulk copy: 0.0s]"));
     }
 
     @Test
     public void shouldSummarizeImportWithoutRowCountOrPartition() {
-        String summary = SqlServerImportJob.importSummary("obs", null, null, new PhaseTimer());
-        Assert.assertTrue(summary, summary.startsWith("Imported data into obs in "));
+        String summary = SqlServerImportJob.importSummary("openmrs-hinche.yml", "obs", null, null, new PhaseTimer());
+        Assert.assertTrue(summary, summary.startsWith("Imported data from openmrs-hinche.yml into obs in "));
     }
 }

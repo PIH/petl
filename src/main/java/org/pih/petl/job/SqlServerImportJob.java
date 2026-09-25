@@ -59,16 +59,17 @@ public class SqlServerImportJob implements PetlJob {
         JobConfigReader configReader = new JobConfigReader(applicationConfig, jobExecution.getJobConfig());
 
         List<String> containersStarted = new ArrayList<>();
+        String source = configReader.getString("extract", "datasource");
         try {
             // Get source datasource
             DataSource sourceDatasource = configReader.getDataSource("extract", "datasource");
             if (sourceDatasource.startContainerIfNecessary()) {
                 containersStarted.add(sourceDatasource.getContainerName());
             }
-            if (!sourceDatasource.testConnection()) {
-                String msg = "Unable to connect to datasource: " + configReader.getString("extract", "datasource");
-                log.debug(msg);
-                throw new PetlException(msg);
+            String extractConnectionError = sourceDatasource.getConnectionError();
+            if (extractConnectionError != null) {
+                throw new PetlException("Unable to connect to datasource: " + configReader.getString("extract", "datasource") +
+                        " (" + sourceDatasource.describe() + "): " + extractConnectionError);
             }
 
             // Get any conditional, and execute against the source datasource.  If this returns false, skip execution
@@ -92,10 +93,10 @@ public class SqlServerImportJob implements PetlJob {
             if (targetDatasource.startContainerIfNecessary()) {
                 containersStarted.add(targetDatasource.getContainerName());
             }
-            if (!targetDatasource.testConnection()) {
-                String msg = "Unable to connect to datasource: " + configReader.getString("load", "datasource");
-                log.debug(msg);
-                throw new PetlException(msg);
+            String loadConnectionError = targetDatasource.getConnectionError();
+            if (loadConnectionError != null) {
+                throw new PetlException("Unable to connect to datasource: " + configReader.getString("load", "datasource") +
+                        " (" + targetDatasource.describe() + "): " + loadConnectionError);
             }
 
             // Get target table name
@@ -389,13 +390,13 @@ public class SqlServerImportJob implements PetlJob {
                     }
                 }
                 timer.stop();
-                log.info(importSummary(targetTable, usePartitioning ? partitionValue : null, rowsImported, timer));
+                log.info(importSummary(source, targetTable, usePartitioning ? partitionValue : null, rowsImported, timer));
             }
         }
         catch (Exception e) {
             String phase = timer.getCurrentPhase();
             timer.stop();
-            log.info("Import failed during " + phase + " [" + timer + "]");
+            log.info("Import from " + source + " failed during " + phase + " [" + timer + "]");
             throw e;
         }
         finally {
@@ -466,10 +467,10 @@ public class SqlServerImportJob implements PetlJob {
         return dataSource.querySingleValue(sql, Long.class);
     }
 
-    static String importSummary(String targetTable, String partitionValue, Integer rowsImported, PhaseTimer timer) {
+    static String importSummary(String source, String targetTable, String partitionValue, Integer rowsImported, PhaseTimer timer) {
         StringBuilder sb = new StringBuilder("Imported ");
         sb.append(rowsImported == null ? "data" : String.format("%,d rows", rowsImported));
-        sb.append(" into ").append(targetTable);
+        sb.append(" from ").append(source).append(" into ").append(targetTable);
         if (partitionValue != null) {
             sb.append(" (partition ").append(partitionValue).append(")");
         }

@@ -529,7 +529,9 @@ At the default `INFO` level, PETL logs:
   (setup, context, query to first row, bulk copy, finalize).  Bulk copies also log progress periodically while running.
   The approximate row count in these progress lines requires the `VIEW DATABASE STATE` permission on the target database.
 * For `sql-execution` jobs, the time taken by each script, and any individual statement that takes over 60 seconds
-* At the end of a top-level job, a run summary with the status of each job, the slowest jobs, and any errors
+* Every 5 minutes while a run is in progress, the number of jobs complete, failed, and in progress
+* For connection failures, the database host and the underlying driver error
+* At the end of a top-level job, a run summary with the status of each job, the slowest jobs, heap memory usage, and any errors
 
 `DEBUG` adds job configuration and status transitions, and `TRACE` adds the SQL statements executed.
 The log line format can be changed with the `logging.pattern.console` and `logging.pattern.file` properties.
