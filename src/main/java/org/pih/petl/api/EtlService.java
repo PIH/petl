@@ -138,9 +138,13 @@ public class EtlService {
      */
     @Transactional
     public JobExecution saveJobExecution(JobExecution jobExecution) {
-        jobExecution = jobExecutionRepository.save(jobExecution);
-        log.debug(jobExecution);
-        return jobExecution;
+        JobExecution saved = jobExecutionRepository.save(jobExecution);
+        log.debug(saved);
+        if (runMonitor != null) {
+            // Callers typically continue to update the instance they passed in, so track that one
+            runMonitor.onSave(jobExecution);
+        }
+        return saved;
     }
 
     /**
