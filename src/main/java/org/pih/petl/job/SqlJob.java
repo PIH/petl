@@ -5,6 +5,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.pih.petl.ApplicationConfig;
 import org.pih.petl.DockerConnector;
+import org.pih.petl.LogUtils;
 import org.pih.petl.PetlException;
 import org.pih.petl.SqlUtils;
 import org.pih.petl.api.JobExecution;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Component;
 
 import java.sql.Connection;
 import java.sql.Statement;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -22,6 +24,8 @@ import java.util.List;
  */
 @Component("sql-execution")
 public class SqlJob implements PetlJob {
+
+    private static final long SLOW_STATEMENT_MILLIS = 60000;
 
     private final Log log = LogFactory.getLog(getClass());
 
@@ -43,36 +47,51 @@ public class SqlJob implements PetlJob {
         try {
             for (String sqlFile : configReader.getStringList("scripts")) {
                 log.debug("Executing Sql Script: " + sqlFile);
+                long scriptStart = System.currentTimeMillis();
+                int numStatements;
                 try (Connection targetConnection = dataSource.openConnection()) {
                     String sqlFileContents = configReader.getFileContentsAtPath(sqlFile);
+                    List<String> stmts;
                     if (StringUtils.isEmpty(delimiter)) {
-                        try (Statement statement = targetConnection.createStatement()) {
-                            log.trace("Executing: " + sqlFileContents);
-                            statement.execute(sqlFileContents);
-                        } catch (Exception e) {
-                            throw new PetlException("Error executing statement: " + sqlFileContents, e);
-                        }
+                        stmts = Collections.singletonList(sqlFileContents);
                     } else {
-                        List<String> stmts = SqlUtils.parseSqlIntoStatements(sqlFileContents, delimiter);
+                        stmts = SqlUtils.parseSqlIntoStatements(sqlFileContents, delimiter);
                         log.trace("Parsed extract query into " + stmts.size() + " statements");
-                        for (String sqlStatement : stmts) {
-                            if (StringUtils.isNotEmpty(sqlStatement)) {
-                                try (Statement statement = targetConnection.createStatement()) {
-                                    log.trace("Executing: " + sqlStatement);
-                                    statement.execute(sqlStatement);
-                                } catch (Exception e) {
-                                    throw new PetlException("Error executing statement: " + sqlStatement, e);
-                                }
-                            }
+                    }
+                    numStatements = 0;
+                    for (int i = 0; i < stmts.size(); i++) {
+                        String sqlStatement = stmts.get(i);
+                        if (StringUtils.isNotEmpty(sqlStatement)) {
+                            numStatements++;
+                            executeStatement(targetConnection, sqlFile, sqlStatement, i + 1, stmts.size());
                         }
                     }
                 }
+                long duration = System.currentTimeMillis() - scriptStart;
+                log.info("Executed " + sqlFile + " in " + LogUtils.formatDuration(duration) + " (" + numStatements + (numStatements == 1 ? " statement)" : " statements)"));
             }
         }
         finally {
             if (containerStarted) {
                 DockerConnector.stopContainer(dataSource.getContainerName());
             }
+        }
+    }
+
+    private void executeStatement(Connection connection, String sqlFile, String sqlStatement, int statementNum, int numStatements) {
+        String statementDescription = (numStatements > 1 ? "statement " + statementNum + " of " + numStatements + " in " : "") + sqlFile;
+        long start = System.currentTimeMillis();
+        try (Statement statement = connection.createStatement()) {
+            log.trace("Executing: " + sqlStatement);
+            statement.execute(sqlStatement);
+        }
+        catch (Exception e) {
+            log.debug("Failed SQL: " + sqlStatement);
+            throw new PetlException("Error in " + statementDescription + ": " + LogUtils.abbreviateSql(sqlStatement, 200), e);
+        }
+        long duration = System.currentTimeMillis() - start;
+        if (duration >= SLOW_STATEMENT_MILLIS) {
+            log.info("Slow statement: " + statementDescription + " took " + LogUtils.formatDuration(duration) + ": " + LogUtils.abbreviateSql(sqlStatement, 100));
         }
     }
 }

@@ -3,6 +3,8 @@ logging:
   level:
     root: "WARN"
     org.pih: "INFO"
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %5p [%t] [%X{petlJob}] %c{0} - %m%n"
 
 spring:
   datasource:

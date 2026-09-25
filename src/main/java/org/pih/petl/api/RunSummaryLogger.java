@@ -2,7 +2,11 @@ package org.pih.petl.api;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 
 /**
  * Prints a formatted run summary to stdout at the end of a top-level job execution.
@@ -16,7 +20,16 @@ public class RunSummaryLogger {
     private static final String ANSI_YELLOW = "[33m";
     private static final String ANSI_RESET  = "[0m";
 
+    private static final int NUM_SLOWEST_JOBS = 10;
+
     public static void print(JobExecution execution, EtlService etlService) {
+        // Cache child lookups, so that each execution's children are only queried once
+        Map<String, List<JobExecution>> childCache = new HashMap<>();
+        Function<JobExecution, List<JobExecution>> children = e -> childCache.computeIfAbsent(e.getUuid(), k -> etlService.getChildExecutions(e));
+        System.out.println(buildSummary(execution, children));
+    }
+
+    static String buildSummary(JobExecution execution, Function<JobExecution, List<JobExecution>> childLookup) {
         StringBuilder sb = new StringBuilder();
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
@@ -33,14 +46,25 @@ public class RunSummaryLogger {
         }
         sb.append(String.format("  %-12s%s%n", "Duration:", formatDuration(execution)));
 
-        List<JobExecution> children = etlService.getChildExecutions(execution);
+        List<JobExecution> children = childLookup.apply(execution);
         if (!children.isEmpty()) {
             sb.append("\n");
-            appendTree(sb, children, etlService, 0);
+            appendTree(sb, children, childLookup, 0);
+        }
+
+        List<JobExecution> slowest = new ArrayList<>();
+        collectLeaves(execution, childLookup, slowest);
+        slowest.removeIf(e -> e.getStarted() == null || e == execution);
+        slowest.sort(Comparator.comparingInt(JobExecution::getDurationSeconds).reversed());
+        if (!slowest.isEmpty()) {
+            sb.append("\nSlowest jobs:\n");
+            for (JobExecution e : slowest.subList(0, Math.min(NUM_SLOWEST_JOBS, slowest.size()))) {
+                sb.append(String.format("  %12s  %s%n", formatDuration(e), label(e)));
+            }
         }
 
         List<JobExecution> failures = new ArrayList<>();
-        collectLeafFailures(execution, etlService, failures);
+        collectLeafFailures(execution, childLookup, failures);
         if (!failures.isEmpty()) {
             sb.append("\nErrors:\n");
             for (JobExecution failed : failures) {
@@ -54,10 +78,20 @@ public class RunSummaryLogger {
         }
 
         sb.append(LINE);
-        System.out.println(sb);
+        return sb.toString();
     }
 
-    private static void appendTree(StringBuilder sb, List<JobExecution> executions, EtlService etlService, int depth) {
+    private static void collectLeaves(JobExecution execution, Function<JobExecution, List<JobExecution>> childLookup, List<JobExecution> leaves) {
+        List<JobExecution> children = childLookup.apply(execution);
+        if (children.isEmpty()) {
+            leaves.add(execution);
+        }
+        for (JobExecution child : children) {
+            collectLeaves(child, childLookup, leaves);
+        }
+    }
+
+    private static void appendTree(StringBuilder sb, List<JobExecution> executions, Function<JobExecution, List<JobExecution>> childLookup, int depth) {
         String indent = indent(depth);
         for (JobExecution exec : executions) {
             String rawStatus = String.format("%-9s", exec.getStatus().toString());
@@ -67,17 +101,17 @@ public class RunSummaryLogger {
               .append("  ").append(duration)
               .append("  ").append(label(exec))
               .append("\n");
-            List<JobExecution> children = etlService.getChildExecutions(exec);
+            List<JobExecution> children = childLookup.apply(exec);
             if (!children.isEmpty()) {
-                appendTree(sb, children, etlService, depth + 1);
+                appendTree(sb, children, childLookup, depth + 1);
             }
         }
     }
 
     // Only collect failures that have no failed children — i.e. the actual root cause.
     // A parent that fails solely because a child failed is excluded.
-    private static void collectLeafFailures(JobExecution execution, EtlService etlService, List<JobExecution> failures) {
-        List<JobExecution> children = etlService.getChildExecutions(execution);
+    private static void collectLeafFailures(JobExecution execution, Function<JobExecution, List<JobExecution>> childLookup, List<JobExecution> failures) {
+        List<JobExecution> children = childLookup.apply(execution);
         if (execution.getStatus() == JobExecutionStatus.FAILED) {
             boolean hasFailedChild = false;
             for (JobExecution child : children) {
@@ -92,7 +126,7 @@ public class RunSummaryLogger {
             }
         }
         for (JobExecution child : children) {
-            collectLeafFailures(child, etlService, failures);
+            collectLeafFailures(child, childLookup, failures);
         }
     }
 

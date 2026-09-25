@@ -1,5 +1,7 @@
 package org.pih.petl.job;
 
+import org.apache.commons.lang.exception.ExceptionUtils;
+import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.pih.petl.SpringRunnerTest;
@@ -40,6 +42,22 @@ public class SqlJobTest extends BasePetlTest {
         verifyNoTablesExist();
         executeJob("parameterizedScript.yml");
         verifyTableExists("table3");
+    }
+
+    @Test
+    public void shouldIdentifyFailingStatementInErrorMessage() throws Exception {
+        verifyNoTablesExist();
+        Exception e = executeJobAndReturnException("failingScript.yml");
+        Assert.assertNotNull(e);
+        String message = null;
+        for (Throwable t : ExceptionUtils.getThrowables(e)) {
+            if (t.getMessage() != null && t.getMessage().startsWith("Error in statement")) {
+                message = t.getMessage();
+            }
+        }
+        Assert.assertNotNull(message);
+        Assert.assertTrue(message, message.startsWith("Error in statement 2 of "));
+        Assert.assertTrue(message, message.contains("failingStatement.sql: insert into table_that_does_not_exist (id) values (1)"));
     }
 
     @Test

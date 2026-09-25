@@ -50,6 +50,7 @@ public class RunMultipleJob implements PetlJob {
                 JobExecution childExecution = new JobExecution(jobExecution, childConfig, sequenceNum++);
                 tasks.add(new JobExecutionTask(etlService, childExecution));
             }
+            log.info("Running " + tasks.size() + " jobs in series");
             jobExecutor.executeInSeries(tasks);
         }
         finally {

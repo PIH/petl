@@ -3,6 +3,8 @@ package org.pih.petl.api;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.pih.petl.JobFailedException;
+import org.pih.petl.LogUtils;
 import org.pih.petl.job.config.JobConfig;
 import org.pih.petl.job.config.Schedule;
 import org.quartz.CronExpression;
@@ -104,7 +106,12 @@ public class ScheduledExecutionTask implements Job {
                 }
             }
             catch (Exception e) {
-                log.error("An error occured while executing a scheduled job.  Aborting all remaining jobs.", e);
+                if (e instanceof JobFailedException) {
+                    log.error("A scheduled job failed, aborting all remaining jobs: " + LogUtils.summarizeException(e));
+                }
+                else {
+                    log.error("An error occurred while executing a scheduled job.  Aborting all remaining jobs.", e);
+                }
             }
             finally {
                 inProgress.set(false);

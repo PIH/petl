@@ -11,7 +11,9 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.pih.petl.ApplicationConfig;
 import org.pih.petl.DockerConnector;
+import org.pih.petl.LogUtils;
 import org.pih.petl.PetlException;
+import org.pih.petl.PhaseTimer;
 import org.pih.petl.SqlUtils;
 import org.pih.petl.api.JobExecution;
 import org.pih.petl.job.config.DataSource;
@@ -52,6 +54,8 @@ public class SqlServerImportJob implements PetlJob {
     public void execute(final JobExecution jobExecution) throws Exception {
 
         log.debug("Executing SqlServerImportJob");
+        PhaseTimer timer = new PhaseTimer();
+        timer.start("setup");
         JobConfigReader configReader = new JobConfigReader(applicationConfig, jobExecution.getJobConfig());
 
         List<String> containersStarted = new ArrayList<>();
@@ -151,7 +155,7 @@ public class SqlServerImportJob implements PetlJob {
             String updateWatermarkStatement = configReader.getFileContents("load", "partition", "incremental", "updateWatermarkStatement");
 
             if (incremental) {
-                log.info("Incremental loading is enabled for this job");
+                log.debug("Incremental loading is enabled for this job");
                 if (!usePartitioning) {
                     throw new PetlException("You must use partitioning to do incremental loading from a watermark");
                 }
@@ -170,21 +174,24 @@ public class SqlServerImportJob implements PetlJob {
 
                 try {
                     newWatermark = targetDatasource.queryAsLocalDateTime(newWatermarkQuery);
-                    log.info("New watermark value: " + newWatermark);
+                    log.debug("New watermark value: " + newWatermark);
                 } catch (Exception e) {
                     throw new PetlException("Error trying to retrieve a new watermark value", e);
                 }
 
                 try {
                     previousWatermark = targetDatasource.queryAsLocalDateTime(previousWatermarkQuery);
-                    log.info("Previous watermark value: " + previousWatermark);
+                    log.debug("Previous watermark value: " + previousWatermark);
                 } catch (Exception e) {
                     log.warn("Error retrieving previous watermark", e);
                 }
 
                 if (newWatermark != null && newWatermark.equals(previousWatermark)) {
-                    log.warn("The previous watermark and new watermark are the same.  Skip remaining execution");
+                    log.info("Skipping import, no changes since previous watermark: " + previousWatermark);
                     return;
+                }
+                if (previousWatermark != null) {
+                    log.info("Incremental load from watermark " + previousWatermark + " to " + newWatermark);
                 }
 
                 String mysqlWatermarks = "" +
@@ -234,22 +241,21 @@ public class SqlServerImportJob implements PetlJob {
                 }
 
                 // If we are doing incremental loading, we first need to pre-populate the partition table with existing data
+                Integer rowsBeforeImport = null;
                 if (incremental) {
-                    log.info("Incremental loading is enabled.");
                     if (previousWatermark != null) {
-                        log.info("Previous watermark found: " + previousWatermark);
-                        log.info("Preparing target table with existing data.");
+                        timer.start("incremental prep");
+                        log.debug("Inserting existing values from target table");
                         String insertSql = "insert into " + tableToBulkInsertInto + " select * from " + targetTable + " where " + partitionColumn + " = " + partitionValue;
-                        log.info("Inserting existing values from target table");
                         log.trace(insertSql);
                         targetDatasource.executeUpdate(insertSql);
                         logNumberOfRows("After Insert:", targetDatasource, tableToBulkInsertInto);
-                        log.info("Deleting values that have changed since the last watermark");
+                        log.debug("Deleting values that have changed since the last watermark");
                         log.trace(incrementalDeleteStatement);
                         targetDatasource.executeUpdate(incrementalDeleteStatement);
-                        logNumberOfRows("After Delete:", targetDatasource, tableToBulkInsertInto);
+                        rowsBeforeImport = logNumberOfRows("After Delete:", targetDatasource, tableToBulkInsertInto);
                     } else {
-                        log.info("No previous watermark found, performing full load");
+                        log.info("No previous watermark found, performing full load up to watermark " + newWatermark);
                     }
                 }
 
@@ -257,6 +263,7 @@ public class SqlServerImportJob implements PetlJob {
                 int batchSize = configReader.getInt(100, "load", "bulkCopy", "batchSize");
                 int timeout = configReader.getInt(7200, "load", "bulkCopy", "timeout"); // 2h default
                 boolean testOnly = configReader.getBoolean(false, "load", "bulkCopy", "testOnly");
+                int progressIntervalSeconds = configReader.getInt(300, "load", "bulkCopy", "progressIntervalSeconds");
 
                 try (Connection sourceConnection = sourceDatasource.openConnection()) {
                     try (Connection targetConnection = targetDatasource.openConnection()) {
@@ -284,6 +291,7 @@ public class SqlServerImportJob implements PetlJob {
                                     StopWatch sw = new StopWatch();
                                     sw.start();
                                     if (sqlIterator.hasNext()) {
+                                        timer.start("context");
                                         statement = sourceConnection.createStatement();
                                         statement.execute(sqlStatement);
                                         log.trace("Statement executed");
@@ -303,6 +311,7 @@ public class SqlServerImportJob implements PetlJob {
 
                                         ResultSet resultSet = null;
                                         try {
+                                            timer.start("query to first row");
                                             resultSet = ((PreparedStatement) statement).executeQuery();
                                             if (resultSet != null) {
                                                 if (testOnly) {
@@ -318,16 +327,18 @@ public class SqlServerImportJob implements PetlJob {
                                                     bco.setBulkCopyTimeout(timeout);
                                                     bulkCopy.setBulkCopyOptions(bco);
                                                     bulkCopy.setDestinationTableName(tableToBulkInsertInto);
-                                                    log.info("Performing up bulk copy operation");
-                                                    bulkCopy.writeToServer(resultSet);
+                                                    log.debug("Starting bulk copy into " + tableToBulkInsertInto + " (batch size: " + batchSize + ", timeout: " + timeout + "s)");
+                                                    timer.start("bulk copy");
+                                                    String progressTable = tableToBulkInsertInto;
+                                                    try (BulkCopyProgressMonitor ignored = new BulkCopyProgressMonitor(
+                                                            tableToBulkInsertInto, () -> approximateRowCount(targetDatasource, progressTable), progressIntervalSeconds)) {
+                                                        bulkCopy.writeToServer(resultSet);
+                                                    }
                                                     log.trace("Bulk copy operation completed successfully");
                                                 }
                                             } else {
                                                 throw new PetlException("Invalid SQL extraction, no result set found");
                                             }
-                                        } catch (Exception e) {
-                                            log.error("An error occurred during bulk copy operation", e);
-                                            throw e;
                                         } finally {
                                             DbUtils.closeQuietly(resultSet);
                                         }
@@ -359,20 +370,33 @@ public class SqlServerImportJob implements PetlJob {
                     }
                 }
 
+                Integer rowsImported = null;
                 if (usePartitioning) {
-                    logNumberOfRows("After Bulk Import:", targetDatasource, tableToBulkInsertInto);
-                    log.info("Moving partition " + partitionValue + " from " + tableToBulkInsertInto + " to " + targetTable);
+                    timer.start("finalize");
+                    Integer rowsAfterImport = logNumberOfRows("After Bulk Import:", targetDatasource, tableToBulkInsertInto);
+                    if (rowsAfterImport != null) {
+                        rowsImported = rowsAfterImport - (rowsBeforeImport == null ? 0 : rowsBeforeImport);
+                    }
+                    log.debug("Moving partition " + partitionValue + " from " + tableToBulkInsertInto + " to " + targetTable);
                     targetDatasource.executeUpdate(SqlUtils.createMovePartitionStatement(tableToBulkInsertInto, targetTable, partitionValue));
-                    log.info("Dropping table: " + tableToBulkInsertInto);
+                    log.debug("Dropping table: " + tableToBulkInsertInto);
                     targetDatasource.dropTableIfExists(tableToBulkInsertInto);
 
                     if (newWatermark != null) {
-                        log.info("Updating watermarks: " + targetTable + ", " + partitionValue + ", " + previousWatermark + ", " + newWatermark);
+                        log.debug("Updating watermark for " + targetTable + " partition " + partitionValue + " from " + previousWatermark + " to " + newWatermark);
                         log.trace(updateWatermarkStatement);
                         targetDatasource.executeUpdate(updateWatermarkStatement);
                     }
                 }
+                timer.stop();
+                log.info(importSummary(targetTable, usePartitioning ? partitionValue : null, rowsImported, timer));
             }
+        }
+        catch (Exception e) {
+            String phase = timer.getCurrentPhase();
+            timer.stop();
+            log.info("Import failed during " + phase + " [" + timer + "]");
+            throw e;
         }
         finally {
             DockerConnector.stopContainers(containersStarted);
@@ -417,13 +441,40 @@ public class SqlServerImportJob implements PetlJob {
         }
     }
 
-    private void logNumberOfRows(String messagePrefix, DataSource dataSource, String tableName) {
+    /**
+     * @return the number of rows in the given table, or null if this could not be determined
+     */
+    private Integer logNumberOfRows(String messagePrefix, DataSource dataSource, String tableName) {
         try {
             Integer numRows = dataSource.querySingleValue("select count(*) from " + tableName, Integer.class);
-            log.info(messagePrefix + " " + tableName + " contains " + numRows + " rows");
+            log.debug(messagePrefix + " " + tableName + " contains " + numRows + " rows");
+            return numRows;
         }
         catch (Exception e) {
-            // Do nothing
+            log.debug("Unable to count rows in " + tableName + ": " + e.getMessage());
+            return null;
         }
+    }
+
+    /**
+     * @return the approximate number of rows in the given table, from SQL Server metadata.  This does not take locks
+     * on the table, so it can be queried while a bulk copy into the table is in progress.
+     */
+    private Long approximateRowCount(DataSource dataSource, String tableName) throws SQLException {
+        String sql = "select sum(row_count) from sys.dm_db_partition_stats " +
+                "where object_id = object_id('" + tableName.replace("'", "''") + "') and index_id in (0, 1)";
+        return dataSource.querySingleValue(sql, Long.class);
+    }
+
+    static String importSummary(String targetTable, String partitionValue, Integer rowsImported, PhaseTimer timer) {
+        StringBuilder sb = new StringBuilder("Imported ");
+        sb.append(rowsImported == null ? "data" : String.format("%,d rows", rowsImported));
+        sb.append(" into ").append(targetTable);
+        if (partitionValue != null) {
+            sb.append(" (partition ").append(partitionValue).append(")");
+        }
+        sb.append(" in ").append(LogUtils.formatDuration(timer.getTotalMillis()));
+        sb.append(" [").append(timer).append("]");
+        return sb.toString();
     }
 }
