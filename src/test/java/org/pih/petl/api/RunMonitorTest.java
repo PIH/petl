@@ -14,6 +14,7 @@ import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Collections;
+import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -74,7 +75,7 @@ public class RunMonitorTest {
         runMonitor.onSave(child1);
         runMonitor.onJobComplete(child1, etlService);
 
-        runMonitor.flushStatusFile(true);
+        runMonitor.flushStatusFile(root.getUuid(), true);
         String status = readStatusFile();
         Assert.assertTrue(status.contains("1 / 2 complete"));
         Assert.assertTrue(status.indexOf("child-1") < status.indexOf("child-2"));
@@ -93,6 +94,90 @@ public class RunMonitorTest {
         runMonitor.onSave(root);
         runMonitor.onJobComplete(root, etlService);
         Assert.assertTrue(readStatusFile().contains("SUCCEEDED"));
+    }
+
+    @Test
+    public void shouldHandleOverlappingRuns() throws Exception {
+        when(etlService.getChildExecutions(any())).thenReturn(Collections.emptyList());
+
+        JobExecution runA = execution("run-a", null, null);
+        JobExecution runB = execution("run-b", null, null);
+        runA.setStatus(JobExecutionStatus.IN_PROGRESS);
+        runB.setStatus(JobExecutionStatus.IN_PROGRESS);
+        runMonitor.onSave(runA);
+        runMonitor.onJobStart(runA, etlService);
+        runMonitor.onSave(runB);
+        runMonitor.onJobStart(runB, etlService);
+
+        // Run A completes while run B is the active run, and its final status is still written
+        runA.setStatus(JobExecutionStatus.SUCCEEDED);
+        runMonitor.onSave(runA);
+        runMonitor.onJobComplete(runA, etlService);
+        Assert.assertTrue(readStatusFile().contains("run-a"));
+        Assert.assertTrue(readStatusFile().contains("SUCCEEDED"));
+
+        // A final flush for a run that has already switched away is written for that run, not the active one
+        runMonitor.flushStatusFile(runB.getUuid(), true);
+        Assert.assertTrue(readStatusFile().contains("run-b"));
+
+        // Run A has been released, and run B remains active and continues to be reported
+        Map<String, JobExecution> executions = trackedExecutions();
+        Assert.assertFalse(executions.containsKey(runA.getUuid()));
+        Assert.assertEquals(runB.getUuid(), ReflectionTestUtils.getField(runMonitor, "activeRootUuid"));
+
+        JobExecution childB = execution("child-b", runB, 1);
+        runMonitor.onSave(childB);
+        runMonitor.flushStatusFile(runB.getUuid(), false);
+        Assert.assertTrue(readStatusFile().contains("child-b"));
+    }
+
+    @Test
+    public void shouldSwitchActiveRunWhenActiveRunIsReleased() throws Exception {
+        when(etlService.getChildExecutions(any())).thenReturn(Collections.emptyList());
+
+        JobExecution runA = execution("run-a", null, null);
+        JobExecution runB = execution("run-b", null, null);
+        runA.setStatus(JobExecutionStatus.IN_PROGRESS);
+        runB.setStatus(JobExecutionStatus.IN_PROGRESS);
+        runMonitor.onSave(runA);
+        runMonitor.onJobStart(runA, etlService);
+        runMonitor.onSave(runB);
+        runMonitor.onJobStart(runB, etlService);
+
+        // Run B completes while run A is still in progress, so run A becomes the active run
+        runB.setStatus(JobExecutionStatus.FAILED);
+        runMonitor.onSave(runB);
+        runMonitor.onJobComplete(runB, etlService);
+        Assert.assertEquals(runA.getUuid(), ReflectionTestUtils.getField(runMonitor, "activeRootUuid"));
+
+        runMonitor.flushStatusFile(runA.getUuid(), false);
+        Assert.assertTrue(readStatusFile().contains("run-a"));
+    }
+
+    @Test
+    public void shouldReleaseCompletedRunsThatAreNotActive() {
+        when(etlService.getChildExecutions(any())).thenReturn(Collections.emptyList());
+
+        JobExecution runA = execution("run-a", null, null);
+        JobExecution runB = execution("run-b", null, null);
+        runA.setStatus(JobExecutionStatus.IN_PROGRESS);
+        runB.setStatus(JobExecutionStatus.IN_PROGRESS);
+        runMonitor.onSave(runA);
+        runMonitor.onJobStart(runA, etlService);
+        runMonitor.onSave(runB);
+        runMonitor.onJobStart(runB, etlService);
+
+        // Run A completes without a completion notification, eg. a resumed run
+        runA.setStatus(JobExecutionStatus.SUCCEEDED);
+        runMonitor.onSave(runA);
+        runMonitor.flushStatusFile(runB.getUuid(), false);
+        Assert.assertFalse(trackedExecutions().containsKey(runA.getUuid()));
+        Assert.assertTrue(trackedExecutions().containsKey(runB.getUuid()));
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, JobExecution> trackedExecutions() {
+        return (Map<String, JobExecution>) ReflectionTestUtils.getField(runMonitor, "executions");
     }
 
     private JobExecution execution(String description, JobExecution parent, Integer sequenceNum) {

@@ -64,7 +64,7 @@ public class RunMonitor {
 
     @PostConstruct
     public void init() {
-        refreshTimer.scheduleWithFixedDelay(() -> flushStatusFile(false), FLUSH_INTERVAL_SECONDS, FLUSH_INTERVAL_SECONDS, TimeUnit.SECONDS);
+        refreshTimer.scheduleWithFixedDelay(() -> flushStatusFile(activeRootUuid, false), FLUSH_INTERVAL_SECONDS, FLUSH_INTERVAL_SECONDS, TimeUnit.SECONDS);
     }
 
     @PreDestroy
@@ -101,9 +101,10 @@ public class RunMonitor {
     public void onJobComplete(JobExecution execution, EtlService etlService) {
         try {
             appendToRunLog(execution, RunSummaryLogger.formatDuration(execution));
-            activate(execution, etlService);
+            String rootUuid = activate(execution, etlService);
             if (execution.getParentExecutionUuid() == null) {
-                flushStatusFile(true);
+                // Flush this specific run, as a concurrent run may have since become active
+                flushStatusFile(rootUuid, true);
             }
         }
         catch (Throwable t) {
@@ -113,8 +114,9 @@ public class RunMonitor {
 
     /**
      * Makes the run containing this execution the one reported in the status file
+     * @return the uuid of the root execution of the run
      */
-    private void activate(JobExecution execution, EtlService etlService) {
+    private String activate(JobExecution execution, EtlService etlService) {
         executions.putIfAbsent(execution.getUuid(), execution);
         JobExecution root = findRoot(execution, etlService);
         if (loadedRoots.add(root.getUuid())) {
@@ -122,6 +124,7 @@ public class RunMonitor {
         }
         activeRootUuid = root.getUuid();
         dirty = true;
+        return root.getUuid();
     }
 
     private JobExecution findRoot(JobExecution execution, EtlService etlService) {
@@ -152,39 +155,47 @@ public class RunMonitor {
     }
 
     /**
-     * Rewrites the status file if anything has changed, or if it has not been refreshed recently
-     * When the active run has completed, the final status is written and its state is released.
+     * Rewrites the status file for the given run if anything has changed, or if it has not been refreshed recently.
+     * When the run has completed, the final status is written and its state is released.  Any other runs that have
+     * completed without being flushed (eg. resumed runs, which do not notify on completion) are also released.
      */
-    synchronized void flushStatusFile(boolean force) {
+    synchronized void flushStatusFile(String rootUuid, boolean force) {
         try {
-            String rootUuid = activeRootUuid;
             JobExecution root = (rootUuid == null ? null : executions.get(rootUuid));
-            if (root == null) {
-                return;
-            }
             long now = System.currentTimeMillis();
-            if (!force && !dirty && now - lastWriteMillis < REFRESH_INTERVAL_MILLIS) {
-                return;
+            if (root != null && (force || dirty || now - lastWriteMillis >= REFRESH_INTERVAL_MILLIS)) {
+                dirty = false;
+                lastWriteMillis = now;
+                Map<String, List<JobExecution>> childIndex = buildChildIndex();
+                writeStatusFile(buildStatusContent(root, childIndex));
+                if (isTerminal(root.getStatus())) {
+                    release(root, childIndex);
+                }
             }
-            dirty = false;
-            lastWriteMillis = now;
-
-            Map<String, List<JobExecution>> childIndex = buildChildIndex();
-            writeStatusFile(buildStatusContent(root, childIndex));
-
-            if (isTerminal(root.getStatus())) {
-                release(root, childIndex);
-            }
+            releaseOtherCompletedRuns(rootUuid);
         }
         catch (Throwable t) {
             log.warn("Run monitor failed to update " + STATUS_LOG + ": " + t.getMessage());
         }
     }
 
-    private void release(JobExecution root, Map<String, List<JobExecution>> childIndex) {
-        if (root.getUuid().equals(activeRootUuid)) {
-            activeRootUuid = null;
+    private void releaseOtherCompletedRuns(String excludedRootUuid) {
+        Map<String, List<JobExecution>> childIndex = null;
+        for (String uuid : new ArrayList<>(loadedRoots)) {
+            JobExecution root = executions.get(uuid);
+            if (!uuid.equals(excludedRootUuid) && root != null && isTerminal(root.getStatus())) {
+                if (childIndex == null) {
+                    childIndex = buildChildIndex();
+                }
+                release(root, childIndex);
+            }
         }
+    }
+
+    /**
+     * Removes the given run from memory.  If it was the active run, another in-progress run becomes active.
+     */
+    private void release(JobExecution root, Map<String, List<JobExecution>> childIndex) {
         List<JobExecution> descendants = new ArrayList<>();
         collectDescendants(root, childIndex, descendants);
         for (JobExecution d : descendants) {
@@ -192,6 +203,17 @@ public class RunMonitor {
         }
         executions.remove(root.getUuid());
         loadedRoots.remove(root.getUuid());
+        if (activeRootUuid == null || root.getUuid().equals(activeRootUuid)) {
+            activeRootUuid = null;
+            for (String uuid : loadedRoots) {
+                JobExecution other = executions.get(uuid);
+                if (other != null && !isTerminal(other.getStatus())) {
+                    activeRootUuid = uuid;
+                    dirty = true;
+                    break;
+                }
+            }
+        }
     }
 
     private Map<String, List<JobExecution>> buildChildIndex() {
