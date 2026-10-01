@@ -171,7 +171,10 @@ JAVA_OPTS=-Xmx2048m -Xms1024m
 
 `partnersinhealth/petl` (`Dockerfile.runtime`) runs the jobs given as arguments or in `PETL_FULL_REFRESH_JOBS`,
 retrying up to `PETL_MAX_RETRIES` times, then exits. ETL projects build their own image on top of it with their
-`jobs/`, `datasources/` and an `application.yml` (see apzu-etl, ces-etl).
+`jobs/`, `datasources/` and an `application.yml` (see apzu-etl, ces-etl). After pushing a new
+image, this repo's image workflow sends `petl-image-published` to those projects with the image's
+digest (`client_payload.petl_image`), and they rebuild on exactly that image, so their builds and CI
+runs test it.
 
 Any property PETL reads, including the `${...}` placeholders in job and datasource files, can be set with its Spring
 environment-variable name: `.` and `-` become `_`, uppercased. For example `DATASOURCES_OPENMRS_CESCI_HOST` sets
