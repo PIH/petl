@@ -167,6 +167,25 @@ JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
 JAVA_OPTS=-Xmx2048m -Xms1024m
 ```
 
+## Configuration in Docker
+
+`partnersinhealth/petl` (`Dockerfile.runtime`) runs the jobs given as arguments or in `PETL_FULL_REFRESH_JOBS`,
+retrying up to `PETL_MAX_RETRIES` times, then exits. ETL projects build their own image on top of it with their
+`jobs/`, `datasources/` and an `application.yml` (see apzu-etl, ces-etl).
+
+Any property PETL reads, including the `${...}` placeholders in job and datasource files, can be set with its Spring
+environment-variable name: `.` and `-` become `_`, uppercased. For example `DATASOURCES_OPENMRS_CESCI_HOST` sets
+`datasources.openmrs.cesci.host`.
+
+PETL's job history is in `petl.jobStore` (`PETL_JOBSTORE`):
+
+| Value | Store |
+|---|---|
+| `h2` (default) | an H2 file under `${petl.homeDir}/data` (mount a volume there to keep it) |
+| `sqlserver` | the SQL Server in `PETL_SQLSERVER_HOST`, `PETL_SQLSERVER_PORT` (1433), `PETL_SQLSERVER_DATABASE`, `PETL_SQLSERVER_USER`, `PETL_SQLSERVER_PASSWORD`, tables `petl_database_change_log*` |
+
+A `spring.datasource` set in an `application.yml` wins over either.
+
 # Configuration
 
 ## Overview of Data Sources
@@ -234,8 +253,9 @@ set up partitioning schemes, etc.  To aid with this, all jobs support templating
 or within any files that a job may load in and use (eg. associated job or sql files), variables can be used.  These can refer to
 any variable from the following sources (in order of lowest-to-highest precedence):
 
-a) any environment variable
-b) any variable defined in application.yml
+a) any variable defined in application.yml
+b) any environment variable or system property, by the property's name or its Spring environment-variable name
+   (`.` and `-` become `_`, uppercased: `DATASOURCES_OPENMRS_CESCI_HOST` for `datasources.openmrs.cesci.host`)
 c) any variable defined in the "parameters" property of a job
 d) any variable defined in a specific job configuration (i.e. in the iterations property of the iterating-job)
 
