@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang.text.StrLookup;
 import org.apache.commons.lang.text.StrSubstitutor;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -80,20 +79,13 @@ public class ApplicationConfig {
     /**
      * Replaces each ${name} in value with the property of that name as Spring resolves it, so Spring's
      * relaxed environment-variable names apply (DATASOURCES_OPENMRS_CESCI_HOST for
-     * datasources.openmrs.cesci.host). A name with no value is left as is.
+     * datasources.openmrs.cesci.host), and ${name:default} gives a default (${name:} an empty one).
+     * A name with no value and no default is left as is.
      * @param value the value
      * @return the value with its placeholders replaced, or null for null
      */
     public String replaceEnvironmentVariables(String value) {
-        if (value == null) {
-            return null;
-        }
-        return new StrSubstitutor(new StrLookup() {
-            @Override
-            public String lookup(String key) {
-                return environment.getProperty(key);
-            }
-        }).replace(value);
+        return value == null ? null : environment.resolvePlaceholders(value);
     }
 
     /**

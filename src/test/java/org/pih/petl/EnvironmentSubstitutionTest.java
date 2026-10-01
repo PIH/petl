@@ -55,6 +55,16 @@ public class EnvironmentSubstitutionTest {
     }
 
     @Test
+    public void aPlaceholderCanHaveADefault() {
+        Map<String, Object> env = new HashMap<>();
+        env.put("DATASOURCES_OPENMRS_KGH_CONTAINERNAME", "kgh-mysql");
+        ApplicationConfig c = config(env, new HashMap<>());
+        Assert.assertEquals("[]", c.replaceEnvironmentVariables("[${datasources.openmrs.zlci.containerName:}]"));
+        Assert.assertEquals("3306", c.replaceEnvironmentVariables("${datasources.openmrs.zlci.port:3306}"));
+        Assert.assertEquals("kgh-mysql", c.replaceEnvironmentVariables("${datasources.openmrs.kgh.containerName:}"));
+    }
+
+    @Test
     public void jobParametersWinOverTheEnvironment() {
         Map<String, Object> env = new HashMap<>();
         env.put("SITENAME", "from-env");
