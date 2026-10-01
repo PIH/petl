@@ -13,9 +13,6 @@ on:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-    outputs:
-      digest: ${{ steps.build.outputs.digest }}
-      version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@v4
 
@@ -45,7 +42,6 @@ jobs:
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
       - uses: docker/build-push-action@v6
-        id: build
         with:
           context: .
           file: Dockerfile.runtime
@@ -54,21 +50,3 @@ jobs:
           tags: |
             partnersinhealth/petl:latest
             partnersinhealth/petl:${{ steps.version.outputs.version }}
-
-  # ETL projects build their images on partnersinhealth/petl. Each gets the image just published (by
-  # digest) and the tags it moved; a project whose Dockerfile builds on one of those tags rebuilds on
-  # exactly that image, so its build and CI run test this PETL, and one pinned to another version
-  # does nothing (distro-tools' etl-base-image-affected action).
-  dispatch-etl-image-builds:
-    needs: build-and-push
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        repository: [PIH/apzu-etl, PIH/ces-etl, PIH/liberia-etl, PIH/sl-etl, PIH/zl-etl]
-    steps:
-      - uses: peter-evans/repository-dispatch@v3
-        with:
-          token: ${{ secrets.GHA_WRITE_TOKEN }}
-          repository: ${{ matrix.repository }}
-          event-type: petl-image-published
-          client-payload: '{"petl_image": "partnersinhealth/petl@${{ needs.build-and-push.outputs.digest }}", "petl_tags": ["latest", "${{ needs.build-and-push.outputs.version }}"]}'

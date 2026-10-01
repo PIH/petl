@@ -171,11 +171,10 @@ JAVA_OPTS=-Xmx2048m -Xms1024m
 
 `partnersinhealth/petl` (`Dockerfile.runtime`) runs the jobs given as arguments or in `PETL_FULL_REFRESH_JOBS`,
 retrying up to `PETL_MAX_RETRIES` times, then exits. ETL projects build their own image on top of it with their
-`jobs/`, `datasources/` and an `application.yml` (see apzu-etl, ces-etl). After pushing a new
-image, this repo's image workflow sends `petl-image-published` to those projects (apzu-etl, ces-etl, liberia-etl, sl-etl, zl-etl) with the image's
-digest (`client_payload.petl_image`) and the tags it moved (`client_payload.petl_tags`: `latest` and
-the version). A project whose Dockerfile builds on one of those tags rebuilds on exactly that image,
-so its build and CI run test it; one pinned to another version does nothing.
+`jobs/`, `datasources/` and an `application.yml` (see apzu-etl, ces-etl). They pin it by digest, and
+[Renovate](https://docs.renovatebot.com/) opens a PR in each when a newer image is published for the
+tag it follows (merged automatically once its checks pass); a project pinned to a release version
+isn't touched by a new `latest`.
 
 Any property PETL reads, including the `${...}` placeholders in job and datasource files, can be set with its Spring
 environment-variable name: `.` and `-` become `_`, uppercased. For example `DATASOURCES_OPENMRS_CESCI_HOST` sets
