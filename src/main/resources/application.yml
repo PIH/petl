@@ -9,10 +9,18 @@ logging:
     file: "%d{yyyy-MM-dd HH:mm:ss.SSS} %5p [%t] [%X{petlJob}] %c{0} - %m%n"
 
 spring:
-  # PETL's own datasource (job history) comes from petl.jobStore: see JobStoreEnvironmentPostProcessor.
+  datasource:
+    platform: "h2"
+    driver-class-name: "org.h2.Driver"
+    url: "jdbc:h2:file:${petl.homeDir}/data/petl;DB_CLOSE_ON_EXIT=FALSE;AUTO_SERVER=TRUE"
+    username: "sa"
+    password: "Test123"
   jpa:
     hibernate:
       ddl-auto: "none"
+  liquibase:
+    database-change-log-table: "PETL_DATABASE_CHANGE_LOG"
+    database-change-log-lock-table: "PETL_DATABASE_CHANGE_LOG_LOCK"
   quartz:
     job-store-type: "memory"
 
