@@ -177,14 +177,20 @@ Any property PETL reads, including the `${...}` placeholders in job and datasour
 environment-variable name: `.` and `-` become `_`, uppercased. For example `DATASOURCES_OPENMRS_CESCI_HOST` sets
 `datasources.openmrs.cesci.host`.
 
-PETL's job history is in `petl.jobStore` (`PETL_JOBSTORE`):
+PETL keeps its job history in `spring.datasource`: by default an H2 file under `${petl.homeDir}/data`
+(mount a volume there to keep it). To keep it in SQL Server, as the legacy test and production servers
+do, set `spring.datasource` (and the matching `spring.jpa`/`spring.liquibase` settings) in an
+`application.yml` or by their environment names, e.g.:
 
-| Value | Store |
-|---|---|
-| `h2` (default) | an H2 file under `${petl.homeDir}/data` (mount a volume there to keep it) |
-| `sqlserver` | the SQL Server in `PETL_SQLSERVER_HOST`, `PETL_SQLSERVER_PORT` (1433), `PETL_SQLSERVER_DATABASE`, `PETL_SQLSERVER_USER`, `PETL_SQLSERVER_PASSWORD`, tables `petl_database_change_log*` |
+    SPRING_DATASOURCE_URL=jdbc:sqlserver://sqlserver:1433;databaseName=openmrs_reporting
+    SPRING_DATASOURCE_USERNAME=...
+    SPRING_DATASOURCE_PASSWORD=...
+    SPRING_DATASOURCE_DRIVER_CLASS_NAME=com.microsoft.sqlserver.jdbc.SQLServerDriver
+    SPRING_DATASOURCE_PLATFORM=mssql
+    SPRING_JPA_HIBERNATE_DIALECT=org.hibernate.dialect.SQLServer2012Dialect
+    SPRING_LIQUIBASE_DATABASE_CHANGE_LOG_TABLE=petl_database_change_log
+    SPRING_LIQUIBASE_DATABASE_CHANGE_LOG_LOCK_TABLE=petl_database_change_log_lock
 
-A `spring.datasource` set in an `application.yml` wins over either.
 
 # Configuration
 
