@@ -167,6 +167,35 @@ JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
 JAVA_OPTS=-Xmx2048m -Xms1024m
 ```
 
+## Configuration in Docker
+
+`partnersinhealth/petl` (`Dockerfile.runtime`) runs the jobs given as arguments or in `PETL_FULL_REFRESH_JOBS`,
+retrying up to `PETL_MAX_RETRIES` times, then exits. ETL projects build their own image on top of it with their
+`jobs/`, `datasources/` and an `application.yml` (see apzu-etl, ces-etl). They pin it by digest, and
+[Renovate](https://docs.renovatebot.com/) opens a PR in each when a newer image is published for the
+tag it follows (merged automatically once its checks pass); a project pinned to a release version
+isn't touched by a new `latest`.
+
+Any property PETL reads, including the `${...}` placeholders in job and datasource files, can be set with its Spring
+environment-variable name: `.` and `-` become `_`, uppercased. For example `DATASOURCES_OPENMRS_CESCI_HOST` sets
+`datasources.openmrs.cesci.host`. A placeholder can give a default, `${name:default}`, or an empty one, `${name:}`
+(e.g. `containerName: ${datasources.openmrs.zlci.containerName:}`: no container unless one is set).
+
+PETL keeps its job history in `spring.datasource`: by default an H2 file under `${petl.homeDir}/data`
+(mount a volume there to keep it). To keep it in SQL Server, as the legacy test and production servers
+do, set `spring.datasource` (and the matching `spring.jpa`/`spring.liquibase` settings) in an
+`application.yml` or by their environment names, e.g.:
+
+    SPRING_DATASOURCE_URL=jdbc:sqlserver://sqlserver:1433;databaseName=openmrs_reporting
+    SPRING_DATASOURCE_USERNAME=...
+    SPRING_DATASOURCE_PASSWORD=...
+    SPRING_DATASOURCE_DRIVER_CLASS_NAME=com.microsoft.sqlserver.jdbc.SQLServerDriver
+    SPRING_DATASOURCE_PLATFORM=mssql
+    SPRING_JPA_HIBERNATE_DIALECT=org.hibernate.dialect.SQLServer2012Dialect
+    SPRING_LIQUIBASE_DATABASE_CHANGE_LOG_TABLE=petl_database_change_log
+    SPRING_LIQUIBASE_DATABASE_CHANGE_LOG_LOCK_TABLE=petl_database_change_log_lock
+
+
 # Configuration
 
 ## Overview of Data Sources
@@ -234,8 +263,9 @@ set up partitioning schemes, etc.  To aid with this, all jobs support templating
 or within any files that a job may load in and use (eg. associated job or sql files), variables can be used.  These can refer to
 any variable from the following sources (in order of lowest-to-highest precedence):
 
-a) any environment variable
-b) any variable defined in application.yml
+a) any variable defined in application.yml
+b) any environment variable or system property, by the property's name or its Spring environment-variable name
+   (`.` and `-` become `_`, uppercased: `DATASOURCES_OPENMRS_CESCI_HOST` for `datasources.openmrs.cesci.host`)
 c) any variable defined in the "parameters" property of a job
 d) any variable defined in a specific job configuration (i.e. in the iterations property of the iterating-job)
 

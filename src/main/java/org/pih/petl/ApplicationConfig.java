@@ -77,6 +77,18 @@ public class ApplicationConfig {
     }
 
     /**
+     * Replaces each ${name} in value with the property of that name as Spring resolves it, so Spring's
+     * relaxed environment-variable names apply (DATASOURCES_OPENMRS_CESCI_HOST for
+     * datasources.openmrs.cesci.host), and ${name:default} gives a default (${name:} an empty one).
+     * A name with no value and no default is left as is.
+     * @param value the value
+     * @return the value with its placeholders replaced, or null for null
+     */
+    public String replaceEnvironmentVariables(String value) {
+        return value == null ? null : environment.resolvePlaceholders(value);
+    }
+
+    /**
      * @param propertyName the property name
      * @param path the path
      * @param required whether required
@@ -225,7 +237,7 @@ public class ApplicationConfig {
         }
         try {
             String fileContents = FileUtils.readFileToString(configFile.getConfigFile(), "UTF-8");
-            String fileWithVariablesReplaced = StrSubstitutor.replace(fileContents, getEnv());
+            String fileWithVariablesReplaced = replaceEnvironmentVariables(fileContents);
             return getYamlMapper().readValue(fileWithVariablesReplaced, DataSource.class);
         }
         catch (Exception e) {
@@ -248,7 +260,7 @@ public class ApplicationConfig {
 
     public String getSubstitutedValue(String value, Map<String, String> parameters) {
         value = StrSubstitutor.replace(value, parameters);
-        value = StrSubstitutor.replace(value, getEnv());
+        value = replaceEnvironmentVariables(value);
         return value;
     }
 }
