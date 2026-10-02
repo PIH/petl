@@ -73,7 +73,7 @@ spring:
   datasource:
     platform: "h2"
     driver-class-name: "org.h2.Driver"
-    url: "jdbc:h2:file:${petl.homeDir}/data/petl;DB_CLOSE_ON_EXIT=FALSE;AUTO_SERVER=TRUE"
+    url: "jdbc:h2:file:${petl.homeDir}/data/petl;DB_CLOSE_ON_EXIT=FALSE"
     username: "sa"
     password: "Test123"
     data: "classpath:schema-h2.sql"
@@ -85,6 +85,21 @@ spring:
     database-change-log-lock-table: "petl_database_change_log_lock"
   quartz:
     job-store-type: "memory"
+```
+
+PETL uses H2 2.x, which can't open the H2 1.4 database file earlier versions of PETL wrote.  On startup, if the H2 file
+the datasource points to was written by H2 1.4, PETL moves it aside to `petl.mv.db.h2-1.4` (logging a warning) and
+starts a new, empty history in `petl.mv.db`.  Without its earlier history, a scheduled job runs once at startup, and an
+incomplete run from before isn't resumed.  The old file is no longer used: delete it, or keep it as a backup.  To carry
+its history over instead, stop PETL, then export the old file with H2 1.4.199 and load it with H2 2.x into an empty
+database in place of the new one (which then loses the history recorded since the upgrade):
+
+```
+cd <petl.homeDir>/data
+cp petl.mv.db.h2-1.4 petl-old.mv.db   # H2 only opens files ending in .mv.db
+java -cp h2-1.4.199.jar org.h2.tools.Script -url "jdbc:h2:file:$PWD/petl-old" -user sa -password Test123 -script petl.sql
+rm petl.mv.db
+java -cp h2-2.2.224.jar org.h2.tools.RunScript -url "jdbc:h2:file:$PWD/petl" -user sa -password Test123 -script petl.sql -options FROM_1X
 ```
 
 In cases where implementations prefer to store the petl_job_execution table in another database, for greater visibility
