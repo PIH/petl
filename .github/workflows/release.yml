@@ -3,8 +3,8 @@ name: Release
 on:
   workflow_dispatch:
     inputs:
-      republish_existing_tag:
-        description: Leave empty for a normal release. Only to re-publish a tag that a failed release already pushed (release:prepare pushed the tag, release:perform failed) - runs release:perform alone, from that tag.
+      publish_existing_tag:
+        description: Leave empty for a normal release. Only to publish a tag that a failed release already pushed but never published (release:prepare pushed the tag, release:perform failed) - runs release:perform alone, from that tag.
         required: false
         default: ''
 
@@ -39,24 +39,24 @@ jobs:
         git config user.name "Github Action"
         git config user.email "github-action@users.noreply.github.com"
 
-    # With republish_existing_tag, check the tag exists, then recreate the release.properties that
+    # With publish_existing_tag, check the tag exists, then recreate the release.properties that
     # release:prepare would have left, so release:perform checks out and publishes that tag (it
     # reads a git tag only from this file).
     - name: Deploy release
       run: |
         goals="release:prepare release:perform"
-        if [ -n "$REPUBLISH_TAG" ]; then
-          if ! git ls-remote --exit-code --tags origin "refs/tags/$REPUBLISH_TAG" >/dev/null; then
-            echo "::error::Tag '$REPUBLISH_TAG' doesn't exist. republish_existing_tag only re-publishes a tag that a failed release already pushed - leave it empty to make a new release."
+        if [ -n "$PUBLISH_TAG" ]; then
+          if ! git ls-remote --exit-code --tags origin "refs/tags/$PUBLISH_TAG" >/dev/null; then
+            echo "::error::Tag '$PUBLISH_TAG' doesn't exist. publish_existing_tag only publishes a tag that a failed release already pushed - leave it empty to make a new release."
             exit 1
           fi
           printf 'scm.url=scm:git:%s/%s.git\nscm.tag=%s\ncompletedPhase=end-release\n' \
-            "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$REPUBLISH_TAG" > release.properties
+            "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$PUBLISH_TAG" > release.properties
           goals="release:perform"
         fi
         mvn -B $goals -Prelease --file pom.xml
       env:
-        REPUBLISH_TAG: ${{ inputs.republish_existing_tag }}
+        PUBLISH_TAG: ${{ inputs.publish_existing_tag }}
         SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
         SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
         MAVEN_GPG_PASSPHRASE: ${{ secrets.SONATYPE_GPG_PASSPHRASE }}
