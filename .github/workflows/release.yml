@@ -3,8 +3,8 @@ name: Release
 on:
   workflow_dispatch:
     inputs:
-      release_tag:
-        description: Existing tag to publish (only to recover a release whose release:perform failed after its tag was pushed)
+      republish_existing_tag:
+        description: Leave empty for a normal release. Only to re-publish a tag that a failed release already pushed (release:prepare pushed the tag, release:perform failed) - runs release:perform alone, from that tag.
         required: false
         default: ''
 
@@ -39,19 +39,24 @@ jobs:
         git config user.name "Github Action"
         git config user.email "github-action@users.noreply.github.com"
 
-    # With release_tag, recreate the release.properties that release:prepare would have left, so
-    # release:perform checks out and publishes that tag (it reads a git tag only from this file).
+    # With republish_existing_tag, check the tag exists, then recreate the release.properties that
+    # release:prepare would have left, so release:perform checks out and publishes that tag (it
+    # reads a git tag only from this file).
     - name: Deploy release
       run: |
         goals="release:prepare release:perform"
-        if [ -n "$RELEASE_TAG" ]; then
+        if [ -n "$REPUBLISH_TAG" ]; then
+          if ! git ls-remote --exit-code --tags origin "refs/tags/$REPUBLISH_TAG" >/dev/null; then
+            echo "::error::Tag '$REPUBLISH_TAG' doesn't exist. republish_existing_tag only re-publishes a tag that a failed release already pushed - leave it empty to make a new release."
+            exit 1
+          fi
           printf 'scm.url=scm:git:%s/%s.git\nscm.tag=%s\ncompletedPhase=end-release\n' \
-            "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$RELEASE_TAG" > release.properties
+            "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$REPUBLISH_TAG" > release.properties
           goals="release:perform"
         fi
         mvn -B $goals -Prelease --file pom.xml
       env:
-        RELEASE_TAG: ${{ inputs.release_tag }}
+        REPUBLISH_TAG: ${{ inputs.republish_existing_tag }}
         SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
         SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
         MAVEN_GPG_PASSPHRASE: ${{ secrets.SONATYPE_GPG_PASSPHRASE }}
