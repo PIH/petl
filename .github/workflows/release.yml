@@ -2,12 +2,17 @@ name: Release
 
 on:
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Existing tag to publish (only to recover a release whose release:perform failed after its tag was pushed)
+        required: false
+        default: ''
 
 jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
     - name: Setup Local Maven Repository
       id: setup_local_maven_repository
@@ -15,14 +20,18 @@ jobs:
         ./create-local-maven-repo.sh
 
     - name: Set up JDK
-      uses: actions/setup-java@v4
+      uses: actions/setup-java@v6
       with:
         distribution: 'temurin'
         java-version: 8
         cache: 'maven'
         server-id: sonatype-central
-        server-username: SONATYPE_USERNAME
-        server-password: SONATYPE_PASSWORD
+        server-username-env-var: SONATYPE_USERNAME
+        server-password-env-var: SONATYPE_PASSWORD
+
+    # Maven 3.9.x until central-publishing-maven-plugin handles Maven 3.10's release bundle
+    - name: Set up Maven
+      uses: PIH/openmrs-contrib-distro-tools/.github/actions/setup-maven@main
 
     # Set up git config
     - name: Setup Git Config
@@ -30,9 +39,19 @@ jobs:
         git config user.name "Github Action"
         git config user.email "github-action@users.noreply.github.com"
 
+    # With release_tag, recreate the release.properties that release:prepare would have left, so
+    # release:perform checks out and publishes that tag (it reads a git tag only from this file).
     - name: Deploy release
-      run: mvn -B release:prepare release:perform -Prelease --file pom.xml
+      run: |
+        goals="release:prepare release:perform"
+        if [ -n "$RELEASE_TAG" ]; then
+          printf 'scm.url=scm:git:%s/%s.git\nscm.tag=%s\ncompletedPhase=end-release\n' \
+            "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$RELEASE_TAG" > release.properties
+          goals="release:perform"
+        fi
+        mvn -B $goals -Prelease --file pom.xml
       env:
+        RELEASE_TAG: ${{ inputs.release_tag }}
         SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
         SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
         MAVEN_GPG_PASSPHRASE: ${{ secrets.SONATYPE_GPG_PASSPHRASE }}
