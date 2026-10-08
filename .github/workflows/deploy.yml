@@ -9,7 +9,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
     - name: Setup Local Maven Repository
       id: setup_local_maven_repository
@@ -17,14 +17,14 @@ jobs:
         ./create-local-maven-repo.sh
 
     - name: Set up JDK
-      uses: actions/setup-java@v4
+      uses: actions/setup-java@v6
       with:
         distribution: 'temurin'
         java-version: 8
         cache: 'maven'
         server-id: sonatype-central
-        server-username: SONATYPE_USERNAME
-        server-password: SONATYPE_PASSWORD
+        server-username-env-var: SONATYPE_USERNAME
+        server-password-env-var: SONATYPE_PASSWORD
 
     - name: Deploy snapshot
       run: mvn -B deploy --file pom.xml
