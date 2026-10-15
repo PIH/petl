@@ -235,7 +235,7 @@ Typically, once the initial setup for a given ETL server is done, the datasource
 datasources they connect to are more static.
 
 For the PIH EMR, datasources are typically setup to refer to configuration variables that are set by puppet into `application.yml`.
-See:  https://github.com/PIH/openmrs-config-pihemr/tree/master/configuration/pih/petl/datasources
+These live in the PIH EMR distribution's content configuration, in `content/configuration/backend_configuration/pih/petl/datasources` of the distribution repository.
 
 ## Overview of Jobs
 
@@ -644,7 +644,7 @@ profiles.  (See https://github.com/PIH/petl/tree/master/src/test/resources/confi
 
 Prerequisites:
 
-* [openmrs-config-pihemr](https://github.com/PIH/openmrs-config-pihemr) checked out (this is where the existing jobs live)
+* The repository holding the jobs you want to work on checked out, typically a PIH EMR distribution repository, which keeps its jobs and datasources under `content/configuration/backend_configuration/pih/petl`
 * Local MySQL instance with an OpenMRS DB
 
 ### Set up a SQL Server instance
@@ -669,7 +669,7 @@ The `application.yml` file tells PETL
 
 * The directory to use as a working directory (`homeDir`)
 * The location of the datasource and job configurations (in the example below, they point to the appropriate
-directories in my local `openmrs-config-pihemr`)
+directories in my local checkout of that repository)
 * The connection credentials for the local MySQL and SQL Server databases
 
 As an example:
@@ -677,8 +677,8 @@ As an example:
 ```yaml
 petl:
   homeDir: "/home/mgoodrich/petl"
-  datasourceDir: "/home/mgoodrich/openmrs/modules/config-pihemr/configuration/pih/petl/datasources"
-  jobDir: "/home/mgoodrich/openmrs/modules/config-pihemr/configuration/pih/petl/jobs"
+  datasourceDir: "/home/mgoodrich/<distribution-repo>/content/configuration/backend_configuration/pih/petl/datasources"
+  jobDir: "/home/mgoodrich/<distribution-repo>/content/configuration/backend_configuration/pih/petl/jobs"
 
 mysql:
   host: "localhost"
